@@ -39,7 +39,7 @@ export function TableWithPagination<T extends Record<string, any>>({
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [selectedFilter, setSelectedFilter] = useState<string>('');
+  const [selectedFilter, setSelectedFilter] = useState<string>('all');
 
   // Helper function to get nested values
   const getValue = (obj: any, path: string | keyof T): any => {
@@ -56,7 +56,7 @@ export function TableWithPagination<T extends Record<string, any>>({
       return value.includes(searchTerm.toLowerCase());
     });
     
-    const matchesFilter = !selectedFilter || 
+    const matchesFilter = selectedFilter === 'all' || 
       filterOptions.some(filter => 
         filter.value === selectedFilter && 
         String(item[filter.field]).toLowerCase().includes(selectedFilter.toLowerCase())
@@ -119,7 +119,7 @@ export function TableWithPagination<T extends Record<string, any>>({
                   <SelectValue placeholder="Filtrer par..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tous</SelectItem>
+                  <SelectItem value="all">Tous</SelectItem>
                   {filterOptions.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
