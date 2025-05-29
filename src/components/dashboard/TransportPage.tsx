@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TableWithPagination } from '@/components/ui/table-with-pagination';
+import { TransportRequestDetails } from './TransportRequestDetails';
 import { 
   Plus, 
   Car, 
@@ -31,10 +31,19 @@ interface TransportRequest {
   passengersCount: number;
   note?: string;
   createdAt: string;
+  passengers: Array<{
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
+    departureAddress: string;
+    arrivalAddress: string;
+  }>;
 }
 
 export function TransportPage() {
   const navigate = useNavigate();
+  const [selectedRequest, setSelectedRequest] = useState<TransportRequest | null>(null);
   
   const [transportRequests] = useState<TransportRequest[]>([
     {
@@ -49,7 +58,25 @@ export function TransportPage() {
       subsidiary: 'TechCorp Paris',
       passengersCount: 2,
       note: 'Transport pour réunion client importante',
-      createdAt: '2024-01-10 14:30'
+      createdAt: '2024-01-10 14:30',
+      passengers: [
+        {
+          id: '1',
+          name: 'Jean Dupont',
+          phone: '+33 6 12 34 56 78',
+          email: 'jean.dupont@techcorp.fr',
+          departureAddress: '15 Rue du Louvre, 75001 Paris',
+          arrivalAddress: '101 Avenue des Champs-Élysées, 75008 Paris'
+        },
+        {
+          id: '2',
+          name: 'Marie Martin',
+          phone: '+33 6 98 76 54 32',
+          email: 'marie.martin@techcorp.fr',
+          departureAddress: '25 Rue de Rivoli, 75004 Paris',
+          arrivalAddress: '101 Avenue des Champs-Élysées, 75008 Paris'
+        }
+      ]
     },
     {
       id: '2',
@@ -62,7 +89,17 @@ export function TransportPage() {
       enterprise: 'InnovSoft',
       passengersCount: 1,
       note: 'Rendez-vous médical urgent',
-      createdAt: '2024-01-10 15:45'
+      createdAt: '2024-01-10 15:45',
+      passengers: [
+        {
+          id: '3',
+          name: 'Pierre Durand',
+          phone: '+33 7 12 34 56 78',
+          email: 'pierre.durand@innovsoft.fr',
+          departureAddress: '5 Avenue Montaigne, 75008 Paris',
+          arrivalAddress: '50 Rue de la Paix, 75002 Paris'
+        }
+      ]
     },
     {
       id: '3',
@@ -207,8 +244,7 @@ export function TransportPage() {
   ];
 
   const handleRowClick = (request: TransportRequest) => {
-    // Navigate to request details
-    console.log('View request details:', request.id);
+    setSelectedRequest(request);
   };
 
   const getActions = (request: TransportRequest) => (
@@ -216,7 +252,7 @@ export function TransportPage() {
       <Button
         size="sm"
         variant="ghost"
-        onClick={() => console.log('View details:', request.id)}
+        onClick={() => setSelectedRequest(request)}
       >
         <Eye className="h-4 w-4" />
       </Button>
@@ -271,6 +307,17 @@ export function TransportPage() {
     }
   ];
 
+  if (selectedRequest) {
+    return (
+      <TransportRequestDetails
+        request={selectedRequest}
+        onEdit={() => console.log('Edit request:', selectedRequest.id)}
+        onDispatch={() => navigate('/dispatch')}
+        onClose={() => setSelectedRequest(null)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -297,7 +344,6 @@ export function TransportPage() {
         </div>
       </div>
 
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
           <Card key={index} className="animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
@@ -314,7 +360,6 @@ export function TransportPage() {
         ))}
       </div>
 
-      {/* Transport Requests Table */}
       <TableWithPagination
         data={transportRequests}
         columns={columns}

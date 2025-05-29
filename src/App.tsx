@@ -1,38 +1,35 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ThemeProvider } from "@/contexts/ThemeContext";
-import { LanguageProvider } from "@/contexts/LanguageContext";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { AuthPage } from "@/components/auth/AuthPage";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { LanguageProvider } from './contexts/LanguageContext';
+import { Toaster } from './components/ui/sonner';
+import { Index } from './pages/Index';
+import { AuthPage } from './components/auth/AuthPage';
+import { Dashboard } from './components/dashboard/Dashboard';
+import { ConfirmAccount } from './pages/ConfirmAccount';
+import './App.css';
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <ThemeProvider>
+function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
         <LanguageProvider>
-          <AuthProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
+          <Router>
+            <div className="min-h-screen bg-background">
               <Routes>
+                <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<AuthPage />} />
-                <Route path="/*" element={<Index />} />
-                <Route path="*" element={<NotFound />} />
+                <Route path="/confirm-account" element={<ConfirmAccount />} />
+                <Route path="/*" element={<Dashboard />} />
               </Routes>
-            </BrowserRouter>
-          </AuthProvider>
+              <Toaster />
+            </div>
+          </Router>
         </LanguageProvider>
-      </ThemeProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
 
 export default App;

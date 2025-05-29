@@ -1,99 +1,102 @@
+
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, LogIn } from 'lucide-react';
-import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function SignInForm() {
-  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
-  const { login } = useAuth();
-  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const success = await login(formData.email, formData.password);
-      if (success) {
-        toast.success('Connexion réussie! Redirection vers le dashboard...');
-        navigate('/dashboard');
-      } else {
-        toast.error('Email ou mot de passe incorrect');
-      }
-    } catch (error) {
-      toast.error('Erreur lors de la connexion');
-    } finally {
-      setIsLoading(false);
-    }
+    console.log('Sign in attempt:', formData);
+    // Redirect to dashboard after signin
+    navigate('/dashboard');
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold flex items-center justify-center space-x-2">
-          <LogIn className="h-6 w-6 text-etaxi-yellow" />
-          <span>Se connecter</span>
-        </CardTitle>
-        <CardDescription>
-          Accédez à votre espace de gestion E-Taxi
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl text-center">Connexion</CardTitle>
+        <CardDescription className="text-center">
+          Entrez vos identifiants pour accéder à votre compte
         </CardDescription>
       </CardHeader>
-      
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="votre@email.com"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="password">Mot de passe</Label>
-            <Input
-              id="password"
-              type="password"
-              value={formData.password}
-              onChange={(e) => handleInputChange('password', e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Votre mot de passe"
+                value={formData.password}
+                onChange={handleInputChange}
+                className="pl-10 pr-10"
+                required
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
           </div>
-        </CardContent>
-        
-        <CardFooter className="space-y-4">
-          <Button 
-            type="submit" 
-            className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black"
-            disabled={isLoading}
-          >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+
+          <Button type="submit" className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black">
             Se connecter
           </Button>
-          
-          <div className="text-center">
-            <Button variant="link" className="text-sm text-muted-foreground">
-              Mot de passe oublié ?
-            </Button>
-          </div>
-        </CardFooter>
-      </form>
+        </form>
+
+        <div className="mt-4 text-center">
+          <Button variant="link" className="text-sm text-muted-foreground">
+            Mot de passe oublié ?
+          </Button>
+        </div>
+      </CardContent>
     </Card>
   );
 }

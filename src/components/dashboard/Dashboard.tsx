@@ -12,6 +12,9 @@ import { ProfilePage } from './ProfilePage';
 import { SubsidiariesPage } from './SubsidiariesPage';
 import { EmployeeDetails } from './EmployeeDetails';
 import { CreateTransportRequest } from './CreateTransportRequest';
+import { NotificationsPage } from './NotificationsPage';
+import { ClaimsPage } from './ClaimsPage';
+import { TaxiAssignmentPage } from './TaxiAssignmentPage';
 
 export function Dashboard() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -34,6 +37,9 @@ export function Dashboard() {
         <Route path="/dispatch" element={<DispatchPage />} />
         <Route path="/subsidiaries" element={<SubsidiariesPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/claims" element={<ClaimsPage />} />
+        <Route path="/assign-taxi" element={<TaxiAssignmentPage />} />
       </Routes>
     </DashboardLayout>
   );
