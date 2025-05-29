@@ -41,6 +41,14 @@ export function TableWithPagination<T extends Record<string, any>>({
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedFilter, setSelectedFilter] = useState<string>('');
 
+  // Helper function to get nested values
+  const getValue = (obj: any, path: string | keyof T): any => {
+    if (typeof path === 'string' && path.includes('.')) {
+      return path.split('.').reduce((o, p) => o?.[p], obj);
+    }
+    return obj[path];
+  };
+
   // Filter and search logic
   const filteredData = data.filter(item => {
     const matchesSearch = columns.some(column => {
@@ -81,13 +89,6 @@ export function TableWithPagination<T extends Record<string, any>>({
       setSortColumn(column);
       setSortDirection('asc');
     }
-  };
-
-  const getValue = (obj: any, path: string | keyof T): any => {
-    if (typeof path === 'string' && path.includes('.')) {
-      return path.split('.').reduce((o, p) => o?.[p], obj);
-    }
-    return obj[path];
   };
 
   return (
