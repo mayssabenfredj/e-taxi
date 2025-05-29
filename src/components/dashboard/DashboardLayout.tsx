@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,7 +31,9 @@ import {
   User,
   Home,
   Navigation,
-  BarChart3
+  BarChart3,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +50,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navigation = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, path: '/dashboard' },
@@ -58,7 +62,6 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
     { id: 'subsidiaries', name: 'Filiales', icon: Home, path: '/subsidiaries' },
   ];
 
-  // Déterminer la page active basée sur le chemin
   const getActivePage = (path: string) => {
     if (path.startsWith('/dashboard')) return 'dashboard';
     if (path.startsWith('/company')) return 'company';
@@ -73,7 +76,6 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
 
   const activePage = getActivePage(location.pathname);
 
-  // Naviguer vers une page spécifique
   const navigateTo = (path: string, id: string) => {
     navigate(path);
     onPageChange(id);
@@ -81,8 +83,14 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
 
   const Sidebar = ({ isMobile = false }) => (
     <div className={cn("flex flex-col h-full", isMobile ? "p-4" : "")}>
-      <div className="flex items-center space-x-2 mb-8 px-4">
-        <Logo />
+      <div className={cn("flex items-center mb-8 px-4", isCollapsed && !isMobile ? "justify-center" : "space-x-2")}>
+        {isCollapsed && !isMobile ? (
+          <div className="w-8 h-8 bg-etaxi-yellow rounded-full flex items-center justify-center">
+            <Car className="h-4 w-4 text-black" />
+          </div>
+        ) : (
+          <Logo />
+        )}
       </div>
 
       <nav className="flex-1 space-y-1 px-4">
@@ -91,39 +99,59 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
             key={item.id}
             variant={activePage === item.id ? "secondary" : "ghost"}
             className={cn(
-              "w-full justify-start space-x-2 transition-all duration-200",
+              "w-full transition-all duration-200",
+              isCollapsed && !isMobile ? "justify-center px-2" : "justify-start space-x-2",
               activePage === item.id && "bg-etaxi-yellow/10 text-etaxi-yellow hover:bg-etaxi-yellow/20"
             )}
             onClick={() => {
               navigateTo(item.path, item.id);
               if (isMobile) setIsMobileMenuOpen(false);
             }}
+            title={isCollapsed && !isMobile ? item.name : undefined}
           >
             <item.icon className="h-5 w-5" />
-            <span>{item.name}</span>
+            {(!isCollapsed || isMobile) && <span>{item.name}</span>}
           </Button>
         ))}
       </nav>
 
-      <div className="px-4 mt-auto">
-        <div className="border-t pt-4">
-          <div className="text-sm text-muted-foreground mb-2">
-            {user?.companyName}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {user?.email}
+      {(!isCollapsed || isMobile) && (
+        <div className="px-4 mt-auto">
+          <div className="border-t pt-4">
+            <div className="text-sm text-muted-foreground mb-2">
+              {user?.companyName}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {user?.email}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
+      <div className={cn(
+        "hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col transition-all duration-300",
+        isCollapsed ? "lg:w-16" : "lg:w-64"
+      )}>
         <div className="flex flex-col flex-grow border-r bg-card pt-5 pb-4 overflow-y-auto">
           <Sidebar />
+          
+          {/* Collapse Button */}
+          <div className="px-4 pb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className={cn("w-full", isCollapsed ? "justify-center" : "justify-start")}
+            >
+              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              {!isCollapsed && <span className="ml-2">Réduire</span>}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -135,7 +163,10 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
       </Sheet>
 
       {/* Main Content */}
-      <div className="lg:pl-64 flex flex-col flex-1">
+      <div className={cn(
+        "lg:flex lg:flex-col lg:flex-1 transition-all duration-300",
+        isCollapsed ? "lg:pl-16" : "lg:pl-64"
+      )}>
         {/* Top Header */}
         <header className="bg-card border-b px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
