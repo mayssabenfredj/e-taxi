@@ -15,8 +15,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Check, ChevronsUpDown, MapPin } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Check, ChevronsUpDown, MapPin, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MapPicker } from './MapPicker';
 
 interface Address {
   id: string;
@@ -25,6 +33,8 @@ interface Address {
   city: string;
   postalCode: string;
   country: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface AddressInputProps {
@@ -33,6 +43,7 @@ interface AddressInputProps {
   onChange: (address: Address | null) => void;
   savedAddresses?: Address[];
   required?: boolean;
+  showMapPicker?: boolean;
 }
 
 export function AddressInput({ 
@@ -40,9 +51,11 @@ export function AddressInput({
   value, 
   onChange, 
   savedAddresses = [], 
-  required = false 
+  required = false,
+  showMapPicker = true
 }: AddressInputProps) {
   const [open, setOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [customAddress, setCustomAddress] = useState('');
 
   const handleSelectSaved = (address: Address) => {
@@ -63,6 +76,25 @@ export function AddressInput({
       onChange(newAddress);
       setCustomAddress('');
     }
+  };
+
+  const handleMapSelection = (location: {
+    address: string;
+    coordinates: { lat: number; lng: number };
+    placeId?: string;
+  }) => {
+    const newAddress: Address = {
+      id: `map-${Date.now()}`,
+      label: location.address,
+      street: location.address,
+      city: '',
+      postalCode: '',
+      country: 'France',
+      latitude: location.coordinates.lat,
+      longitude: location.coordinates.lng
+    };
+    onChange(newAddress);
+    setMapOpen(false);
   };
 
   return (
@@ -120,6 +152,22 @@ export function AddressInput({
             </Command>
           </PopoverContent>
         </Popover>
+
+        {showMapPicker && (
+          <Dialog open={mapOpen} onOpenChange={setMapOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Map className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Sélectionner sur la carte</DialogTitle>
+              </DialogHeader>
+              <MapPicker onLocationSelect={handleMapSelection} />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="flex space-x-2">

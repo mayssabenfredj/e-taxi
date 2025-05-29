@@ -1,11 +1,9 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -19,18 +17,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { AddressInput } from '../shared/AddressInput';
-import { Car, Plus, Clock, Users, MapPin } from 'lucide-react';
+import { Car, Plus, Clock, Users, MapPin, Calendar, Trash2, Edit, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface TransportRequest {
@@ -42,18 +31,25 @@ interface TransportRequest {
   passengersCount: number;
   note?: string;
   createdAt: string;
-}
-
-interface Passenger {
-  id: string;
-  name: string;
-  phone: string;
-  departureAddress: any;
-  arrivalAddress: any;
+  passengers?: Array<{
+    id: string;
+    name: string;
+    phone: string;
+    departureAddress: {
+      label?: string;
+      street: string;
+    };
+    arrivalAddress: {
+      label?: string;
+      street: string;
+    };
+  }>;
 }
 
 export function TransportPage() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
+  
   const [requests, setRequests] = useState<TransportRequest[]>([
     {
       id: '1',
@@ -63,7 +59,46 @@ export function TransportPage() {
       status: 'pending',
       passengersCount: 3,
       note: 'Réunion importante',
-      createdAt: '2025-05-29'
+      createdAt: '2025-05-29',
+      passengers: [
+        {
+          id: 'p1',
+          name: 'Jean Dupont',
+          phone: '+33 6 12 34 56 78',
+          departureAddress: {
+            label: 'Domicile',
+            street: '15 Rue du Louvre, 75001 Paris'
+          },
+          arrivalAddress: {
+            label: 'Bureau',
+            street: '101 Avenue des Champs-Élysées, 75008 Paris'
+          }
+        },
+        {
+          id: 'p2',
+          name: 'Marie Martin',
+          phone: '+33 6 98 76 54 32',
+          departureAddress: {
+            label: 'Domicile',
+            street: '25 Rue de Rivoli, 75004 Paris'
+          },
+          arrivalAddress: {
+            label: 'Bureau',
+            street: '101 Avenue des Champs-Élysées, 75008 Paris'
+          }
+        },
+        {
+          id: 'p3',
+          name: 'Pierre Durand',
+          phone: '+33 7 12 34 56 78',
+          departureAddress: {
+            street: '5 Avenue Montaigne, 75008 Paris'
+          },
+          arrivalAddress: {
+            street: '101 Avenue des Champs-Élysées, 75008 Paris'
+          }
+        }
+      ]
     },
     {
       id: '2',
@@ -72,18 +107,27 @@ export function TransportPage() {
       type: 'public',
       status: 'confirmed',
       passengersCount: 1,
-      createdAt: '2025-05-28'
+      createdAt: '2025-05-28',
+      passengers: [
+        {
+          id: 'p4',
+          name: 'Sophie Lefebvre',
+          phone: '+33 6 45 67 89 01',
+          departureAddress: {
+            label: 'Bureau',
+            street: '101 Avenue des Champs-Élysées, 75008 Paris'
+          },
+          arrivalAddress: {
+            label: 'Domicile',
+            street: '30 Rue Saint-Honoré, 75001 Paris'
+          }
+        }
+      ]
     }
   ]);
 
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [newRequest, setNewRequest] = useState({
-    date: '',
-    time: '',
-    type: 'private' as 'private' | 'public',
-    note: '',
-    passengers: [] as Passenger[]
-  });
+  const [currentRequest, setCurrentRequest] = useState<TransportRequest | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -107,37 +151,27 @@ export function TransportPage() {
     }
   };
 
-  const handleCreateRequest = () => {
-    if (!newRequest.date || !newRequest.time) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
-      return;
-    }
-
-    const request: TransportRequest = {
-      id: Date.now().toString(),
-      ...newRequest,
-      status: 'pending',
-      passengersCount: newRequest.passengers.length,
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-
-    setRequests(prev => [...prev, request]);
-    setNewRequest({
-      date: '',
-      time: '',
-      type: 'private',
-      note: '',
-      passengers: []
-    });
-    setIsCreateDialogOpen(false);
-    toast.success('Demande de transport créée!');
-  };
-
   const canModify = (request: TransportRequest) => {
     const requestDateTime = new Date(`${request.date}T${request.time}`);
     const now = new Date();
     const diffMinutes = (requestDateTime.getTime() - now.getTime()) / (1000 * 60);
     return diffMinutes > 40;
+  };
+  
+  const handleViewDetails = (request: TransportRequest) => {
+    setCurrentRequest(request);
+    setIsDetailsOpen(true);
+  };
+  
+  const handleCancelRequest = (id: string) => {
+    setRequests(prev => prev.map(r => 
+      r.id === id ? { ...r, status: 'cancelled' } : r
+    ));
+    toast.success('Demande annulée avec succès!');
+  };
+  
+  const handleEditRequest = (id: string) => {
+    navigate(`/transport/edit/${id}`);
   };
 
   return (
@@ -148,116 +182,13 @@ export function TransportPage() {
           <h2 className="text-2xl font-bold">{t('transportRequests')}</h2>
         </div>
 
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-etaxi-yellow hover:bg-yellow-500 text-black">
-              <Plus className="mr-2 h-4 w-4" />
-              {t('newRequest')}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{t('newRequest')}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t('departureDate')}</Label>
-                  <Input
-                    type="date"
-                    value={newRequest.date}
-                    onChange={(e) => setNewRequest(prev => ({
-                      ...prev,
-                      date: e.target.value
-                    }))}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{t('departureTime')}</Label>
-                  <Input
-                    type="time"
-                    value={newRequest.time}
-                    onChange={(e) => setNewRequest(prev => ({
-                      ...prev,
-                      time: e.target.value
-                    }))}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t('type')}</Label>
-                <Select
-                  value={newRequest.type}
-                  onValueChange={(value: 'private' | 'public') =>
-                    setNewRequest(prev => ({ ...prev, type: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="private">{t('private')}</SelectItem>
-                    <SelectItem value="public">{t('public')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t('note')}</Label>
-                <Textarea
-                  value={newRequest.note}
-                  onChange={(e) => setNewRequest(prev => ({
-                    ...prev,
-                    note: e.target.value
-                  }))}
-                  placeholder="Note facultative..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">{t('passengers')}</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      // Add passenger functionality
-                      toast.success('Fonctionnalité d\'ajout de passagers à implémenter');
-                    }}
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    Ajouter un passager
-                  </Button>
-                </div>
-
-                {newRequest.passengers.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Aucun passager ajouté
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsCreateDialogOpen(false)}
-                >
-                  Annuler
-                </Button>
-                <Button
-                  onClick={handleCreateRequest}
-                  className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
-                >
-                  Créer la demande
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button 
+          className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+          onClick={() => navigate('/transport/create')}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          {t('newRequest')}
+        </Button>
       </div>
 
       {/* Statistics Cards */}
@@ -368,16 +299,28 @@ export function TransportPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        disabled={!canModify(request)}
+                        onClick={() => handleViewDetails(request)}
                       >
-                        Modifier
+                        <Eye className="h-4 w-4" />
                       </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={!canModify(request) || request.status === 'cancelled'}
+                        onClick={() => handleEditRequest(request.id)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      
                       <Button
                         variant="ghost"
                         size="sm"
                         className="text-red-600"
+                        disabled={request.status === 'cancelled' || request.status === 'completed'}
+                        onClick={() => handleCancelRequest(request.id)}
                       >
-                        Annuler
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -387,6 +330,163 @@ export function TransportPage() {
           </Table>
         </CardContent>
       </Card>
+      
+      {/* Dialog de détails */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Détails de la demande</DialogTitle>
+          </DialogHeader>
+          
+          {currentRequest && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Informations générales</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Référence:</span>
+                      <span className="font-mono">{currentRequest.id}</span>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="font-medium">Date:</span>
+                      <div className="flex items-center">
+                        <Calendar className="mr-1 h-4 w-4 text-gray-500" />
+                        {currentRequest.date}
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="font-medium">Heure:</span>
+                      <div className="flex items-center">
+                        <Clock className="mr-1 h-4 w-4 text-gray-500" />
+                        {currentRequest.time}
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="font-medium">Type:</span>
+                      <Badge variant="outline">
+                        {currentRequest.type === 'private' ? t('private') : t('public')}
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="font-medium">Statut:</span>
+                      <Badge className={getStatusColor(currentRequest.status)}>
+                        {getStatusText(currentRequest.status)}
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="font-medium">Passagers:</span>
+                      <span>{currentRequest.passengersCount}</span>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="font-medium">Créée le:</span>
+                      <span>{currentRequest.createdAt}</span>
+                    </div>
+                    
+                    {currentRequest.note && (
+                      <div className="pt-2 border-t">
+                        <span className="font-medium block">Note:</span>
+                        <p className="text-sm text-muted-foreground">{currentRequest.note}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      disabled={!canModify(currentRequest) || currentRequest.status === 'cancelled'}
+                      onClick={() => {
+                        setIsDetailsOpen(false);
+                        handleEditRequest(currentRequest.id);
+                      }}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Modifier la demande
+                    </Button>
+                    
+                    <Button 
+                      className="w-full text-red-600" 
+                      variant="outline"
+                      disabled={currentRequest.status === 'cancelled' || currentRequest.status === 'completed'}
+                      onClick={() => {
+                        handleCancelRequest(currentRequest.id);
+                        setIsDetailsOpen(false);
+                      }}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Annuler la demande
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Liste des passagers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Passager</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Adresse de départ</TableHead>
+                        <TableHead>Adresse d'arrivée</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {currentRequest.passengers?.map(passenger => (
+                        <TableRow key={passenger.id}>
+                          <TableCell className="font-medium">
+                            {passenger.name}
+                          </TableCell>
+                          <TableCell>
+                            {passenger.phone}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              {passenger.departureAddress.label && (
+                                <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                                  {passenger.departureAddress.label}
+                                </span>
+                              )}
+                              <div className="text-sm mt-0.5">{passenger.departureAddress.street}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              {passenger.arrivalAddress.label && (
+                                <span className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                                  {passenger.arrivalAddress.label}
+                                </span>
+                              )}
+                              <div className="text-sm mt-0.5">{passenger.arrivalAddress.street}</div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

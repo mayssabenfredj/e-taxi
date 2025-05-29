@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,7 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AddressInput } from '../shared/AddressInput';
-import { Users, Plus, Upload, Check, X, Mail, Phone } from 'lucide-react';
+import { Users, Plus, Upload, Check, X, Mail, Phone, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Employee {
@@ -36,6 +37,8 @@ interface Employee {
 
 export function EmployeesPage() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
+  
   const [employees, setEmployees] = useState<Employee[]>([
     {
       id: '1',
@@ -103,6 +106,10 @@ export function EmployeesPage() {
     if (file) {
       toast.success('Fonctionnalité d\'import CSV à implémenter');
     }
+  };
+  
+  const handleViewEmployee = (id: string) => {
+    navigate(`/employees/${id}`);
   };
 
   return (
@@ -292,9 +299,16 @@ export function EmployeesPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm">
-                      Modifier
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleViewEmployee(employee.id)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Détails
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

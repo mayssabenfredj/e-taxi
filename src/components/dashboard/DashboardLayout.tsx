@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -27,7 +28,8 @@ import {
   Moon,
   Sun,
   Globe,
-  User
+  User,
+  Home
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,16 +40,37 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, currentPage, onPageChange }: DashboardLayoutProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigation = [
-    { id: 'company', name: t('company'), icon: Building2 },
-    { id: 'employees', name: t('employees'), icon: Users },
-    { id: 'transport', name: t('transportRequests'), icon: Car },
+    { id: 'company', name: t('company'), icon: Building2, path: '/company' },
+    { id: 'employees', name: t('employees'), icon: Users, path: '/employees' },
+    { id: 'transport', name: t('transportRequests'), icon: Car, path: '/transport' },
+    { id: 'subsidiaries', name: 'Filiales', icon: Home, path: '/subsidiaries' },
   ];
+
+  // Déterminer la page active basée sur le chemin
+  const getActivePage = (path: string) => {
+    if (path.startsWith('/company')) return 'company';
+    if (path.startsWith('/employees')) return 'employees';
+    if (path.startsWith('/transport')) return 'transport';
+    if (path.startsWith('/subsidiaries')) return 'subsidiaries';
+    if (path.startsWith('/profile')) return 'profile';
+    return 'company';
+  };
+
+  const activePage = getActivePage(location.pathname);
+
+  // Naviguer vers une page spécifique
+  const navigateTo = (path: string, id: string) => {
+    navigate(path);
+    onPageChange(id);
+  };
 
   const Sidebar = ({ isMobile = false }) => (
     <div className={cn("flex flex-col h-full", isMobile ? "p-4" : "")}>
@@ -59,13 +82,13 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
         {navigation.map((item) => (
           <Button
             key={item.id}
-            variant={currentPage === item.id ? "secondary" : "ghost"}
+            variant={activePage === item.id ? "secondary" : "ghost"}
             className={cn(
               "w-full justify-start space-x-2 transition-all duration-200",
-              currentPage === item.id && "bg-etaxi-yellow/10 text-etaxi-yellow hover:bg-etaxi-yellow/20"
+              activePage === item.id && "bg-etaxi-yellow/10 text-etaxi-yellow hover:bg-etaxi-yellow/20"
             )}
             onClick={() => {
-              onPageChange(item.id);
+              navigateTo(item.path, item.id);
               if (isMobile) setIsMobileMenuOpen(false);
             }}
           >
@@ -109,16 +132,14 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
         {/* Top Header */}
         <header className="bg-card border-b px-4 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="lg:hidden">
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </SheetTrigger>
-            </Sheet>
+            <Button variant="outline" size="sm" className="lg:hidden" onClick={() => setIsMobileMenuOpen(true)}>
+              <Menu className="h-4 w-4" />
+            </Button>
 
             <h1 className="text-2xl font-semibold text-foreground">
-              {navigation.find(item => item.id === currentPage)?.name || t('dashboard')}
+              {navigation.find(item => item.id === activePage)?.name || (
+                activePage === 'profile' ? 'Profil' : t('dashboard')
+              )}
             </h1>
           </div>
 
@@ -155,13 +176,17 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
                   <User className="h-4 w-4 mr-2" />
-                  {user?.email}
+                  {user?.fullName || user?.email}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  <User className="mr-2 h-4 w-4" />
+                  Profil
+                </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
-                  {t('profile')}
+                  Paramètres
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout}>
