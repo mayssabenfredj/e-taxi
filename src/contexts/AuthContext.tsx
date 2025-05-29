@@ -4,16 +4,22 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 interface User {
   id: string;
   email: string;
-  companyName: string;
+  fullName: string;
+  phone: string;
+  companyName?: string;
   isVerified: boolean;
+  role?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, companyName: string) => Promise<void>;
-  logout: () => void;
   isLoading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (data: any) => Promise<boolean>;
+  logout: () => void;
+  verifyEmail: (token: string) => Promise<boolean>;
+  resetPassword: (email: string) => Promise<boolean>;
+  updatePassword: (token: string, password: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session
+    // Simulate checking for existing auth
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
@@ -31,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
       // Simulate API call
@@ -40,38 +46,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const mockUser: User = {
         id: '1',
         email,
-        companyName: 'Sample Company',
-        isVerified: true
+        fullName: 'John Doe',
+        phone: '+33 6 12 34 56 78',
+        companyName: 'TechCorp SARL',
+        isVerified: true,
+        role: 'admin'
       };
       
       setUser(mockUser);
       localStorage.setItem('user', JSON.stringify(mockUser));
-    } catch (error) {
-      throw new Error('Invalid credentials');
-    } finally {
       setIsLoading(false);
+      return true;
+    } catch (error) {
+      setIsLoading(false);
+      return false;
     }
   };
 
-  const register = async (email: string, password: string, companyName: string) => {
+  const register = async (data: any): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockUser: User = {
-        id: '1',
-        email,
-        companyName,
-        isVerified: false
-      };
-      
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
-    } catch (error) {
-      throw new Error('Registration failed');
-    } finally {
       setIsLoading(false);
+      return true;
+    } catch (error) {
+      setIsLoading(false);
+      return false;
     }
   };
 
@@ -80,8 +80,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('user');
   };
 
+  const verifyEmail = async (token: string): Promise<boolean> => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const resetPassword = async (email: string): Promise<boolean> => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const updatePassword = async (token: string, password: string): Promise<boolean> => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        register,
+        logout,
+        verifyEmail,
+        resetPassword,
+        updatePassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

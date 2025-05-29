@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,7 +28,9 @@ import {
   Sun,
   Globe,
   User,
-  Home
+  Home,
+  Navigation,
+  BarChart3
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -48,20 +49,26 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigation = [
+    { id: 'dashboard', name: 'Dashboard', icon: BarChart3, path: '/dashboard' },
     { id: 'company', name: t('company'), icon: Building2, path: '/company' },
     { id: 'employees', name: t('employees'), icon: Users, path: '/employees' },
     { id: 'transport', name: t('transportRequests'), icon: Car, path: '/transport' },
+    { id: 'taxis', name: 'Gestion Taxis', icon: Car, path: '/taxis' },
+    { id: 'dispatch', name: 'Dispatching', icon: Navigation, path: '/dispatch' },
     { id: 'subsidiaries', name: 'Filiales', icon: Home, path: '/subsidiaries' },
   ];
 
   // Déterminer la page active basée sur le chemin
   const getActivePage = (path: string) => {
+    if (path.startsWith('/dashboard')) return 'dashboard';
     if (path.startsWith('/company')) return 'company';
     if (path.startsWith('/employees')) return 'employees';
     if (path.startsWith('/transport')) return 'transport';
+    if (path.startsWith('/taxis')) return 'taxis';
+    if (path.startsWith('/dispatch')) return 'dispatch';
     if (path.startsWith('/subsidiaries')) return 'subsidiaries';
     if (path.startsWith('/profile')) return 'profile';
-    return 'company';
+    return 'dashboard';
   };
 
   const activePage = getActivePage(location.pathname);

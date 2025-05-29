@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthPage } from '@/components/auth/AuthPage';
+import { LandingPage } from '@/components/landing/LandingPage';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 
 const Index = () => {
@@ -16,7 +16,7 @@ const Index = () => {
   }
 
   if (!user || !user.isVerified) {
-    return <AuthPage />;
+    return <LandingPage />;
   }
 
   return <Dashboard />;
