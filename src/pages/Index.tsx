@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { LandingPage } from '@/components/landing/LandingPage';
+import { LandingPage } from '@/pages/LandingPage';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 
 const Index = () => {

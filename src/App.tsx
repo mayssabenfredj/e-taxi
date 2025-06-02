@@ -4,11 +4,14 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { Toaster } from './components/ui/sonner';
-import { Index } from './pages/Index';
-import { AuthPage } from './components/auth/AuthPage';
 import { Dashboard } from './components/dashboard/Dashboard';
 import { ConfirmAccount } from './pages/ConfirmAccount';
 import './App.css';
+import Index from './pages/Index';
+import { AuthPage } from './pages/auth/AuthPage';
+import { ForgotPasswordPage } from './pages/auth/ForgetPasswordPage';
+import { UpdatePasswordPage } from './pages/auth/UpdatePasswordPage';
+import { DraftRequestsPage } from './pages/dashboard/transport/DraftRequestsPage';
 
 function App() {
   return (
@@ -20,8 +23,11 @@ function App() {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<AuthPage />} />
+                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/update-password" element={<UpdatePasswordPage />} />
                 <Route path="/confirm-account" element={<ConfirmAccount />} />
                 <Route path="/*" element={<Dashboard />} />
+
               </Routes>
               <Toaster />
             </div>

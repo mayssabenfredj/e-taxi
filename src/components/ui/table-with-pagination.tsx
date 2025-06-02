@@ -23,19 +23,23 @@ interface TableWithPaginationProps<T> {
   onRowClick?: (item: T) => void;
   actions?: (item: T) => React.ReactNode;
   filterOptions?: { label: string; value: string; field: keyof T }[];
+  itemsPerPage?: number; // Add itemsPerPage
+  emptyMessage?: string;
 }
 
 export function TableWithPagination<T extends Record<string, any>>({
-  data,
+ data,
   columns,
   title,
   searchPlaceholder = "Rechercher...",
   onRowClick,
   actions,
-  filterOptions = []
+  filterOptions = [],
+  itemsPerPage: initialItemsPerPage = 10, // Default to 10 if not provided
+  emptyMessage = "Aucun résultat trouvé", // Default empty message
 }: TableWithPaginationProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(initialItemsPerPage);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -100,7 +104,7 @@ export function TableWithPagination<T extends Record<string, any>>({
       )}
       <CardContent>
         {/* Search and Filter Controls */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4 mb-6 mt-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
@@ -167,26 +171,34 @@ export function TableWithPagination<T extends Record<string, any>>({
                 {actions && <TableHead>Actions</TableHead>}
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {paginatedData.map((item, index) => (
-                <TableRow 
-                  key={index}
-                  className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
-                  onClick={() => onRowClick?.(item)}
-                >
-                  {columns.map((column, colIndex) => (
-                    <TableCell key={colIndex}>
-                      {column.render ? column.render(item) : String(getValue(item, column.accessor))}
-                    </TableCell>
-                  ))}
-                  {actions && (
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      {actions(item)}
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
+           <TableBody>
+    {paginatedData.length === 0 ? (
+      <TableRow>
+        <TableCell colSpan={columns.length + (actions ? 1 : 0)} className="text-center">
+          {emptyMessage}
+        </TableCell>
+      </TableRow>
+    ) : (
+      paginatedData.map((item, index) => (
+        <TableRow
+          key={index}
+          className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
+          onClick={() => onRowClick?.(item)}
+        >
+          {columns.map((column, colIndex) => (
+            <TableCell key={colIndex}>
+              {column.render ? column.render(item) : String(getValue(item, column.accessor))}
+            </TableCell>
+          ))}
+          {actions && (
+            <TableCell onClick={(e) => e.stopPropagation()}>
+              {actions(item)}
+            </TableCell>
+          )}
+        </TableRow>
+      ))
+    )}
+  </TableBody>
           </Table>
         </div>
 

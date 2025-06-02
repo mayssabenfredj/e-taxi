@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { Logo } from '../Logo';
+import { Logo } from '../components/Logo';
 import { 
   Car, Users, MapPin, Clock, Shield, Zap, Building2, TrendingUp, 
   Star, CheckCircle, Phone, Mail, ArrowRight, Play, Quote,
@@ -230,7 +230,7 @@ export function LandingPage() {
       </section>
 
       {/* Services Section */}
-      <section id="services" className="py-20">
+      <section id="services" className="py-20 px-10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 animate-fade-in">
             <h2 className="text-4xl font-bold mb-4">Nos Services</h2>
@@ -351,7 +351,7 @@ export function LandingPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20">
+      <section className="py-20 px-10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 animate-fade-in">
             <h2 className="text-4xl font-bold mb-4">Ce que disent nos clients</h2>
@@ -389,7 +389,7 @@ export function LandingPage() {
       </section>
 
       {/* About Section */}
-      <section id="about" className="py-20 bg-card">
+      <section id="about" className="py-20 px-10 bg-card ">
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="animate-slide-in-right">
@@ -402,7 +402,7 @@ export function LandingPage() {
               <div className="space-y-4 mb-8">
                 <div className="flex items-center space-x-3">
                   <Target className="h-6 w-6 text-etaxi-yellow" />
-                  <span>Leader français du transport d'entreprise</span>
+                  <span>Leader  tunisian du transport d'entreprise</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <TrendingUp className="h-6 w-6 text-etaxi-yellow" />

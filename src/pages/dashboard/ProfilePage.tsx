@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { AddressInput } from '../shared/AddressInput';
 import { User, Mail, Phone, MapPin, Building, Save, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { AddressInput } from '@/components/shared/AddressInput';
 
 export function ProfilePage() {
   const { t } = useLanguage();
