@@ -36,11 +36,11 @@ export function Dashboard() {
     <DashboardLayout currentPage={currentPage} onPageChange={handlePageChange}>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard\" replace />} />
-        <Route path="/dashboard" element={<DashboardHome />} />
+        <Route path="/dashboard\" element={<DashboardHome />} />
         <Route path="/company" element={<CompanyPage />} />
        <Route path="/employees" element={<EmployeesLayout />}>
           <Route index element={<Navigate to="list\" replace />} />
-          <Route path="list" element={<EmployeesPage />} />
+          <Route path="list\" element={<EmployeesPage />} />
           <Route path="requests" element={<EmployeeRequestsPage />} />
         </Route>
         <Route path="/employees/:id" element={<EmployeeDetails />} />
