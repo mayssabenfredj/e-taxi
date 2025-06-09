@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AddressInput } from '@/components/shared/AddressInput';
@@ -32,10 +32,11 @@ interface EmployeeFormData {
   alternativePhone?: string;
   language?: string;
   timezone?: string;
-  address?: Address;
+  homeAddress?: Address;
+  workAddress?: Address;
   subsidiaryId?: string;
-  managerId?: string;
-  structureId?: string;
+  role: 'employee' | 'manager' | 'admin';
+  isManager: boolean;
 }
 
 interface AddEmployeeFormProps {
@@ -45,7 +46,8 @@ interface AddEmployeeFormProps {
 }
 
 export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmployeeFormProps) {
-  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [selectedHomeAddress, setSelectedHomeAddress] = useState<Address | null>(null);
+  const [selectedWorkAddress, setSelectedWorkAddress] = useState<Address | null>(null);
   
   const form = useForm<EmployeeFormData>({
     defaultValues: {
@@ -56,7 +58,9 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
       phone: '',
       alternativePhone: '',
       language: 'fr',
-      timezone: 'Europe/Paris'
+      timezone: 'Europe/Paris',
+      role: 'employee',
+      isManager: false
     }
   });
 
@@ -64,18 +68,6 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
     { id: '1', name: 'TechCorp Paris' },
     { id: '2', name: 'TechCorp Lyon' },
     { id: '3', name: 'TechCorp Marseille' }
-  ];
-
-  const managers = [
-    { id: '1', name: 'Marie Martin' },
-    { id: '2', name: 'Pierre Durand' },
-    { id: '3', name: 'Sophie Lefebvre' }
-  ];
-
-  const structures = [
-    { id: '1', name: 'Direction Générale' },
-    { id: '2', name: 'Direction Technique' },
-    { id: '3', name: 'Direction Commerciale' }
   ];
 
   const savedAddresses: Address[] = [
@@ -100,16 +92,17 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
   const onSubmit = (data: EmployeeFormData) => {
     const employeeData = {
       ...data,
-      address: selectedAddress || undefined,
+      homeAddress: selectedHomeAddress || undefined,
+      workAddress: selectedWorkAddress || undefined,
       fullName: `${data.firstName} ${data.lastName}`
     };
 
-    // Simulation d'ajout d'employé
     console.log('Ajout employé:', employeeData);
     onEmployeeAdded(employeeData);
     toast.success('Employé ajouté avec succès!');
     form.reset();
-    setSelectedAddress(null);
+    setSelectedHomeAddress(null);
+    setSelectedWorkAddress(null);
     onOpenChange(false);
   };
 
@@ -215,28 +208,80 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
               </CardContent>
             </Card>
 
-            {/* Adresse */}
+            {/* Adresses */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Adresse</CardTitle>
+                <CardTitle className="text-lg">Adresses</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <AddressInput
-                  label="Adresse de l'employé"
-                  value={selectedAddress}
-                  onChange={setSelectedAddress}
+                  label="Adresse domicile"
+                  value={selectedHomeAddress}
+                  onChange={setSelectedHomeAddress}
+                  savedAddresses={savedAddresses}
+                  showMapPicker={true}
+                />
+                
+                <AddressInput
+                  label="Adresse travail"
+                  value={selectedWorkAddress}
+                  onChange={setSelectedWorkAddress}
                   savedAddresses={savedAddresses}
                   showMapPicker={true}
                 />
               </CardContent>
             </Card>
 
-            {/* Affectation */}
+            {/* Rôle et permissions */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Affectation</CardTitle>
+                <CardTitle className="text-lg">Rôle et permissions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rôle</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner un rôle" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="employee">Employé</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="admin">Administrateur</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="isManager"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">Manager</FormLabel>
+                        <div className="text-sm text-muted-foreground">
+                          Cet employé a-t-il des responsabilités managériales ?
+                        </div>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="subsidiaryId"
@@ -253,56 +298,6 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
                           {subsidiaries.map((subsidiary) => (
                             <SelectItem key={subsidiary.id} value={subsidiary.id}>
                               {subsidiary.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="structureId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Structure</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner une structure" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {structures.map((structure) => (
-                            <SelectItem key={structure.id} value={structure.id}>
-                              {structure.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="managerId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Manager</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner un manager" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {managers.map((manager) => (
-                            <SelectItem key={manager.id} value={manager.id}>
-                              {manager.name}
                             </SelectItem>
                           ))}
                         </SelectContent>

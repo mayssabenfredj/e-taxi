@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
@@ -15,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { AddressInput } from '../shared/AddressInput';
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, Clock, FilePlus, FileMinus } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, Clock, FilePlus, FileMinus, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Address {
@@ -39,12 +41,24 @@ interface Transport {
   requestId: string;
 }
 
+interface Claim {
+  id: string;
+  type: 'complaint' | 'suggestion' | 'technical';
+  subject: string;
+  description: string;
+  status: 'pending' | 'resolved' | 'closed';
+  createdAt: string;
+  response?: string;
+}
+
 interface Employee {
   id: string;
   name: string;
   email: string;
   phone: string;
-  status: string;
+  role: 'employee' | 'manager' | 'admin';
+  isManager: boolean;
+  status: 'active' | 'inactive';
   addresses: Address[];
   defaultAddressId?: string;
 }
@@ -53,12 +67,13 @@ export function EmployeeDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // Charger les données de l'employé (simulation)
   const [employee, setEmployee] = useState<Employee>({
     id: id || '1',
     name: 'Jean Dupont',
     email: 'jean.dupont@email.com',
     phone: '+33 6 12 34 56 78',
+    role: 'employee',
+    isManager: false,
     status: 'active',
     addresses: [
       {
@@ -73,7 +88,7 @@ export function EmployeeDetails() {
       },
       {
         id: 'addr2',
-        label: 'Bureau',
+        label: 'Travail',
         street: '101 Avenue des Champs-Élysées',
         city: 'Paris',
         postalCode: '75008',
@@ -85,8 +100,7 @@ export function EmployeeDetails() {
     defaultAddressId: 'addr1'
   });
 
-  // Historique des transports
-  const [transportHistory, setTransportHistory] = useState<Transport[]>([
+  const [transportHistory] = useState<Transport[]>([
     {
       id: 'tr1',
       date: '2025-05-28',
@@ -104,15 +118,26 @@ export function EmployeeDetails() {
       departureAddress: employee.addresses[1],
       arrivalAddress: employee.addresses[0],
       requestId: 'req124'
+    }
+  ]);
+
+  const [claimsHistory] = useState<Claim[]>([
+    {
+      id: 'claim1',
+      type: 'complaint',
+      subject: 'Retard du chauffeur',
+      description: 'Le chauffeur est arrivé 30 minutes en retard pour ma course du matin',
+      status: 'resolved',
+      createdAt: '2024-01-15 10:30',
+      response: 'Nous nous excusons pour ce retard. Le chauffeur a été sensibilisé et des mesures ont été prises.'
     },
     {
-      id: 'tr3',
-      date: '2025-05-30',
-      time: '09:00',
-      status: 'Planifié',
-      departureAddress: employee.addresses[0],
-      arrivalAddress: employee.addresses[1],
-      requestId: 'req125'
+      id: 'claim2',
+      type: 'suggestion',
+      subject: 'Amélioration de l\'application',
+      description: 'Il serait bien d\'avoir une notification quand le taxi arrive',
+      status: 'pending',
+      createdAt: '2024-01-10 14:20'
     }
   ]);
 
@@ -141,7 +166,6 @@ export function EmployeeDetails() {
   const handleRemoveAddress = (addressId: string) => {
     const updatedAddresses = editedEmployee.addresses.filter(addr => addr.id !== addressId);
     
-    // Si c'était l'adresse par défaut, réinitialiser
     let updatedDefaultAddressId = editedEmployee.defaultAddressId;
     if (editedEmployee.defaultAddressId === addressId) {
       updatedDefaultAddressId = updatedAddresses.length > 0 ? updatedAddresses[0].id : undefined;
@@ -164,9 +188,35 @@ export function EmployeeDetails() {
     toast.success('Adresse par défaut mise à jour');
   };
 
+  const getClaimTypeColor = (type: string) => {
+    switch (type) {
+      case 'complaint': return 'bg-red-100 text-red-800';
+      case 'suggestion': return 'bg-blue-100 text-blue-800';
+      case 'technical': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getClaimStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'resolved': return 'bg-green-100 text-green-800';
+      case 'closed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getRoleText = (role: string) => {
+    switch (role) {
+      case 'admin': return 'Administrateur';
+      case 'manager': return 'Manager';
+      case 'employee': return 'Employé';
+      default: return role;
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-6xl">
-      {/* En-tête */}
       <div className="flex items-center space-x-4">
         <Button
           variant="outline"
@@ -209,7 +259,8 @@ export function EmployeeDetails() {
         <TabsList>
           <TabsTrigger value="info">Informations</TabsTrigger>
           <TabsTrigger value="addresses">Adresses</TabsTrigger>
-          <TabsTrigger value="history">Historique de transport</TabsTrigger>
+          <TabsTrigger value="history">Historique transport</TabsTrigger>
+          <TabsTrigger value="claims">Réclamations</TabsTrigger>
         </TabsList>
         
         <TabsContent value="info" className="space-y-4 mt-4">
@@ -253,7 +304,59 @@ export function EmployeeDetails() {
                     />
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Rôle</Label>
+                  {isEditing ? (
+                    <Select
+                      value={editedEmployee.role}
+                      onValueChange={(value: 'employee' | 'manager' | 'admin') => 
+                        setEditedEmployee({...editedEmployee, role: value})
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employee">Employé</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="admin">Administrateur</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="p-2 border rounded">
+                      <Badge className="bg-blue-100 text-blue-800">
+                        {getRoleText(employee.role)}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {isEditing && (
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Manager</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Cet employé a-t-il des responsabilités managériales ?
+                    </div>
+                  </div>
+                  <Switch
+                    checked={editedEmployee.isManager}
+                    onCheckedChange={(checked) => 
+                      setEditedEmployee({...editedEmployee, isManager: checked})
+                    }
+                  />
+                </div>
+              )}
+
+              {!isEditing && employee.isManager && (
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <Badge className="bg-blue-100 text-blue-800">
+                    Responsabilités managériales
+                  </Badge>
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -345,7 +448,7 @@ export function EmployeeDetails() {
                         <Input
                           value={newAddress.label}
                           onChange={(e) => setNewAddress({...newAddress, label: e.target.value})}
-                          placeholder="Ex: Domicile, Bureau, etc."
+                          placeholder="Ex: Domicile, Travail, etc."
                         />
                       </div>
                       
@@ -491,6 +594,57 @@ export function EmployeeDetails() {
                 <div className="text-center p-8 text-muted-foreground">
                   <Calendar className="h-10 w-10 mx-auto mb-2 opacity-30" />
                   <p>Aucun historique de transport</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="claims" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MessageSquare className="h-5 w-5" />
+                <span>Historique des réclamations</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {claimsHistory.length > 0 ? (
+                <div className="space-y-4">
+                  {claimsHistory.map((claim) => (
+                    <div key={claim.id} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <Badge className={getClaimTypeColor(claim.type)}>
+                            {claim.type === 'complaint' ? 'Plainte' : 
+                             claim.type === 'suggestion' ? 'Suggestion' : 'Technique'}
+                          </Badge>
+                          <Badge className={getClaimStatusColor(claim.status)}>
+                            {claim.status === 'pending' ? 'En attente' :
+                             claim.status === 'resolved' ? 'Résolu' : 'Fermé'}
+                          </Badge>
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(claim.createdAt).toLocaleString('fr-FR')}
+                        </span>
+                      </div>
+                      
+                      <h4 className="font-medium mb-2">{claim.subject}</h4>
+                      <p className="text-sm text-muted-foreground mb-3">{claim.description}</p>
+                      
+                      {claim.response && (
+                        <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded">
+                          <p className="text-sm font-medium text-green-800 mb-1">Réponse:</p>
+                          <p className="text-sm text-green-700">{claim.response}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p>Aucune réclamation</p>
                 </div>
               )}
             </CardContent>

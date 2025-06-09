@@ -3,11 +3,11 @@ import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { TableWithPagination } from '@/components/ui/table-with-pagination';
-import { Plus, Eye, Edit, Trash } from 'lucide-react';
+import { Plus, Eye, Edit, Trash, UserCheck, UserX, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AddEmployeeForm } from '@/components/dashboard/AddEmployeeForm';
+import { AddEmployeeFromCSV } from '@/components/dashboard/AddEmployeeFromCSV';
 import { toast } from 'sonner';
-
 
 interface Employee {
   id: string;
@@ -17,16 +17,19 @@ interface Employee {
   position: string;
   department: string;
   subsidiary: string;
+  role: 'employee' | 'manager' | 'admin';
   status: 'active' | 'inactive' | 'pending';
+  isManager: boolean;
   createdAt: string;
   lastActive: string;
 }
 
 export function EmployeesPage() {
   const navigate = useNavigate();
-    const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
+  const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
 
-   const handleEmployeeAdded = (employeeData: any) => {
+  const handleEmployeeAdded = (employeeData: any) => {
     const newEmployee: Employee = {
       id: Date.now().toString(),
       name: employeeData.fullName,
@@ -35,14 +38,16 @@ export function EmployeesPage() {
       position: 'Nouveau poste',
       department: 'À définir',
       subsidiary: 'TechCorp Paris',
+      role: employeeData.role || 'employee',
       status: 'pending',
+      isManager: employeeData.isManager || false,
       createdAt: new Date().toISOString().split('T')[0],
       lastActive: new Date().toISOString()
     };
     setEmployees(prev => [...prev, newEmployee]);
   };
 
-   const [employees, setEmployees] = useState<Employee[]>([
+  const [employees, setEmployees] = useState<Employee[]>([
     {
       id: '1',
       name: 'Jean Dupont',
@@ -51,7 +56,9 @@ export function EmployeesPage() {
       position: 'Développeur Senior',
       department: 'Informatique',
       subsidiary: 'TechCorp Paris',
+      role: 'employee',
       status: 'active',
+      isManager: false,
       createdAt: '2024-01-15',
       lastActive: '2024-01-18 10:30'
     },
@@ -63,7 +70,9 @@ export function EmployeesPage() {
       position: 'Chef de projet',
       department: 'Marketing',
       subsidiary: 'TechCorp Lyon',
+      role: 'manager',
       status: 'active',
+      isManager: true,
       createdAt: '2024-01-10',
       lastActive: '2024-01-18 09:15'
     },
@@ -75,11 +84,14 @@ export function EmployeesPage() {
       position: 'Analyste',
       department: 'Finance',
       subsidiary: 'TechCorp Paris',
-      status: 'pending',
+      role: 'employee',
+      status: 'inactive',
+      isManager: false,
       createdAt: '2024-01-17',
       lastActive: '2024-01-17 16:45'
     }
   ]);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -92,9 +104,40 @@ export function EmployeesPage() {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'bg-red-100 text-red-800';
+      case 'manager':
+        return 'bg-blue-100 text-blue-800';
+      case 'employee':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const handleDeleteEmployee = (employeeId: string) => {
     setEmployees(prev => prev.filter(emp => emp.id !== employeeId));
     toast.success('Employé supprimé avec succès');
+  };
+
+  const handleToggleEmployeeStatus = (employeeId: string) => {
+    setEmployees(prev => 
+      prev.map(emp => 
+        emp.id === employeeId 
+          ? { 
+              ...emp, 
+              status: emp.status === 'active' ? 'inactive' : 'active' 
+            }
+          : emp
+      )
+    );
+    
+    const employee = employees.find(emp => emp.id === employeeId);
+    const newStatus = employee?.status === 'active' ? 'désactivé' : 'activé';
+    toast.success(`Employé ${newStatus} avec succès`);
   };
 
   const getStatusText = (status: string) => {
@@ -110,7 +153,19 @@ export function EmployeesPage() {
     }
   };
 
-  // Define filter options for subsidiary, status, and date
+  const getRoleText = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'Administrateur';
+      case 'manager':
+        return 'Manager';
+      case 'employee':
+        return 'Employé';
+      default:
+        return role;
+    }
+  };
+
   const subsidiaries = Array.from(new Set(employees.map(emp => emp.subsidiary)));
   const filterOptions = [
     ...subsidiaries.map(subsidiary => ({
@@ -121,7 +176,9 @@ export function EmployeesPage() {
     { label: 'Actif', value: 'active', field: 'status' as keyof Employee },
     { label: 'Inactif', value: 'inactive', field: 'status' as keyof Employee },
     { label: 'En attente', value: 'pending', field: 'status' as keyof Employee },
-    // Note: Date filtering is more complex, so we'll handle it differently or skip for now
+    { label: 'Manager', value: 'manager', field: 'role' as keyof Employee },
+    { label: 'Employé', value: 'employee', field: 'role' as keyof Employee },
+    { label: 'Administrateur', value: 'admin', field: 'role' as keyof Employee },
   ];
 
   const columns = [
@@ -144,6 +201,22 @@ export function EmployeesPage() {
       accessor: 'department' as keyof Employee,
     },
     {
+      header: 'Rôle',
+      accessor: 'role' as keyof Employee,
+      render: (employee: Employee) => (
+        <div className="space-y-1">
+          <Badge className={getRoleColor(employee.role)}>
+            {getRoleText(employee.role)}
+          </Badge>
+          {employee.isManager && (
+            <Badge variant="outline" className="text-xs">
+              Manager
+            </Badge>
+          )}
+        </div>
+      ),
+    },
+    {
       header: 'Filiale',
       accessor: 'subsidiary' as keyof Employee,
       render: (employee: Employee) => (
@@ -163,91 +236,121 @@ export function EmployeesPage() {
       header: 'Créé le',
       accessor: 'createdAt' as keyof Employee,
       render: (employee: Employee) => new Date(employee.createdAt).toLocaleDateString('fr-FR'),
-    },
-    {
-      header: 'Actions',
-      accessor: 'actions' as keyof Employee,
-      render: (employee: Employee) => (
-        <div className="flex items-center space-x-2">
+    }
+  ];
+
+  const getActions = (employee: Employee) => (
+    <div className="flex items-center space-x-2">
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/employees/${employee.id}`);
+        }}
+        title="Voir les détails"
+      >
+        <Eye className="h-4 w-4" />
+      </Button>
+      
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleToggleEmployeeStatus(employee.id);
+        }}
+        title={employee.status === 'active' ? 'Désactiver' : 'Activer'}
+        className={employee.status === 'active' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
+      >
+        {employee.status === 'active' ? (
+          <UserX className="h-4 w-4" />
+        ) : (
+          <UserCheck className="h-4 w-4" />
+        )}
+      </Button>
+
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
           <Button
             size="sm"
             variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/employees/${employee.id}`);
-            }}
+            className="text-red-600 hover:text-red-700"
+            onClick={(e) => e.stopPropagation()}
+            title="Supprimer"
           >
-            <Eye className="h-4 w-4" />
+            <Trash className="h-4 w-4" />
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-red-600 hover:text-red-700"
-                onClick={(e) => e.stopPropagation()}
-              >
-                            <Trash className="h-4 w-4" />
-
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Supprimer l'employé</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Êtes-vous sûr de vouloir supprimer l'employé <strong>{employee.name}</strong> ? 
-                  Cette action est irréversible.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => handleDeleteEmployee(employee.id)}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Supprimer
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          
-        </div>
-      ),
-    },
-  ];
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer l'employé</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer l'employé <strong>{employee.name}</strong> ? 
+              Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleDeleteEmployee(employee.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Button className="bg-etaxi-yellow hover:bg-yellow-500 text-black">
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter From CSV
-        </Button>
-        <Button className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
-                  onClick={() => setAddEmployeeOpen(true)}
->
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter un employé
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline"
+            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+            onClick={() => setCsvImportOpen(true)}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Importer CSV
+          </Button>
+          <Button 
+            className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+            onClick={() => setAddEmployeeOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Ajouter un employé
+          </Button>
+        </div>
       </div>
 
-     
-          <TableWithPagination
-            data={employees}
-            columns={columns}
-            searchPlaceholder="Rechercher un employé..."
-            filterOptions={filterOptions}
-            itemsPerPage={10}
-            onRowClick={(employee) => navigate(`/employees/${employee.id}`)}
-            emptyMessage="Aucun employé trouvé"
+      <TableWithPagination
+        data={employees}
+        columns={columns}
+        searchPlaceholder="Rechercher un employé..."
+        filterOptions={filterOptions}
+        itemsPerPage={10}
+        onRowClick={(employee) => navigate(`/employees/${employee.id}`)}
+        actions={getActions}
+        emptyMessage="Aucun employé trouvé"
       />
       
-       <AddEmployeeForm
+      <AddEmployeeForm
         open={addEmployeeOpen}
         onOpenChange={setAddEmployeeOpen}
         onEmployeeAdded={handleEmployeeAdded}
       />
-       
+
+      <AddEmployeeFromCSV
+        open={csvImportOpen}
+        onOpenChange={setCsvImportOpen}
+        onEmployeesImported={(employees) => {
+          setEmployees(prev => [...prev, ...employees]);
+          toast.success(`${employees.length} employé(s) importé(s) avec succès`);
+        }}
+      />
     </div>
   );
 }
