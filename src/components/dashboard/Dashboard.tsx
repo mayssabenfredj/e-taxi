@@ -22,6 +22,7 @@ import { DraftRequestsPage } from '@/pages/dashboard/transport/DraftRequestsPage
 import { CreateGroupTransportRequest } from './CreateGroupTransportRequest';
 import { GroupTransportDispatchPage } from '@/pages/dashboard/transport/GroupTransportDispatchPage';
 import { TransportRequestDetails } from './TransportRequestDetails';
+import { EditTransportRequest } from './EditTransportRequest';
 
 export function Dashboard() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -33,11 +34,11 @@ export function Dashboard() {
   return (
     <DashboardLayout currentPage={currentPage} onPageChange={handlePageChange}>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard\" replace />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardHome />} />
         <Route path="/company" element={<CompanyPage />} />
-       <Route path="/employees" element={<EmployeesLayout />}>
-          <Route index element={<Navigate to="list\" replace />} />
+        <Route path="/employees" element={<EmployeesLayout />}>
+          <Route index element={<Navigate to="list" replace />} />
           <Route path="list" element={<EmployeesPage />} />
           <Route path="requests" element={<EmployeeRequestsPage />} />
         </Route>
@@ -46,8 +47,9 @@ export function Dashboard() {
         <Route path="/transport/group" element={<GroupTransportPage />} />
         <Route path="/transport/history" element={<TransportHistoryPage />} />
         <Route path="/transport/:id" element={<TransportRequestDetails />} />
-        <Route path="transport/drafts" element={<DraftRequestsPage />} />
-        <Route path="transport/create-group" element={<CreateGroupTransportRequest />} />
+        <Route path="/transport/:id/edit" element={<EditTransportRequest />} />
+        <Route path="/transport/drafts" element={<DraftRequestsPage />} />
+        <Route path="/transport/create-group" element={<CreateGroupTransportRequest />} />
         <Route path="/transport/:id/group-dispatch" element={<GroupTransportDispatchPage />} />
         <Route path="/transport/create" element={<CreateTransportRequest />} />
         <Route path="/taxis" element={<TaxiManagementPage />} />

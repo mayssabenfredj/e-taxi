@@ -18,7 +18,9 @@ import {
   FileText,
   Car,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Home,
+  Briefcase
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -185,7 +187,7 @@ export function TransportRequestDetails() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/transport')}
+            onClick={() => navigate('/transport/individual')}
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Retour
@@ -202,7 +204,7 @@ export function TransportRequestDetails() {
 
         <div className="flex items-center space-x-2">
           {(request.status === 'pending' || request.status === 'approved') && (
-            <Button variant="outline\" size="sm\" onClick={handleEdit}>
+            <Button variant="outline" size="sm" onClick={handleEdit}>
               <Edit className="mr-1 h-3 w-3" />
               Modifier
             </Button>
