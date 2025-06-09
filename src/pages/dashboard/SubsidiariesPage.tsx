@@ -373,7 +373,7 @@ export function SubsidiariesPage() {
               Nouvelle Filiale
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto my-4">
             <DialogHeader>
               <DialogTitle className="text-left">
                 {editingSubsidiary ? 'Modifier la Filiale' : 'Nouvelle Filiale'}

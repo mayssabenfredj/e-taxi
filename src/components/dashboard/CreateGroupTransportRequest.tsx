@@ -243,8 +243,12 @@ export function CreateGroupTransportRequest() {
       setSelectedEmployees(prev => [...prev, employeeId]);
       
       // Déterminer les adresses de départ et d'arrivée en fonction du type de trajet
-      const departureAddress = isHomeToWorkTrip ? employee.homeAddress || '' : employee.workAddress || '';
-      const arrivalAddress = isHomeToWorkTrip ? employee.workAddress || '' : employee.homeAddress || '';
+      const departureAddress = isHomeToWorkTrip 
+        ? (employee.homeAddress || '') 
+        : (employee.workAddress || '');
+      const arrivalAddress = isHomeToWorkTrip 
+        ? (employee.workAddress || '') 
+        : (employee.homeAddress || '');
       
       setSelectedPassengers(prev => [...prev, {
         ...employee,
@@ -299,7 +303,7 @@ export function CreateGroupTransportRequest() {
 
     localStorage.removeItem('groupTransportDraft');
     toast.success('Demande de transport de groupe créée avec succès');
-    navigate('/transport');
+    navigate('/transport/group');
   };
 
   const handleToggleTripDirection = () => {
@@ -312,8 +316,12 @@ export function CreateGroupTransportRequest() {
         const employee = employees.find(emp => emp.id === passenger.id);
         if (!employee) return passenger;
         
-        const departureAddress = !isHomeToWorkTrip ? employee.homeAddress || '' : employee.workAddress || '';
-        const arrivalAddress = !isHomeToWorkTrip ? employee.workAddress || '' : employee.homeAddress || '';
+        const departureAddress = !isHomeToWorkTrip 
+          ? (employee.homeAddress || '') 
+          : (employee.workAddress || '');
+        const arrivalAddress = !isHomeToWorkTrip 
+          ? (employee.workAddress || '') 
+          : (employee.homeAddress || '');
         
         return {
           ...passenger,
@@ -328,8 +336,12 @@ export function CreateGroupTransportRequest() {
   const handleEmployeesImported = (importedEmployees: any[]) => {
     // Convertir les employés importés en passagers
     const newPassengers = importedEmployees.map(emp => {
-      const departureAddress = isHomeToWorkTrip ? emp.homeAddress || '' : emp.workAddress || '';
-      const arrivalAddress = isHomeToWorkTrip ? emp.workAddress || '' : emp.homeAddress || '';
+      const departureAddress = isHomeToWorkTrip 
+        ? (emp.homeAddress || '') 
+        : (emp.workAddress || '');
+      const arrivalAddress = isHomeToWorkTrip 
+        ? (emp.workAddress || '') 
+        : (emp.homeAddress || '');
       
       return {
         id: emp.id,
@@ -360,7 +372,7 @@ export function CreateGroupTransportRequest() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/transport')}
+            onClick={() => navigate('/transport/group')}
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Retour

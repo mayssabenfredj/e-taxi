@@ -30,8 +30,6 @@ interface EmployeeFormData {
   lastName: string;
   phone: string;
   alternativePhone?: string;
-  language?: string;
-  timezone?: string;
   homeAddress?: Address;
   workAddress?: Address;
   subsidiaryId?: string;
@@ -57,8 +55,6 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
       lastName: '',
       phone: '',
       alternativePhone: '',
-      language: 'fr',
-      timezone: 'Europe/Paris',
       role: 'employee',
       isManager: false
     }
@@ -108,7 +104,7 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto my-4">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <UserPlus className="h-5 w-5 text-etaxi-yellow" />
@@ -306,62 +302,6 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
                     </FormItem>
                   )}
                 />
-              </CardContent>
-            </Card>
-
-            {/* Préférences */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Préférences</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="language"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Langue</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="fr">Français</SelectItem>
-                            <SelectItem value="en">English</SelectItem>
-                            <SelectItem value="es">Español</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="timezone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Fuseau horaire</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Europe/Paris">Europe/Paris</SelectItem>
-                            <SelectItem value="Europe/London">Europe/London</SelectItem>
-                            <SelectItem value="America/New_York">America/New_York</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
               </CardContent>
             </Card>
 

@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Check, ChevronsUpDown, MapPin, Map, Type } from 'lucide-react';
+import { Check, ChevronsUpDown, MapPin, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MapPicker } from './MapPicker';
 
@@ -55,7 +55,6 @@ export function AddressInput({
 }: AddressInputProps) {
   const [open, setOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
-  const [customAddress, setCustomAddress] = useState('');
   const [textualAddress, setTextualAddress] = useState('');
 
   const handleSelectSaved = (address: Address) => {
@@ -63,26 +62,11 @@ export function AddressInput({
     setOpen(false);
   };
 
-  const handleCustomAddress = () => {
-    if (customAddress.trim()) {
-      const newAddress: Address = {
-        id: `custom-${Date.now()}`,
-        label: customAddress,
-        street: customAddress,
-        city: '',
-        postalCode: '',
-        country: 'France'
-      };
-      onChange(newAddress);
-      setCustomAddress('');
-    }
-  };
-
   const handleTextualAddress = () => {
     if (textualAddress.trim()) {
       const newAddress: Address = {
         id: `textual-${Date.now()}`,
-        label: 'Adresse textuelle',
+        label: 'Adresse saisie',
         street: textualAddress,
         city: '',
         postalCode: '',
@@ -175,7 +159,7 @@ export function AddressInput({
                 <Map className="h-4 w-4" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[80vh] my-8">
               <DialogHeader>
                 <DialogTitle>Sélectionner sur la carte</DialogTitle>
               </DialogHeader>
@@ -185,54 +169,24 @@ export function AddressInput({
         )}
       </div>
 
-      {/* Textual Address Input */}
-      <div className="space-y-2">
-        <Label className="text-sm text-muted-foreground">Adresse textuelle</Label>
-        <div className="flex space-x-2">
-          <div className="relative flex-1">
-            <Type className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Saisissez une adresse textuelle..."
-              value={textualAddress}
-              onChange={(e) => setTextualAddress(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleTextualAddress();
-                }
-              }}
-              className="pl-10"
-            />
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleTextualAddress}
-            disabled={!textualAddress.trim()}
-          >
-            Ajouter
-          </Button>
-        </div>
-      </div>
-
-      {/* Custom Address Input */}
+      {/* Single Textual Address Input */}
       <div className="flex space-x-2">
         <Input
-          placeholder="Ou saisissez une nouvelle adresse..."
-          value={customAddress}
-          onChange={(e) => setCustomAddress(e.target.value)}
+          placeholder="Ou saisissez une adresse..."
+          value={textualAddress}
+          onChange={(e) => setTextualAddress(e.target.value)}
           onKeyPress={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault();
-              handleCustomAddress();
+              handleTextualAddress();
             }
           }}
         />
         <Button
           type="button"
           variant="outline"
-          onClick={handleCustomAddress}
-          disabled={!customAddress.trim()}
+          onClick={handleTextualAddress}
+          disabled={!textualAddress.trim()}
         >
           Ajouter
         </Button>
