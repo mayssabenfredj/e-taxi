@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { 
   ArrowLeft, 
   Edit, 
@@ -15,7 +16,9 @@ import {
   Mail,
   Clock,
   FileText,
-  Car
+  Car,
+  X,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -46,9 +49,10 @@ interface TransportRequest {
 export function TransportRequestDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   // Mock data
-  const [request] = useState<TransportRequest>({
+  const [request, setRequest] = useState<TransportRequest>({
     id: '1',
     reference: 'TR-2024-001',
     type: 'scheduled',
@@ -134,18 +138,34 @@ export function TransportRequestDetails() {
 
   const handleDispatch = () => {
     if (request.passengers.length > 1) {
-      navigate(`/transport/${id}/groupe-dispatch`);
+      navigate(`/transport/${id}/group-dispatch`);
     } else {
       navigate(`/transport/${id}/dispatch`);
     }
   };
 
   const handleApprove = () => {
+    setRequest(prev => ({...prev, status: 'approved'}));
     toast.success('Demande approuvée avec succès');
   };
 
   const handleCancel = () => {
+    setRequest(prev => ({...prev, status: 'cancelled'}));
     toast.success('Demande annulée');
+    setShowCancelDialog(false);
+  };
+
+  // Vérifier si la demande peut être annulée (30 minutes avant le départ)
+  const canCancel = () => {
+    if (request.status === 'cancelled' || request.status === 'completed') {
+      return false;
+    }
+    
+    const scheduledTime = new Date(request.scheduledDate).getTime();
+    const currentTime = new Date().getTime();
+    const thirtyMinutesInMs = 30 * 60 * 1000;
+    
+    return currentTime < (scheduledTime - thirtyMinutesInMs);
   };
 
   // Group passengers by departure address for better visualization
@@ -180,7 +200,7 @@ export function TransportRequestDetails() {
           </div>
         </div>
 
-        {/*<div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2">
           {(request.status === 'pending' || request.status === 'approved') && (
             <Button variant="outline" size="sm" onClick={handleEdit}>
               <Edit className="mr-1 h-3 w-3" />
@@ -209,12 +229,32 @@ export function TransportRequestDetails() {
             </Button>
           )}
           
-          {(request.status === 'pending' || request.status === 'approved') && (
-            <Button variant="destructive" size="sm" onClick={handleCancel}>
-              Annuler
-            </Button>
+          {canCancel() && (
+            <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <X className="mr-1 h-3 w-3" />
+                  Annuler
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Annuler la demande</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Êtes-vous sûr de vouloir annuler cette demande de transport ? 
+                    Cette action est irréversible.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Retour</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
+                    Confirmer l'annulation
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
-        </div>*/}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">

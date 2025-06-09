@@ -22,6 +22,8 @@ import { DraftRequestsPage } from '@/pages/dashboard/transport/DraftRequestsPage
 import { CreateGroupTransportRequest } from './CreateGroupTransportRequest';
 import { GroupTransportDispatchPage } from '@/pages/dashboard/transport/GroupTransportDispatchPage';
 import { TransportRequestDetails } from './TransportRequestDetails';
+import { TransportHistoryPage } from '@/pages/dashboard/transport/TransportHistoryPage';
+import { EditTransportRequest } from './EditTransportRequest';
 
 export function Dashboard() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -46,10 +48,12 @@ export function Dashboard() {
         <Route path="/transport/individual" element={<IndividualTransportPage />} />
         <Route path="/transport/group" element={<GroupTransportPage />} />
         <Route path="/transport/:id" element={<TransportRequestDetails />} />
+        <Route path="/transport/:id/edit" element={<EditTransportRequest />} />
         <Route path="transport/drafts" element={<DraftRequestsPage />} />
         <Route path="transport/create-group" element={<CreateGroupTransportRequest />} />
         <Route path="/transport/:id/group-dispatch" element={<GroupTransportDispatchPage />} />
         <Route path="/transport/create" element={<CreateTransportRequest />} />
+        <Route path="/transport/history" element={<TransportHistoryPage />} />
         <Route path="/taxis" element={<TaxiManagementPage />} />
         <Route path="/dispatch" element={<DispatchPage />} />
         <Route path="/subsidiaries" element={<SubsidiariesPage />} />

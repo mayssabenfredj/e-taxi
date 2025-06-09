@@ -294,7 +294,7 @@ export function GroupTransportDispatchPage() {
   };
 
   return (
-    <div className="space-y-4 max-w-7xl">
+    <div className="space-y-4 max-w-7xl relative pb-16">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button
@@ -307,25 +307,6 @@ export function GroupTransportDispatchPage() {
           </Button>
           
           <h2 className="text-xl font-bold">Dispatch Groupe - {transportRequest.reference}</h2>
-        </div>
-
-        <div className="flex space-x-2">
-          {hasDraftData && (
-            <Button
-              variant="outline"
-              onClick={saveDraft}
-            >
-              Sauvegarder brouillon
-            </Button>
-          )}
-          <Button
-            onClick={dispatchAll}
-            className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
-            disabled={!hasDraftData}
-          >
-            <Navigation className="mr-2 h-4 w-4" />
-            Créer une course
-          </Button>
         </div>
       </div>
 
@@ -407,15 +388,6 @@ export function GroupTransportDispatchPage() {
 
         {/* Virtual Taxis */}
         <div className="space-y-3 relative">
-          <Button
-            onClick={addNewTaxi}
-            variant="outline"
-            className="absolute -top-2 right-0 z-10 bg-etaxi-yellow hover:bg-yellow-500 text-black border-etaxi-yellow"
-          >
-            <Plus className="mr-1 h-4 w-4" />
-            Ajouter un taxi
-          </Button>
-          
           {virtualTaxis.map((taxi) => (
             <Collapsible
               key={taxi.id}
@@ -522,6 +494,37 @@ export function GroupTransportDispatchPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Floating action buttons */}
+      <div className="fixed bottom-6 right-6 flex space-x-3">
+        <Button
+          onClick={addNewTaxi}
+          variant="outline"
+          className="bg-white shadow-lg border-etaxi-yellow text-etaxi-yellow hover:bg-etaxi-yellow hover:text-black"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Ajouter un taxi
+        </Button>
+        
+        {hasDraftData && (
+          <Button
+            variant="outline"
+            onClick={saveDraft}
+            className="bg-white shadow-lg"
+          >
+            Sauvegarder brouillon
+          </Button>
+        )}
+        
+        <Button
+          onClick={dispatchAll}
+          className="bg-etaxi-yellow hover:bg-yellow-500 text-black shadow-lg"
+          disabled={!hasDraftData}
+        >
+          <Navigation className="mr-2 h-4 w-4" />
+          Créer une course
+        </Button>
       </div>
     </div>
   );

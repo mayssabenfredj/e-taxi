@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Car, Plus, Eye, Copy, Navigation, Calendar as CalendarIcon } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Car, Plus, Eye, Copy, Navigation, Calendar as CalendarIcon, X, AlertTriangle, History } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -29,8 +30,10 @@ export function TransportPage() {
   const [selectedRequest, setSelectedRequest] = useState<TransportRequest | null>(null);
   const [duplicateDate, setDuplicateDate] = useState<Date>(new Date());
   const [duplicateTime, setDuplicateTime] = useState('09:00');
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [requestToCancel, setRequestToCancel] = useState<TransportRequest | null>(null);
   
-  const [requests] = useState<TransportRequest[]>([
+  const [requests, setRequests] = useState<TransportRequest[]>([
     {
       id: '1',
       type: 'individual',
@@ -78,6 +81,36 @@ export function TransportPage() {
       return;
     }
     navigate(`/transport/${request.id}/group-dispatch`);
+  };
+
+  const handleCancelRequest = (request: TransportRequest) => {
+    // Vérifier si la demande peut être annulée (30 minutes avant le départ)
+    const scheduledTime = new Date(request.scheduledDate).getTime();
+    const currentTime = new Date().getTime();
+    const thirtyMinutesInMs = 30 * 60 * 1000;
+    
+    if (currentTime >= (scheduledTime - thirtyMinutesInMs)) {
+      toast.error('Impossible d\'annuler une demande moins de 30 minutes avant le départ');
+      return;
+    }
+    
+    setRequestToCancel(request);
+    setCancelDialogOpen(true);
+  };
+
+  const confirmCancelRequest = () => {
+    if (requestToCancel) {
+      setRequests(prev => 
+        prev.map(req => 
+          req.id === requestToCancel.id 
+            ? { ...req, status: 'rejected' as const } 
+            : req
+        )
+      );
+      toast.success('Demande annulée avec succès');
+      setCancelDialogOpen(false);
+      setRequestToCancel(null);
+    }
   };
 
   const confirmDuplicate = () => {
@@ -178,7 +211,7 @@ export function TransportPage() {
       >
         <Copy className="h-4 w-4" />
       </Button>
-      {request.status === 'approved' && (
+      {request.status === 'approved' && request.type === 'group' && (
         <Button
           size="sm"
           variant="ghost"
@@ -190,6 +223,20 @@ export function TransportPage() {
           className="text-etaxi-yellow hover:text-yellow-600"
         >
           <Navigation className="h-4 w-4" />
+        </Button>
+      )}
+      {(request.status === 'pending' || request.status === 'approved') && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCancelRequest(request);
+          }}
+          title="Annuler"
+          className="text-red-500 hover:text-red-700"
+        >
+          <X className="h-4 w-4" />
         </Button>
       )}
     </div>
@@ -210,6 +257,13 @@ export function TransportPage() {
             Brouillons
           </Button>
           <Button 
+            variant="outline"
+            onClick={() => navigate('/transport/history')}
+          >
+            <History className="mr-2 h-4 w-4" />
+            Historique
+          </Button>
+          <Button 
             onClick={() => navigate('/transport/create')}
             className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
           >
@@ -226,16 +280,14 @@ export function TransportPage() {
         </div>
       </div>
 
-      
-          <TableWithPagination
-            data={requests}
-            columns={columns}
-            actions={actions}
-            itemsPerPage={10}
-            onRowClick={handleViewRequest}
-            emptyMessage="Aucune demande de transport trouvée"
-          />
-      
+      <TableWithPagination
+        data={requests}
+        columns={columns}
+        actions={actions}
+        itemsPerPage={10}
+        onRowClick={handleViewRequest}
+        emptyMessage="Aucune demande de transport trouvée"
+      />
 
       {/* Dialog pour dupliquer une demande */}
       <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
@@ -281,6 +333,32 @@ export function TransportPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog pour annuler une demande */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <span>Annuler la demande</span>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir annuler cette demande de transport ? 
+              Cette action est irréversible.
+              {requestToCancel?.type === 'group' && ' Tous les passagers seront notifiés.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Retour</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmCancelRequest}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Confirmer l'annulation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

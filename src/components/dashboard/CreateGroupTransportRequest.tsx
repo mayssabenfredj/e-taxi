@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -24,11 +25,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ArrowLeft, Save, User, Clock, Calendar as CalendarIcon, Search, MapPin, Phone, Mail } from 'lucide-react';
+import { ArrowLeft, Save, User, Clock, Calendar as CalendarIcon, Search, MapPin, Phone, Mail, Upload, Home, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AddEmployeeFromCSV } from './AddEmployeeFromCSV';
 
 interface Employee {
   id: string;
@@ -37,11 +40,14 @@ interface Employee {
   subsidiary: string;
   email: string;
   phone: string;
+  homeAddress?: string;
+  workAddress?: string;
 }
 
 interface SelectedPassenger extends Employee {
   departureAddress: string;
   arrivalAddress: string;
+  isHomeToWork: boolean;
 }
 
 interface RecurringDateTime {
@@ -74,6 +80,9 @@ export function CreateGroupTransportRequest() {
   const [note, setNote] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showEmployeeList, setShowEmployeeList] = useState(true);
+  const [isHomeToWorkTrip, setIsHomeToWorkTrip] = useState(true);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('all');
 
   const employees: Employee[] = [
     {
@@ -83,6 +92,8 @@ export function CreateGroupTransportRequest() {
       subsidiary: 'Paris',
       email: 'jean.dupont@example.com',
       phone: '+33 6 12 34 56 78',
+      homeAddress: '15 Rue du Louvre, 75001 Paris',
+      workAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris'
     },
     {
       id: '2',
@@ -91,6 +102,8 @@ export function CreateGroupTransportRequest() {
       subsidiary: 'Lyon',
       email: 'marie.martin@example.com',
       phone: '+33 6 98 76 54 32',
+      homeAddress: '25 Rue de Rivoli, 75004 Paris',
+      workAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris'
     },
     {
       id: '3',
@@ -99,6 +112,8 @@ export function CreateGroupTransportRequest() {
       subsidiary: 'Paris',
       email: 'pierre.durand@example.com',
       phone: '+33 6 55 55 55 55',
+      homeAddress: '8 Avenue Montaigne, 75008 Paris',
+      workAddress: 'La Défense, 92800 Puteaux'
     },
     {
       id: '4',
@@ -107,6 +122,8 @@ export function CreateGroupTransportRequest() {
       subsidiary: 'Marseille',
       email: 'sophie.leclerc@example.com',
       phone: '+33 6 11 22 33 44',
+      homeAddress: '12 Boulevard Saint-Germain, 75005 Paris',
+      workAddress: 'Opéra, 75009 Paris'
     },
     {
       id: '5',
@@ -115,6 +132,8 @@ export function CreateGroupTransportRequest() {
       subsidiary: 'Paris',
       email: 'luc.bernard@example.com',
       phone: '+33 6 77 88 99 00',
+      homeAddress: '30 Rue Saint-Honoré, 75001 Paris',
+      workAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris'
     },
     {
       id: '6',
@@ -123,6 +142,8 @@ export function CreateGroupTransportRequest() {
       subsidiary: 'Lyon',
       email: 'isabelle.garcia@example.com',
       phone: '+33 6 44 33 22 11',
+      homeAddress: '5 Avenue Montaigne, 75008 Paris',
+      workAddress: 'Centre de conférences - 101 Avenue des Champs-Élysées, 75008 Paris'
     },
   ];
 
@@ -137,6 +158,7 @@ export function CreateGroupTransportRequest() {
       isRecurring,
       recurringDates,
       note,
+      isHomeToWorkTrip,
       lastModified: new Date().toISOString()
     };
     
@@ -152,7 +174,7 @@ export function CreateGroupTransportRequest() {
     }, 30000);
 
     return () => clearInterval(autoSaveInterval);
-  }, [selectedEmployees, selectedPassengers, transportType, scheduledDate, scheduledTime, isRecurring, recurringDates, note]);
+  }, [selectedEmployees, selectedPassengers, transportType, scheduledDate, scheduledTime, isRecurring, recurringDates, note, isHomeToWorkTrip]);
 
   // Save draft when leaving the page
   useEffect(() => {
@@ -164,7 +186,7 @@ export function CreateGroupTransportRequest() {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [selectedEmployees, note]);
+  }, [selectedEmployees, note, isHomeToWorkTrip]);
 
   // Load draft data if available
   useEffect(() => {
@@ -175,6 +197,7 @@ export function CreateGroupTransportRequest() {
         if (draftData.scheduledDate) {
           setScheduledDate(new Date(draftData.scheduledDate));
         }
+        setIsHomeToWorkTrip(draftData.isHomeToWorkTrip !== undefined ? draftData.isHomeToWorkTrip : true);
         toast.info('Brouillon chargé');
       }
     } else {
@@ -190,6 +213,7 @@ export function CreateGroupTransportRequest() {
           setIsRecurring(draftData.isRecurring || false);
           setRecurringDates(draftData.recurringDates || []);
           setNote(draftData.note || '');
+          setIsHomeToWorkTrip(draftData.isHomeToWorkTrip !== undefined ? draftData.isHomeToWorkTrip : true);
           toast.info('Brouillon automatiquement restauré');
         } catch (error) {
           console.error('Error loading draft:', error);
@@ -198,10 +222,14 @@ export function CreateGroupTransportRequest() {
     }
   }, [location.state]);
 
+  const subsidiaries = Array.from(new Set(employees.map(emp => emp.subsidiary)));
+
   const filteredEmployees = employees.filter(employee =>
-    employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.subsidiary.toLowerCase().includes(searchTerm.toLowerCase())
+    (searchTerm === '' || 
+     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     employee.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+     employee.subsidiary.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (subsidiaryFilter === 'all' || employee.subsidiary === subsidiaryFilter)
   );
 
   const handleEmployeeSelect = (employeeId: string) => {
@@ -213,10 +241,16 @@ export function CreateGroupTransportRequest() {
       setSelectedPassengers(prev => prev.filter(p => p.id !== employeeId));
     } else {
       setSelectedEmployees(prev => [...prev, employeeId]);
+      
+      // Déterminer les adresses de départ et d'arrivée en fonction du type de trajet
+      const departureAddress = isHomeToWorkTrip ? employee.homeAddress || '' : employee.workAddress || '';
+      const arrivalAddress = isHomeToWorkTrip ? employee.workAddress || '' : employee.homeAddress || '';
+      
       setSelectedPassengers(prev => [...prev, {
         ...employee,
-        departureAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris',
-        arrivalAddress: 'Aéroport Charles de Gaulle, 95700 Roissy'
+        departureAddress,
+        arrivalAddress,
+        isHomeToWork: isHomeToWorkTrip
       }]);
     }
   };
@@ -268,6 +302,57 @@ export function CreateGroupTransportRequest() {
     navigate('/transport');
   };
 
+  const handleToggleTripDirection = () => {
+    setIsHomeToWorkTrip(!isHomeToWorkTrip);
+    
+    // Mettre à jour les adresses de tous les passagers sélectionnés
+    setSelectedPassengers(prev => 
+      prev.map(passenger => {
+        // Inverser les adresses de départ et d'arrivée
+        const employee = employees.find(emp => emp.id === passenger.id);
+        if (!employee) return passenger;
+        
+        const departureAddress = !isHomeToWorkTrip ? employee.homeAddress || '' : employee.workAddress || '';
+        const arrivalAddress = !isHomeToWorkTrip ? employee.workAddress || '' : employee.homeAddress || '';
+        
+        return {
+          ...passenger,
+          departureAddress,
+          arrivalAddress,
+          isHomeToWork: !isHomeToWorkTrip
+        };
+      })
+    );
+  };
+
+  const handleEmployeesImported = (importedEmployees: any[]) => {
+    // Convertir les employés importés en passagers
+    const newPassengers = importedEmployees.map(emp => {
+      const departureAddress = isHomeToWorkTrip ? emp.homeAddress || '' : emp.workAddress || '';
+      const arrivalAddress = isHomeToWorkTrip ? emp.workAddress || '' : emp.homeAddress || '';
+      
+      return {
+        id: emp.id,
+        name: emp.name,
+        department: emp.department || 'Non spécifié',
+        subsidiary: emp.subsidiary || 'Non spécifié',
+        email: emp.email,
+        phone: emp.phone,
+        homeAddress: emp.homeAddress,
+        workAddress: emp.workAddress,
+        departureAddress,
+        arrivalAddress,
+        isHomeToWork: isHomeToWorkTrip
+      };
+    });
+    
+    // Ajouter les nouveaux passagers
+    setSelectedEmployees(prev => [...prev, ...newPassengers.map(p => p.id)]);
+    setSelectedPassengers(prev => [...prev, ...newPassengers]);
+    
+    toast.success(`${newPassengers.length} employé(s) ajouté(s) à la demande`);
+  };
+
   return (
     <div className="space-y-4 max-w-7xl">
       <div className="flex items-center justify-between">
@@ -299,17 +384,44 @@ export function CreateGroupTransportRequest() {
         {showEmployeeList && (
           <Card className="lg:col-span-1">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Sélection des employés</CardTitle>
+              <CardTitle className="text-lg flex items-center justify-between">
+                <span>Sélection des employés</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCsvImportOpen(true)}
+                  className="text-xs h-7"
+                >
+                  <Upload className="h-3 w-3 mr-1" />
+                  Importer CSV
+                </Button>
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Rechercher..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="text-sm"
-                />
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+                
+                <Select value={subsidiaryFilter} onValueChange={setSubsidiaryFilter}>
+                  <SelectTrigger className="text-sm">
+                    <SelectValue placeholder="Filtrer par filiale" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes les filiales</SelectItem>
+                    {subsidiaries.map(subsidiary => (
+                      <SelectItem key={subsidiary} value={subsidiary}>
+                        {subsidiary}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <ScrollArea className="h-64">
@@ -378,7 +490,9 @@ export function CreateGroupTransportRequest() {
               </div>
               
               <div className="space-y-1">
-                <Label className="text-sm">Heure</Label>
+                <Label className="text-sm">
+                  {isHomeToWorkTrip ? "Heure d'arrivée" : "Heure de départ"}
+                </Label>
                 <Input
                   type="time"
                   value={scheduledTime}
@@ -410,6 +524,26 @@ export function CreateGroupTransportRequest() {
                   onCheckedChange={(checked) => setIsRecurring(checked === true)}
                 />
                 <Label htmlFor="recurring" className="text-sm">Récurrent</Label>
+              </div>
+            </div>
+
+            {/* Direction de trajet */}
+            <div className="flex items-center justify-between space-x-4 p-3 border rounded-md">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">Direction du trajet</Label>
+                <div className="text-sm text-muted-foreground">
+                  {isHomeToWorkTrip 
+                    ? "Domicile → Travail (heure d'arrivée)" 
+                    : "Travail → Domicile (heure de départ)"}
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Home className={`h-4 w-4 ${isHomeToWorkTrip ? 'text-etaxi-yellow' : 'text-muted-foreground'}`} />
+                <Switch 
+                  checked={!isHomeToWorkTrip}
+                  onCheckedChange={() => handleToggleTripDirection()}
+                />
+                <Briefcase className={`h-4 w-4 ${!isHomeToWorkTrip ? 'text-etaxi-yellow' : 'text-muted-foreground'}`} />
               </div>
             </div>
 
@@ -493,6 +627,22 @@ export function CreateGroupTransportRequest() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
+                                {passenger.isHomeToWork && passenger.homeAddress && (
+                                  <SelectItem value={passenger.homeAddress} className="text-xs">
+                                    <div className="flex items-center">
+                                      <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
+                                      {passenger.homeAddress}
+                                    </div>
+                                  </SelectItem>
+                                )}
+                                {!passenger.isHomeToWork && passenger.workAddress && (
+                                  <SelectItem value={passenger.workAddress} className="text-xs">
+                                    <div className="flex items-center">
+                                      <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
+                                      {passenger.workAddress}
+                                    </div>
+                                  </SelectItem>
+                                )}
                                 {commonAddresses.map((address) => (
                                   <SelectItem key={address} value={address} className="text-xs">
                                     {address}
@@ -510,6 +660,22 @@ export function CreateGroupTransportRequest() {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
+                                {!passenger.isHomeToWork && passenger.homeAddress && (
+                                  <SelectItem value={passenger.homeAddress} className="text-xs">
+                                    <div className="flex items-center">
+                                      <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
+                                      {passenger.homeAddress}
+                                    </div>
+                                  </SelectItem>
+                                )}
+                                {passenger.isHomeToWork && passenger.workAddress && (
+                                  <SelectItem value={passenger.workAddress} className="text-xs">
+                                    <div className="flex items-center">
+                                      <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
+                                      {passenger.workAddress}
+                                    </div>
+                                  </SelectItem>
+                                )}
                                 {commonAddresses.map((address) => (
                                   <SelectItem key={address} value={address} className="text-xs">
                                     {address}
@@ -550,6 +716,12 @@ export function CreateGroupTransportRequest() {
           </CardContent>
         </Card>
       </div>
+
+      <AddEmployeeFromCSV
+        open={csvImportOpen}
+        onOpenChange={setCsvImportOpen}
+        onEmployeesImported={handleEmployeesImported}
+      />
     </div>
   );
 }
