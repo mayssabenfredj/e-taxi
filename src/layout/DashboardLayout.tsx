@@ -17,6 +17,11 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   Building2,
   Users,
   Car,
@@ -32,7 +37,9 @@ import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
-  Bell
+  Bell,
+  ChevronDown,
+  UserCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/Logo';
@@ -51,17 +58,24 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
   const { language, setLanguage, t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isTransportOpen, setIsTransportOpen] = useState(false);
 
   const navigation = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, path: '/dashboard' },
     { id: 'company', name: t('company'), icon: Building2, path: '/company' },
     { id: 'subsidiaries', name: 'Filiales', icon: Home, path: '/subsidiaries' },
     { id: 'employees', name: t('employees'), icon: Users, path: '/employees' },
-    { id: 'transport', name: t('transportRequests'), icon: Car, path: '/transport' },
-    /*{ id: 'taxis', name: 'Gestion Taxis', icon: Car, path: '/taxis' },
-    { id: 'dispatch', name: 'Dispatching', icon: Navigation, path: '/dispatch' },
-    { id: 'claims', name: 'Claims', icon: Navigation, path: '/claims' },
-    { id: 'assign-taxi', name: 'Assign Taxi', icon: Navigation, path: '/assign-taxi' },*/
+    { 
+      id: 'transport', 
+      name: t('transportRequests'), 
+      icon: Car, 
+      path: '/transport',
+      hasSubmenu: true,
+      submenu: [
+        { id: 'transport-individual', name: 'Demandes individuelles', path: '/transport/individual' },
+        { id: 'transport-group', name: 'Demandes de groupe', path: '/transport/group' }
+      ]
+    },
   ];
 
   const getActivePage = (path: string) => {
@@ -70,11 +84,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
     if (path.startsWith('/subsidiaries')) return 'subsidiaries';
     if (path.startsWith('/employees')) return 'employees';
     if (path.startsWith('/transport')) return 'transport';
-    if (path.startsWith('/taxis')) return 'taxis';
-    if (path.startsWith('/dispatch')) return 'dispatch';
     if (path.startsWith('/profile')) return 'profile';
-    if (path.startsWith('/claims')) return 'claims';
-    if (path.startsWith('/assign-taxi')) return 'assign-taxi';
     return 'dashboard';
   };
 
@@ -99,23 +109,73 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
 
       <nav className="flex-1 space-y-1 px-4">
         {navigation.map((item) => (
-          <Button
-            key={item.id}
-            variant={activePage === item.id ? "secondary" : "ghost"}
-            className={cn(
-              "w-full transition-all duration-200",
-              isCollapsed && !isMobile ? "justify-center px-2" : "justify-start space-x-2",
-              activePage === item.id && "bg-etaxi-yellow/10 text-etaxi-yellow hover:bg-etaxi-yellow/20"
+          <div key={item.id}>
+            {item.hasSubmenu ? (
+              <Collapsible 
+                open={isTransportOpen} 
+                onOpenChange={setIsTransportOpen}
+                className="w-full"
+              >
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant={activePage === item.id ? "secondary" : "ghost"}
+                    className={cn(
+                      "w-full transition-all duration-200 justify-between",
+                      isCollapsed && !isMobile ? "justify-center px-2" : "justify-between",
+                      activePage === item.id && "bg-etaxi-yellow/10 text-etaxi-yellow hover:bg-etaxi-yellow/20"
+                    )}
+                    title={isCollapsed && !isMobile ? item.name : undefined}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <item.icon className="h-5 w-5" />
+                      {(!isCollapsed || isMobile) && <span>{item.name}</span>}
+                    </div>
+                    {(!isCollapsed || isMobile) && (
+                      <ChevronDown className={cn(
+                        "h-4 w-4 transition-transform",
+                        isTransportOpen && "rotate-180"
+                      )} />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-1 mt-1">
+                  {item.submenu?.map((subItem) => (
+                    <Button
+                      key={subItem.id}
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start ml-6 text-sm",
+                        location.pathname === subItem.path && "bg-etaxi-yellow/10 text-etaxi-yellow"
+                      )}
+                      onClick={() => {
+                        navigateTo(subItem.path, subItem.id);
+                        if (isMobile) setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      {subItem.name}
+                    </Button>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            ) : (
+              <Button
+                variant={activePage === item.id ? "secondary" : "ghost"}
+                className={cn(
+                  "w-full transition-all duration-200",
+                  isCollapsed && !isMobile ? "justify-center px-2" : "justify-start space-x-2",
+                  activePage === item.id && "bg-etaxi-yellow/10 text-etaxi-yellow hover:bg-etaxi-yellow/20"
+                )}
+                onClick={() => {
+                  navigateTo(item.path, item.id);
+                  if (isMobile) setIsMobileMenuOpen(false);
+                }}
+                title={isCollapsed && !isMobile ? item.name : undefined}
+              >
+                <item.icon className="h-5 w-5" />
+                {(!isCollapsed || isMobile) && <span>{item.name}</span>}
+              </Button>
             )}
-            onClick={() => {
-              navigateTo(item.path, item.id);
-              if (isMobile) setIsMobileMenuOpen(false);
-            }}
-            title={isCollapsed && !isMobile ? item.name : undefined}
-          >
-            <item.icon className="h-5 w-5" />
-            {(!isCollapsed || isMobile) && <span>{item.name}</span>}
-          </Button>
+          </div>
         ))}
       </nav>
 

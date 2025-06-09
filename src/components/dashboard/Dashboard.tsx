@@ -1,10 +1,11 @@
-
 import React, { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
 import { CompanyPage } from '../../pages/dashboard/CompanyPage';
 import { EmployeesPage } from '../../pages/dashboard/EmployeesPage';
 import { TransportPage } from '../../pages/dashboard/transport/TransportPage';
+import { IndividualTransportPage } from '../../pages/dashboard/transport/IndividualTransportPage';
+import { GroupTransportPage } from '../../pages/dashboard/transport/GroupTransportPage';
 import { TaxiManagementPage } from '../../pages/dashboard/taxi/TaxiManagementPage';
 import { DispatchPage } from '../../pages/dashboard/DispatchPage';
 import { ProfilePage } from '../../pages/dashboard/ProfilePage';
@@ -42,14 +43,12 @@ export function Dashboard() {
         </Route>
         <Route path="/employees/:id" element={<EmployeeDetails />} />
         <Route path="/transport" element={<TransportPage />} />
-                <Route path="/transport/:id" element={<TransportRequestDetails />} />
-
+        <Route path="/transport/individual" element={<IndividualTransportPage />} />
+        <Route path="/transport/group" element={<GroupTransportPage />} />
+        <Route path="/transport/:id" element={<TransportRequestDetails />} />
         <Route path="transport/drafts" element={<DraftRequestsPage />} />
         <Route path="transport/create-group" element={<CreateGroupTransportRequest />} />
-                <Route path="/transport/:id/group-dispatch" element={<GroupTransportDispatchPage />} />
-
-
-
+        <Route path="/transport/:id/group-dispatch" element={<GroupTransportDispatchPage />} />
         <Route path="/transport/create" element={<CreateTransportRequest />} />
         <Route path="/taxis" element={<TaxiManagementPage />} />
         <Route path="/dispatch" element={<DispatchPage />} />

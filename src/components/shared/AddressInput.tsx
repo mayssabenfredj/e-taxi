@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Check, ChevronsUpDown, MapPin, Map } from 'lucide-react';
+import { Check, ChevronsUpDown, MapPin, Map, Type } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MapPicker } from './MapPicker';
 
@@ -57,6 +56,7 @@ export function AddressInput({
   const [open, setOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [customAddress, setCustomAddress] = useState('');
+  const [textualAddress, setTextualAddress] = useState('');
 
   const handleSelectSaved = (address: Address) => {
     onChange(address);
@@ -75,6 +75,21 @@ export function AddressInput({
       };
       onChange(newAddress);
       setCustomAddress('');
+    }
+  };
+
+  const handleTextualAddress = () => {
+    if (textualAddress.trim()) {
+      const newAddress: Address = {
+        id: `textual-${Date.now()}`,
+        label: textualAddress,
+        street: textualAddress,
+        city: '',
+        postalCode: '',
+        country: 'France'
+      };
+      onChange(newAddress);
+      setTextualAddress('');
     }
   };
 
@@ -170,6 +185,37 @@ export function AddressInput({
         )}
       </div>
 
+      {/* Textual Address Input */}
+      <div className="space-y-2">
+        <Label className="text-sm text-muted-foreground">Adresse textuelle</Label>
+        <div className="flex space-x-2">
+          <div className="relative flex-1">
+            <Type className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Saisissez une adresse textuelle..."
+              value={textualAddress}
+              onChange={(e) => setTextualAddress(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleTextualAddress();
+                }
+              }}
+              className="pl-10"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleTextualAddress}
+            disabled={!textualAddress.trim()}
+          >
+            Ajouter
+          </Button>
+        </div>
+      </div>
+
+      {/* Custom Address Input */}
       <div className="flex space-x-2">
         <Input
           placeholder="Ou saisissez une nouvelle adresse..."
