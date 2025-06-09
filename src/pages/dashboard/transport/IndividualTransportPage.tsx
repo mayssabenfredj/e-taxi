@@ -34,8 +34,6 @@ export function IndividualTransportPage() {
   const [selectedRequest, setSelectedRequest] = useState<TransportRequest | null>(null);
   const [duplicateSchedules, setDuplicateSchedules] = useState<DuplicateSchedule[]>([]);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [requestToCancel, setRequestToCancel] = useState<TransportRequest | null>(null);
   
   const [requests, setRequests] = useState<TransportRequest[]>([
     {
@@ -86,26 +84,18 @@ export function IndividualTransportPage() {
     
     if (currentTime >= (scheduledTime - thirtyMinutesInMs)) {
       toast.error('Impossible d\'annuler une demande moins de 30 minutes avant le départ');
-      return;
+      return false;
     }
     
-    setRequestToCancel(request);
-    setCancelDialogOpen(true);
-  };
-
-  const confirmCancelRequest = () => {
-    if (requestToCancel) {
-      setRequests(prev => 
-        prev.map(req => 
-          req.id === requestToCancel.id 
-            ? { ...req, status: 'rejected' as const } 
-            : req
-        )
-      );
-      toast.success('Demande annulée avec succès');
-      setCancelDialogOpen(false);
-      setRequestToCancel(null);
-    }
+    setRequests(prev => 
+      prev.map(req => 
+        req.id === request.id 
+          ? { ...req, status: 'rejected' as const } 
+          : req
+      )
+    );
+    toast.success('Demande annulée avec succès');
+    return true;
   };
 
   const handleDateSelect = (dates: Date[] | undefined) => {
@@ -240,20 +230,40 @@ export function IndividualTransportPage() {
         <Copy className="h-4 w-4" />
       </Button>
       {(request.status === 'pending' || request.status === 'approved') && (
-        <AlertDialogTrigger asChild>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleCancelRequest(request);
-            }}
-            title="Annuler"
-            className="text-red-500 hover:text-red-700"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </AlertDialogTrigger>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={(e) => e.stopPropagation()}
+              title="Annuler"
+              className="text-red-500 hover:text-red-700"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center space-x-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                <span>Annuler la demande</span>
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Êtes-vous sûr de vouloir annuler cette demande de transport ? 
+                Cette action est irréversible.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Retour</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => handleCancelRequest(request)}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Confirmer l'annulation
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );
@@ -365,31 +375,6 @@ export function IndividualTransportPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Dialog pour annuler une demande */}
-      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center space-x-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <span>Annuler la demande</span>
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir annuler cette demande de transport ? 
-              Cette action est irréversible.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Retour</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmCancelRequest}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Confirmer l'annulation
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
