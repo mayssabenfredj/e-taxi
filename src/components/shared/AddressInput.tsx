@@ -82,7 +82,7 @@ export function AddressInput({
     if (textualAddress.trim()) {
       const newAddress: Address = {
         id: `textual-${Date.now()}`,
-        label: textualAddress,
+        label: 'Adresse textuelle',
         street: textualAddress,
         city: '',
         postalCode: '',

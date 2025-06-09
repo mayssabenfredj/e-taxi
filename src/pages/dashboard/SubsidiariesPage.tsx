@@ -1,18 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -22,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { AddressInput } from '@/components/shared/AddressInput';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Building2, Plus, Edit, Trash2, MapPin, Phone, Mail, Globe, Users } from 'lucide-react';
+import { Building2, Plus, Edit, Trash2, MapPin, Phone, Mail, Globe, Users, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { TableWithPagination } from '@/components/ui/table-with-pagination';
 
@@ -45,6 +37,8 @@ interface Subsidiary {
   email?: string;
   website?: string;
   description?: string;
+  managerId?: string;
+  managerName?: string;
   status: 'active' | 'inactive';
   employeesCount: number;
   createdAt: string;
@@ -69,6 +63,8 @@ export function SubsidiariesPage() {
       email: 'paris-nord@techcorp.fr',
       website: 'www.techcorp-paris.fr',
       description: 'Filiale spécialisée dans le développement',
+      managerId: '1',
+      managerName: 'Marie Martin',
       status: 'active',
       employeesCount: 45,
       createdAt: '2024-01-15'
@@ -86,6 +82,8 @@ export function SubsidiariesPage() {
       },
       phone: '+33 4 78 78 78 78',
       email: 'lyon@techcorp.fr',
+      managerId: '2',
+      managerName: 'Pierre Durand',
       status: 'active',
       employeesCount: 28,
       createdAt: '2024-02-10'
@@ -100,14 +98,25 @@ export function SubsidiariesPage() {
     email: '',
     website: '',
     description: '',
+    managerId: '',
     address: null as Address | null
   });
+
+  // Mock managers data
+  const managers = [
+    { id: '1', name: 'Marie Martin' },
+    { id: '2', name: 'Pierre Durand' },
+    { id: '3', name: 'Sophie Laurent' },
+    { id: '4', name: 'Jean Dupont' }
+  ];
 
   const handleSubmit = () => {
     if (!formData.name || !formData.address) {
       toast.error('Veuillez remplir tous les champs obligatoires');
       return;
     }
+
+    const selectedManager = managers.find(m => m.id === formData.managerId);
 
     const subsidiaryData: Subsidiary = {
       id: editingSubsidiary?.id || `sub-${Date.now()}`,
@@ -117,6 +126,8 @@ export function SubsidiariesPage() {
       email: formData.email,
       website: formData.website,
       description: formData.description,
+      managerId: formData.managerId,
+      managerName: selectedManager?.name,
       status: 'active',
       employeesCount: 0,
       createdAt: editingSubsidiary?.createdAt || new Date().toISOString().split('T')[0]
@@ -140,6 +151,7 @@ export function SubsidiariesPage() {
       email: '',
       website: '',
       description: '',
+      managerId: '',
       address: null
     });
     setEditingSubsidiary(null);
@@ -154,6 +166,7 @@ export function SubsidiariesPage() {
       email: subsidiary.email || '',
       website: subsidiary.website || '',
       description: subsidiary.description || '',
+      managerId: subsidiary.managerId || '',
       address: subsidiary.address
     });
     setIsCreateOpen(true);
@@ -174,6 +187,7 @@ export function SubsidiariesPage() {
       country: 'France'
     }
   ];
+
   const columns = [
     {
       header: 'Nom',
@@ -184,6 +198,23 @@ export function SubsidiariesPage() {
           <div className="font-medium text-sm">{item.name}</div>
           {item.description && (
             <div className="text-xs text-muted-foreground">{item.description}</div>
+          )}
+        </div>
+      )
+    },
+    {
+      header: 'Manager',
+      accessor: 'managerName',
+      sortable: true,
+      render: (item) => (
+        <div className="flex items-center text-left">
+          {item.managerName ? (
+            <>
+              <User className="mr-1 h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">{item.managerName}</span>
+            </>
+          ) : (
+            <span className="text-sm text-muted-foreground">Non assigné</span>
           )}
         </div>
       )
@@ -274,7 +305,15 @@ export function SubsidiariesPage() {
         size="sm"
         onClick={() => {
           setEditingSubsidiary(item);
-          setFormData(item);
+          setFormData({
+            name: item.name,
+            phone: item.phone || '',
+            email: item.email || '',
+            website: item.website || '',
+            description: item.description || '',
+            managerId: item.managerId || '',
+            address: item.address
+          });
           setIsCreateOpen(true);
         }}
       >
@@ -376,6 +415,24 @@ export function SubsidiariesPage() {
                     className="h-8 text-sm"
                   />
                 </div>
+              </div>
+              <div>
+                <Label>Manager</Label>
+                <Select 
+                  value={formData.managerId} 
+                  onValueChange={(value) => setFormData({ ...formData, managerId: value })}
+                >
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="Sélectionner un manager" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {managers.map((manager) => (
+                      <SelectItem key={manager.id} value={manager.id}>
+                        {manager.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Site web</Label>

@@ -253,22 +253,43 @@ export function EmployeesPage() {
         <Eye className="h-4 w-4" />
       </Button>
       
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleToggleEmployeeStatus(employee.id);
-        }}
-        title={employee.status === 'active' ? 'Désactiver' : 'Activer'}
-        className={employee.status === 'active' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
-      >
-        {employee.status === 'active' ? (
-          <UserX className="h-4 w-4" />
-        ) : (
-          <UserCheck className="h-4 w-4" />
-        )}
-      </Button>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={(e) => e.stopPropagation()}
+            title={employee.status === 'active' ? 'Désactiver' : 'Activer'}
+            className={employee.status === 'active' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
+          >
+            {employee.status === 'active' ? (
+              <UserX className="h-4 w-4" />
+            ) : (
+              <UserCheck className="h-4 w-4" />
+            )}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {employee.status === 'active' ? 'Désactiver' : 'Activer'} l'employé
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir {employee.status === 'active' ? 'désactiver' : 'activer'} l'employé <strong>{employee.name}</strong> ?
+              {employee.status === 'active' && ' Cet employé ne pourra plus accéder au système.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleToggleEmployeeStatus(employee.id)}
+              className={employee.status === 'active' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
+            >
+              {employee.status === 'active' ? 'Désactiver' : 'Activer'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog>
         <AlertDialogTrigger asChild>
