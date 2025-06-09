@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Car, Users, MapPin, Clock, Navigation, ArrowLeft } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Car, Users, MapPin, Clock, Navigation, ArrowLeft, Plus, ChevronDown } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -21,6 +22,7 @@ interface VirtualTaxi {
   capacity: number;
   assignedPassengers: Passenger[];
   status: 'available' | 'assigned' | 'dispatched';
+  isCollapsed: boolean;
 }
 
 export function GroupTransportDispatchPage() {
@@ -91,7 +93,8 @@ export function GroupTransportDispatchPage() {
       name: `Taxi #${index + 1}`,
       capacity: 4,
       assignedPassengers: [],
-      status: 'available' as const
+      status: 'available' as const,
+      isCollapsed: false
     }))
   );
 
@@ -168,17 +171,29 @@ export function GroupTransportDispatchPage() {
     );
   };
 
-  const dispatchTaxi = (taxiId: string) => {
+  const toggleTaxiCollapse = (taxiId: string) => {
     setVirtualTaxis(prevTaxis => 
       prevTaxis.map(taxi => 
         taxi.id === taxiId 
-          ? { ...taxi, status: 'dispatched' as const }
+          ? { ...taxi, isCollapsed: !taxi.isCollapsed }
           : taxi
       )
     );
+  };
+
+  const addNewTaxi = () => {
+    const newTaxiId = `taxi-${virtualTaxis.length + 1}`;
+    const newTaxi: VirtualTaxi = {
+      id: newTaxiId,
+      name: `Taxi #${virtualTaxis.length + 1}`,
+      capacity: 4,
+      assignedPassengers: [],
+      status: 'available',
+      isCollapsed: false
+    };
     
-    const taxi = virtualTaxis.find(t => t.id === taxiId);
-    toast.success(`${taxi?.name} dispatché avec ${taxi?.assignedPassengers.length} passager(s)`);
+    setVirtualTaxis(prev => [...prev, newTaxi]);
+    toast.success('Nouveau taxi ajouté');
   };
 
   const dispatchAll = () => {
@@ -221,7 +236,7 @@ export function GroupTransportDispatchPage() {
           className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
         >
           <Navigation className="mr-2 h-4 w-4" />
-          Dispatcher tout
+          Créer une course
         </Button>
       </div>
 
@@ -302,26 +317,30 @@ export function GroupTransportDispatchPage() {
         </Card>
 
         {/* Virtual Taxis */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center space-x-2 text-lg">
-              <Car className="h-5 w-5" />
-              <span>Taxis virtuels</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {virtualTaxis.map((taxi) => (
-              <div
-                key={taxi.id}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, taxi.id)}
-                className={`p-3 border rounded transition-all ${
-                  taxi.status === 'available' ? 'border-green-200 bg-green-50/50' :
-                  taxi.status === 'assigned' ? 'border-yellow-200 bg-yellow-50/50' :
-                  'border-blue-200 bg-blue-50/50'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
+        <div className="space-y-3 relative">
+          <Button
+            onClick={addNewTaxi}
+            variant="outline"
+            size="sm"
+            className="absolute -top-2 right-0 z-10"
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            Ajouter un taxi
+          </Button>
+          
+          {virtualTaxis.map((taxi) => (
+            <Collapsible
+              key={taxi.id}
+              open={!taxi.isCollapsed}
+              onOpenChange={() => toggleTaxiCollapse(taxi.id)}
+              className={`border rounded transition-all ${
+                taxi.status === 'available' ? 'border-green-200 bg-green-50/50' :
+                taxi.status === 'assigned' ? 'border-yellow-200 bg-yellow-50/50' :
+                'border-blue-200 bg-blue-50/50'
+              }`}
+            >
+              <CollapsibleTrigger className="w-full">
+                <div className="flex items-center justify-between p-3 cursor-pointer">
                   <div className="flex items-center space-x-2">
                     <Car className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium text-sm">{taxi.name}</span>
@@ -340,57 +359,55 @@ export function GroupTransportDispatchPage() {
                     <span className="text-xs text-muted-foreground">
                       {taxi.assignedPassengers.length}/{taxi.capacity}
                     </span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${taxi.isCollapsed ? '' : 'rotate-180'}`} />
                   </div>
                 </div>
-
-                {taxi.assignedPassengers.length > 0 ? (
-                  <div className="space-y-1 mb-2">
-                    {taxi.assignedPassengers.map((passenger) => (
-                      <div key={passenger.id} className="bg-background rounded border p-2">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium">{passenger.name}</span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-red-600 hover:text-red-700 h-5 w-5 p-0"
-                            onClick={() => removePassengerFromTaxi(taxi.id, passenger.id)}
-                          >
-                            ✕
-                          </Button>
-                        </div>
-                        <div className="text-xs text-muted-foreground space-y-1">
-                          <div className="flex items-center space-x-1">
-                            <MapPin className="h-3 w-3 text-green-500" />
-                            <span className="truncate">{passenger.departureAddress}</span>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent>
+                <div 
+                  className="p-3 pt-0"
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, taxi.id)}
+                >
+                  {taxi.assignedPassengers.length > 0 ? (
+                    <div className="space-y-1 mb-2">
+                      {taxi.assignedPassengers.map((passenger) => (
+                        <div key={passenger.id} className="bg-background rounded border p-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium">{passenger.name}</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-600 hover:text-red-700 h-5 w-5 p-0"
+                              onClick={() => removePassengerFromTaxi(taxi.id, passenger.id)}
+                            >
+                              ✕
+                            </Button>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <MapPin className="h-3 w-3 text-red-500" />
-                            <span className="truncate">{passenger.arrivalAddress}</span>
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            <div className="flex items-center space-x-1">
+                              <MapPin className="h-3 w-3 text-green-500" />
+                              <span className="truncate">{passenger.departureAddress}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <MapPin className="h-3 w-3 text-red-500" />
+                              <span className="truncate">{passenger.arrivalAddress}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-3 text-muted-foreground border-2 border-dashed rounded text-xs">
-                    Glissez des passagers ici
-                  </div>
-                )}
-
-                {taxi.assignedPassengers.length > 0 && taxi.status !== 'dispatched' && (
-                  <Button
-                    size="sm"
-                    className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-xs"
-                    onClick={() => dispatchTaxi(taxi.id)}
-                  >
-                    <Navigation className="mr-1 h-3 w-3" />
-                    Dispatcher
-                  </Button>
-                )}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-3 text-muted-foreground border-2 border-dashed rounded text-xs">
+                      Glissez des passagers ici
+                    </div>
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          ))}
+        </div>
       </div>
     </div>
   );

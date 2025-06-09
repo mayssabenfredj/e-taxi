@@ -18,8 +18,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { AddressInput } from '../shared/AddressInput';
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, Clock, FilePlus, FileMinus, MessageSquare, ChevronDown, Building2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, Clock, FilePlus, FileMinus, MessageSquare, ChevronDown, Building2, Search, Filter } from 'lucide-react';
 import { toast } from 'sonner';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 
 interface Address {
   id: string;
@@ -121,6 +122,15 @@ export function EmployeeDetails() {
       departureAddress: employee.addresses[1],
       arrivalAddress: employee.addresses[0],
       requestId: 'req124'
+    },
+    {
+      id: 'tr3',
+      date: '2025-05-30',
+      time: '09:00',
+      status: 'Planifié',
+      departureAddress: employee.addresses[0],
+      arrivalAddress: employee.addresses[1],
+      requestId: 'req125'
     }
   ]);
 
@@ -141,15 +151,45 @@ export function EmployeeDetails() {
       description: 'Il serait bien d\'avoir une notification quand le taxi arrive',
       status: 'pending',
       createdAt: '2024-01-10 14:20'
+    },
+    {
+      id: 'claim3',
+      type: 'technical',
+      subject: 'Problème de géolocalisation',
+      description: 'La position du taxi n\'est pas précise sur la carte',
+      status: 'pending',
+      createdAt: '2024-01-05 09:45'
+    },
+    {
+      id: 'claim4',
+      type: 'complaint',
+      subject: 'Chauffeur impoli',
+      description: 'Le chauffeur a été très désagréable pendant tout le trajet',
+      status: 'resolved',
+      createdAt: '2023-12-20 16:30',
+      response: 'Nous avons pris note de votre plainte et avons discuté avec le chauffeur concerné. Nous vous présentons nos excuses pour cette expérience désagréable.'
+    },
+    {
+      id: 'claim5',
+      type: 'suggestion',
+      subject: 'Option de pourboire',
+      description: 'Il serait pratique d\'avoir une option pour laisser un pourboire dans l\'application',
+      status: 'closed',
+      createdAt: '2023-12-15 11:20',
+      response: 'Merci pour votre suggestion. Nous travaillons actuellement sur cette fonctionnalité qui sera disponible dans une prochaine mise à jour.'
     }
   ]);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editedEmployee, setEditedEmployee] = useState<Employee>({...employee});
   const [newAddress, setNewAddress] = useState<Address | null>(null);
-  const [claimsExpanded, setClaimsExpanded] = useState(false);
-  const [transportExpanded, setTransportExpanded] = useState(false);
-  const [addressesExpanded, setAddressesExpanded] = useState(false);
+  
+  // Claims pagination and filtering
+  const [currentClaimsPage, setCurrentClaimsPage] = useState(1);
+  const [claimsPerPage] = useState(3);
+  const [claimsSearchTerm, setClaimsSearchTerm] = useState('');
+  const [claimsTypeFilter, setClaimsTypeFilter] = useState<string>('all');
+  const [claimsStatusFilter, setClaimsStatusFilter] = useState<string>('all');
 
   const subsidiaries = [
     { id: '1', name: 'TechCorp Paris' },
@@ -226,6 +266,22 @@ export function EmployeeDetails() {
       default: return role;
     }
   };
+
+  // Filter claims
+  const filteredClaims = claimsHistory.filter(claim => {
+    const matchesSearch = claim.subject.toLowerCase().includes(claimsSearchTerm.toLowerCase()) || 
+                         claim.description.toLowerCase().includes(claimsSearchTerm.toLowerCase());
+    const matchesType = claimsTypeFilter === 'all' || claim.type === claimsTypeFilter;
+    const matchesStatus = claimsStatusFilter === 'all' || claim.status === claimsStatusFilter;
+    
+    return matchesSearch && matchesType && matchesStatus;
+  });
+
+  // Paginate claims
+  const indexOfLastClaim = currentClaimsPage * claimsPerPage;
+  const indexOfFirstClaim = indexOfLastClaim - claimsPerPage;
+  const currentClaims = filteredClaims.slice(indexOfFirstClaim, indexOfLastClaim);
+  const totalClaimsPages = Math.ceil(filteredClaims.length / claimsPerPage);
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -437,256 +493,279 @@ export function EmployeeDetails() {
         </TabsContent>
         
         <TabsContent value="addresses" className="space-y-4 mt-4">
-          <Collapsible open={addressesExpanded} onOpenChange={setAddressesExpanded}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
-                  <CardTitle className="flex items-center space-x-2">
-                    <MapPin className="h-5 w-5" />
-                    <span>Adresses enregistrées ({(isEditing ? editedEmployee.addresses : employee.addresses).length})</span>
-                  </CardTitle>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${addressesExpanded ? 'rotate-180' : ''}`} />
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent>
-                  {isEditing && (
-                    <div className="mb-4">
-                      {newAddress ? (
-                        <div className="flex space-x-2 mb-4">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => setNewAddress(null)}
-                          >
-                            <FileMinus className="h-4 w-4 mr-1" />
-                            Annuler
-                          </Button>
-                          <Button 
-                            size="sm"
-                            onClick={handleAddAddress}
-                            className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
-                          >
-                            <FilePlus className="h-4 w-4 mr-1" />
-                            Enregistrer
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button 
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setNewAddress({ 
-                            id: `new-${Date.now()}`,
-                            label: '',
-                            street: '',
-                            city: '',
-                            postalCode: '',
-                            country: 'France'
-                          })}
-                          className="mb-4"
-                        >
-                          <FilePlus className="h-4 w-4 mr-1" />
-                          Nouvelle adresse
-                        </Button>
-                      )}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center space-x-2">
+                <MapPin className="h-5 w-5" />
+                <span>Adresses enregistrées ({(isEditing ? editedEmployee.addresses : employee.addresses).length})</span>
+              </CardTitle>
+              {isEditing && (
+                <div>
+                  {newAddress ? (
+                    <div className="flex space-x-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => setNewAddress(null)}
+                      >
+                        <FileMinus className="h-4 w-4 mr-1" />
+                        Annuler
+                      </Button>
+                      <Button 
+                        size="sm"
+                        onClick={handleAddAddress}
+                        className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+                      >
+                        <FilePlus className="h-4 w-4 mr-1" />
+                        Enregistrer
+                      </Button>
                     </div>
+                  ) : (
+                    <Button 
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setNewAddress({ 
+                        id: `new-${Date.now()}`,
+                        label: '',
+                        street: '',
+                        city: '',
+                        postalCode: '',
+                        country: 'France'
+                      })}
+                    >
+                      <FilePlus className="h-4 w-4 mr-1" />
+                      Nouvelle adresse
+                    </Button>
                   )}
-
-                  {newAddress && (
-                    <Card className="mb-4 border-dashed">
-                      <CardContent className="p-4">
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label>Libellé de l'adresse</Label>
-                            <Input
-                              value={newAddress.label}
-                              onChange={(e) => setNewAddress({...newAddress, label: e.target.value})}
-                              placeholder="Ex: Domicile, Travail, etc."
-                            />
-                          </div>
-                          
-                          <AddressInput
-                            label="Adresse"
-                            value={newAddress}
-                            onChange={(address) => address && setNewAddress(address)}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                  
-                  {(isEditing ? editedEmployee.addresses : employee.addresses).length > 0 ? (
+                </div>
+              )}
+            </CardHeader>
+            <CardContent>
+              {newAddress && (
+                <Card className="mb-4 border-dashed">
+                  <CardContent className="p-4">
                     <div className="space-y-4">
-                      {(isEditing ? editedEmployee.addresses : employee.addresses).map((address) => (
-                        <div key={address.id} className="p-4 border rounded-lg">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-start">
-                              <MapPin className="h-5 w-5 text-etaxi-yellow mr-2 mt-0.5" />
-                              <div>
-                                {address.label && (
-                                  <span className="inline-block px-2 py-0.5 bg-etaxi-yellow/20 text-xs rounded mb-1">
-                                    {address.label}
-                                  </span>
-                                )}
-                                <p className="font-medium">{address.street}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {address.postalCode} {address.city}, {address.country}
-                                </p>
-                                {address.latitude && address.longitude && (
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    Coordonnées: {address.latitude.toFixed(6)}, {address.longitude.toFixed(6)}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            
-                            {isEditing ? (
-                              <div className="flex space-x-2">
-                                <Button 
-                                  size="sm" 
-                                  variant={(isEditing ? editedEmployee.defaultAddressId : employee.defaultAddressId) === address.id 
-                                    ? 'default' 
-                                    : 'outline'}
-                                  className={(isEditing ? editedEmployee.defaultAddressId : employee.defaultAddressId) === address.id 
-                                    ? 'bg-etaxi-yellow hover:bg-yellow-500 text-black' 
-                                    : ''}
-                                  onClick={() => setDefaultAddress(address.id)}
-                                >
-                                  Par défaut
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="text-red-500 hover:text-red-700"
-                                  onClick={() => handleRemoveAddress(address.id)}
-                                >
-                                  Supprimer
-                                </Button>
-                              </div>
-                            ) : (
-                              (employee.defaultAddressId === address.id) && (
-                                <Badge className="bg-etaxi-yellow text-black">Par défaut</Badge>
-                              )
+                      <div className="space-y-2">
+                        <Label>Libellé de l'adresse</Label>
+                        <Input
+                          value={newAddress.label}
+                          onChange={(e) => setNewAddress({...newAddress, label: e.target.value})}
+                          placeholder="Ex: Domicile, Travail, etc."
+                        />
+                      </div>
+                      
+                      <AddressInput
+                        label="Adresse"
+                        value={newAddress}
+                        onChange={(address) => address && setNewAddress(address)}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {(isEditing ? editedEmployee.addresses : employee.addresses).length > 0 ? (
+                <div className="space-y-4">
+                  {(isEditing ? editedEmployee.addresses : employee.addresses).map((address) => (
+                    <div key={address.id} className="p-4 border rounded-lg">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start">
+                          <MapPin className="h-5 w-5 text-etaxi-yellow mr-2 mt-0.5" />
+                          <div>
+                            {address.label && (
+                              <span className="inline-block px-2 py-0.5 bg-etaxi-yellow/20 text-xs rounded mb-1">
+                                {address.label}
+                              </span>
+                            )}
+                            <p className="font-medium">{address.street}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {address.postalCode} {address.city}, {address.country}
+                            </p>
+                            {address.latitude && address.longitude && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Coordonnées: {address.latitude.toFixed(6)}, {address.longitude.toFixed(6)}
+                              </p>
                             )}
                           </div>
                         </div>
-                      ))}
+                        
+                        {isEditing ? (
+                          <div className="flex space-x-2">
+                            <Button 
+                              size="sm" 
+                              variant={(isEditing ? editedEmployee.defaultAddressId : employee.defaultAddressId) === address.id 
+                                ? 'default' 
+                                : 'outline'}
+                              className={(isEditing ? editedEmployee.defaultAddressId : employee.defaultAddressId) === address.id 
+                                ? 'bg-etaxi-yellow hover:bg-yellow-500 text-black' 
+                                : ''}
+                              onClick={() => setDefaultAddress(address.id)}
+                            >
+                              Par défaut
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => handleRemoveAddress(address.id)}
+                            >
+                              Supprimer
+                            </Button>
+                          </div>
+                        ) : (
+                          (employee.defaultAddressId === address.id) && (
+                            <Badge className="bg-etaxi-yellow text-black">Par défaut</Badge>
+                          )
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-center p-8 text-muted-foreground">
-                      <MapPin className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                      <p>Aucune adresse enregistrée</p>
-                    </div>
-                  )}
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  <MapPin className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p>Aucune adresse enregistrée</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
         
         <TabsContent value="history" className="mt-4">
-          <Collapsible open={transportExpanded} onOpenChange={setTransportExpanded}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="flex flex-row items-center justify-between cursor-pointer hover:bg-muted/50 transition-colors">
-                  <CardTitle className="flex items-center space-x-2">
-                    <Calendar className="h-5 w-5" />
-                    <span>Historique de transport ({transportHistory.length})</span>
-                  </CardTitle>
-                  <ChevronDown className={`h-4 w-4 transition-transform ${transportExpanded ? 'rotate-180' : ''}`} />
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent>
-                  {transportHistory.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Heure</TableHead>
-                          <TableHead>Départ</TableHead>
-                          <TableHead>Arrivée</TableHead>
-                          <TableHead>Statut</TableHead>
-                          <TableHead>ID Demande</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {transportHistory.map((transport) => (
-                          <TableRow key={transport.id}>
-                            <TableCell>
-                              <div className="flex items-center">
-                                <Calendar className="h-4 w-4 mr-1 text-gray-500" />
-                                {transport.date}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                <Clock className="h-4 w-4 mr-1 text-gray-500" />
-                                {transport.time}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-sm">
-                                <span className="font-medium">{transport.departureAddress.label}</span>
-                                <p className="text-xs text-muted-foreground">{transport.departureAddress.street}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-sm">
-                                <span className="font-medium">{transport.arrivalAddress.label}</span>
-                                <p className="text-xs text-muted-foreground">{transport.arrivalAddress.street}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={
-                                transport.status === 'Complété' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-blue-100 text-blue-800'
-                              }>
-                                {transport.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <span className="text-xs font-mono">{transport.requestId}</span>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="text-center p-8 text-muted-foreground">
-                      <Calendar className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                      <p>Aucun historique de transport</p>
-                    </div>
-                  )}
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Calendar className="h-5 w-5" />
+                <span>Historique de transport ({transportHistory.length})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {transportHistory.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Heure</TableHead>
+                      <TableHead>Départ</TableHead>
+                      <TableHead>Arrivée</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead>ID Demande</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {transportHistory.map((transport) => (
+                      <TableRow key={transport.id}>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-1 text-gray-500" />
+                            {transport.date}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 mr-1 text-gray-500" />
+                            {transport.time}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <span className="font-medium">{transport.departureAddress.label}</span>
+                            <p className="text-xs text-muted-foreground">{transport.departureAddress.street}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <span className="font-medium">{transport.arrivalAddress.label}</span>
+                            <p className="text-xs text-muted-foreground">{transport.arrivalAddress.street}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={
+                            transport.status === 'Complété' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-blue-100 text-blue-800'
+                          }>
+                            {transport.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs font-mono">{transport.requestId}</span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  <Calendar className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p>Aucun historique de transport</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="claims" className="mt-4">
-          <Collapsible open={claimsExpanded} onOpenChange={setClaimsExpanded}>
-            <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <MessageSquare className="h-5 w-5" />
-                      <span>Historique des réclamations ({claimsHistory.length})</span>
-                    </div>
-                    <ChevronDown className={`h-4 w-4 transition-transform ${claimsExpanded ? 'rotate-180' : ''}`} />
-                  </CardTitle>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent>
-                  {claimsHistory.length > 0 ? (
-                    <div className="space-y-4">
-                      {claimsHistory.map((claim) => (
-                        <div key={claim.id} className="border rounded-lg p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center space-x-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <MessageSquare className="h-5 w-5" />
+                <span>Historique des réclamations ({claimsHistory.length})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Filters */}
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher dans les réclamations..."
+                    value={claimsSearchTerm}
+                    onChange={(e) => setClaimsSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={claimsTypeFilter} onValueChange={setClaimsTypeFilter}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les types</SelectItem>
+                      <SelectItem value="complaint">Plaintes</SelectItem>
+                      <SelectItem value="suggestion">Suggestions</SelectItem>
+                      <SelectItem value="technical">Techniques</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <Select value={claimsStatusFilter} onValueChange={setClaimsStatusFilter}>
+                    <SelectTrigger className="w-[150px]">
+                      <SelectValue placeholder="Statut" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les statuts</SelectItem>
+                      <SelectItem value="pending">En attente</SelectItem>
+                      <SelectItem value="resolved">Résolu</SelectItem>
+                      <SelectItem value="closed">Fermé</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Claims List */}
+              {filteredClaims.length > 0 ? (
+                <div className="space-y-4">
+                  {currentClaims.map((claim) => (
+                    <Collapsible key={claim.id} className="border rounded-lg">
+                      <CollapsibleTrigger className="w-full text-left p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="flex items-center space-x-2 mb-1">
                               <Badge className={getClaimTypeColor(claim.type)}>
                                 {claim.type === 'complaint' ? 'Plainte' : 
                                  claim.type === 'suggestion' ? 'Suggestion' : 'Technique'}
@@ -696,13 +775,26 @@ export function EmployeeDetails() {
                                  claim.status === 'resolved' ? 'Résolu' : 'Fermé'}
                               </Badge>
                             </div>
-                            <span className="text-sm text-muted-foreground">
-                              {new Date(claim.createdAt).toLocaleString('fr-FR')}
-                            </span>
+                            <h4 className="font-medium">{claim.subject}</h4>
+                            <p className="text-sm text-muted-foreground truncate max-w-md">
+                              {claim.description.substring(0, 100)}
+                              {claim.description.length > 100 ? '...' : ''}
+                            </p>
                           </div>
-                          
-                          <h4 className="font-medium mb-2">{claim.subject}</h4>
-                          <p className="text-sm text-muted-foreground mb-3">{claim.description}</p>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm text-muted-foreground">
+                              {new Date(claim.createdAt).toLocaleDateString('fr-FR')}
+                            </span>
+                            <ChevronDown className="h-4 w-4" />
+                          </div>
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="p-4 pt-0 border-t">
+                          <div className="mb-3">
+                            <p className="text-sm font-medium text-muted-foreground mb-1">Description complète:</p>
+                            <p className="text-sm">{claim.description}</p>
+                          </div>
                           
                           {claim.response && (
                             <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded">
@@ -710,19 +802,55 @@ export function EmployeeDetails() {
                               <p className="text-sm text-green-700">{claim.response}</p>
                             </div>
                           )}
+                          
+                          <div className="mt-3 text-xs text-muted-foreground">
+                            Créé le {new Date(claim.createdAt).toLocaleString('fr-FR')}
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center p-8 text-muted-foreground">
-                      <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                      <p>Aucune réclamation</p>
-                    </div>
-                  )}
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p>Aucune réclamation trouvée</p>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {filteredClaims.length > 0 && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentClaimsPage(prev => Math.max(prev - 1, 1))}
+                        className={currentClaimsPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                    
+                    {Array.from({ length: totalClaimsPages }).map((_, i) => (
+                      <PaginationItem key={i}>
+                        <PaginationLink
+                          isActive={currentClaimsPage === i + 1}
+                          onClick={() => setCurrentClaimsPage(i + 1)}
+                        >
+                          {i + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentClaimsPage(prev => Math.min(prev + 1, totalClaimsPages))}
+                        className={currentClaimsPage === totalClaimsPages ? 'pointer-events-none opacity-50' : ''}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
