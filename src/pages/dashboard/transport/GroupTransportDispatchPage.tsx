@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Car, Users, MapPin, Clock, Navigation, ArrowLeft, Plus, ChevronDown, X } from 'lucide-react';
+import { Car, Users, MapPin, Clock, Navigation, ArrowLeft, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 
 interface Passenger {
@@ -23,15 +23,15 @@ interface VirtualTaxi {
   assignedPassengers: Passenger[];
   status: 'available' | 'assigned' | 'dispatched';
   isCollapsed: boolean;
-  isUserAdded: boolean; // Pour distinguer les taxis ajoutés par l'utilisateur
 }
 
 export function GroupTransportDispatchPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   
   const [draggedPassenger, setDraggedPassenger] = useState<Passenger | null>(null);
-  const [hasDraftData, setHasDraftData] = useState(false);
+  const [hasDraftChanges, setHasDraftChanges] = useState(false);
 
   // Mock data for the group transport request
   const transportRequest = {
@@ -86,23 +86,7 @@ export function GroupTransportDispatchPage() {
     ] as Passenger[]
   };
 
-  // Group passengers by governorate (using city as proxy)
-  const passengersByGovernorate = transportRequest.passengers.reduce((groups, passenger) => {
-    // Extract city from address (simplified logic)
-    const governorate = passenger.departureAddress.includes('Paris') ? 'Paris' :
-                       passenger.departureAddress.includes('Lyon') ? 'Lyon' :
-                       passenger.departureAddress.includes('Marseille') ? 'Marseille' :
-                       passenger.departureAddress.includes('Défense') ? 'Hauts-de-Seine' :
-                       'Autres';
-    
-    if (!groups[governorate]) {
-      groups[governorate] = [];
-    }
-    groups[governorate].push(passenger);
-    return groups;
-  }, {} as Record<string, Passenger[]>);
-
-  // Calculate number of virtual taxis needed based on passengers
+  // Calculate number of virtual taxis needed
   const taxiCount = Math.ceil(transportRequest.passengers.length / 4);
   
   const [virtualTaxis, setVirtualTaxis] = useState<VirtualTaxi[]>(
@@ -112,46 +96,26 @@ export function GroupTransportDispatchPage() {
       capacity: 4,
       assignedPassengers: [],
       status: 'available' as const,
-      isCollapsed: false,
-      isUserAdded: false
+      isCollapsed: false
     }))
   );
 
-  // Auto-collapse full taxis and sort taxis (empty ones first)
-  useEffect(() => {
-    setVirtualTaxis(prevTaxis => {
-      const updatedTaxis = prevTaxis.map(taxi => ({
-        ...taxi,
-        isCollapsed: taxi.assignedPassengers.length === taxi.capacity
-      }));
-
-      // Sort: empty taxis first, then partially filled, then full
-      return updatedTaxis.sort((a, b) => {
-        const aPassengerCount = a.assignedPassengers.length;
-        const bPassengerCount = b.assignedPassengers.length;
-        
-        if (aPassengerCount === 0 && bPassengerCount > 0) return -1;
-        if (bPassengerCount === 0 && aPassengerCount > 0) return 1;
-        if (aPassengerCount === a.capacity && bPassengerCount < b.capacity) return 1;
-        if (bPassengerCount === b.capacity && aPassengerCount < a.capacity) return -1;
-        
-        return 0;
-      });
-    });
-  }, [virtualTaxis.map(t => t.assignedPassengers.length).join(',')]);
-
-  // Check if there's any dispatch data to save as draft
-  useEffect(() => {
-    const hasAssignedPassengers = virtualTaxis.some(taxi => taxi.assignedPassengers.length > 0);
-    setHasDraftData(hasAssignedPassengers);
-  }, [virtualTaxis]);
+  // Group passengers by departure address
+  const passengersByDeparture = transportRequest.passengers.reduce((groups, passenger) => {
+    const departure = passenger.departureAddress;
+    if (!groups[departure]) {
+      groups[departure] = [];
+    }
+    groups[departure].push(passenger);
+    return groups;
+  }, {} as Record<string, Passenger[]>);
 
   // Get unassigned passengers
   const assignedPassengerIds = virtualTaxis.flatMap(taxi => taxi.assignedPassengers.map(p => p.id));
-  const unassignedPassengersByGovernorate = Object.entries(passengersByGovernorate).reduce((groups, [governorate, passengers]) => {
+  const unassignedPassengersByDeparture = Object.entries(passengersByDeparture).reduce((groups, [departure, passengers]) => {
     const unassigned = passengers.filter(p => !assignedPassengerIds.includes(p.id));
     if (unassigned.length > 0) {
-      groups[governorate] = unassigned;
+      groups[departure] = unassigned;
     }
     return groups;
   }, {} as Record<string, Passenger[]>);
@@ -177,124 +141,145 @@ export function GroupTransportDispatchPage() {
       return;
     }
 
-    setVirtualTaxis(prevTaxis => 
-      prevTaxis.map(t => 
+    setVirtualTaxis(prevTaxis => {
+      const newTaxis = prevTaxis.map(t => 
         t.id === taxiId 
           ? { 
               ...t, 
               assignedPassengers: [...t.assignedPassengers, draggedPassenger],
-              status: 'assigned' as const
+              status: 'assigned' as const,
+              isCollapsed: t.assignedPassengers.length + 1 >= t.capacity
             }
           : t
-      )
-    );
+      );
+      
+      // Sort taxis: full ones at bottom, empty ones at top
+      return newTaxis.sort((a, b) => {
+        const aIsFull = a.assignedPassengers.length >= a.capacity;
+        const bIsFull = b.assignedPassengers.length >= b.capacity;
+        
+        if (aIsFull && !bIsFull) return 1;
+        if (!aIsFull && bIsFull) return -1;
+        return 0;
+      });
+    });
 
+    setHasDraftChanges(true);
     toast.success(`${draggedPassenger.name} assigné au ${taxi.name}`);
     setDraggedPassenger(null);
   };
 
   const removePassengerFromTaxi = (taxiId: string, passengerId: string) => {
-    setVirtualTaxis(prevTaxis => 
-      prevTaxis.map(taxi => {
+    setVirtualTaxis(prevTaxis => {
+      const newTaxis = prevTaxis.map(taxi => {
         if (taxi.id === taxiId) {
           const newPassengers = taxi.assignedPassengers.filter(p => p.id !== passengerId);
           return {
             ...taxi,
             assignedPassengers: newPassengers,
-            status: newPassengers.length === 0 ? 'available' as const : 'assigned' as const
+            status: newPassengers.length === 0 ? 'available' as const : 'assigned' as const,
+            isCollapsed: false
           };
         }
         return taxi;
-      })
-    );
+      });
+      
+      // Sort taxis: full ones at bottom, empty ones at top
+      return newTaxis.sort((a, b) => {
+        const aIsFull = a.assignedPassengers.length >= a.capacity;
+        const bIsFull = b.assignedPassengers.length >= b.capacity;
+        
+        if (aIsFull && !bIsFull) return 1;
+        if (!aIsFull && bIsFull) return -1;
+        return 0;
+      });
+    });
+    
+    setHasDraftChanges(true);
+  };
+
+  const addVirtualTaxi = () => {
+    const newTaxiNumber = virtualTaxis.length + 1;
+    const newTaxi: VirtualTaxi = {
+      id: `taxi-${newTaxiNumber}`,
+      name: `Taxi #${newTaxiNumber}`,
+      capacity: 4,
+      assignedPassengers: [],
+      status: 'available',
+      isCollapsed: false
+    };
+    
+    setVirtualTaxis(prev => [newTaxi, ...prev]);
+    toast.success(`Taxi virtuel #${newTaxiNumber} ajouté`);
+  };
+
+  const removeVirtualTaxi = (taxiId: string) => {
+    const taxi = virtualTaxis.find(t => t.id === taxiId);
+    if (taxi && taxi.assignedPassengers.length > 0) {
+      toast.error('Impossible de supprimer un taxi avec des passagers assignés');
+      return;
+    }
+    
+    setVirtualTaxis(prev => prev.filter(t => t.id !== taxiId));
+    toast.success('Taxi virtuel supprimé');
   };
 
   const toggleTaxiCollapse = (taxiId: string) => {
-    setVirtualTaxis(prevTaxis => 
-      prevTaxis.map(taxi => 
-        taxi.id ===  taxiId 
+    setVirtualTaxis(prev => 
+      prev.map(taxi => 
+        taxi.id === taxiId 
           ? { ...taxi, isCollapsed: !taxi.isCollapsed }
           : taxi
       )
     );
   };
 
-  const addNewTaxi = () => {
-    const newTaxiId = `taxi-${Date.now()}`;
-    const newTaxi: VirtualTaxi = {
-      id: newTaxiId,
-      name: `Taxi #${virtualTaxis.length + 1}`,
-      capacity: 4,
-      assignedPassengers: [],
-      status: 'available',
-      isCollapsed: false,
-      isUserAdded: true
-    };
-    
-    setVirtualTaxis(prev => [...prev, newTaxi]);
-    toast.success('Nouveau taxi ajouté');
-  };
-
-  const removeTaxi = (taxiId: string) => {
-    const taxi = virtualTaxis.find(t => t.id === taxiId);
-    
-    if (!taxi) return;
-    
-    if (taxi.assignedPassengers.length > 0) {
-      toast.error('Impossible de supprimer un taxi avec des passagers assignés');
-      return;
-    }
-    
-    setVirtualTaxis(prev => prev.filter(t => t.id !== taxiId));
-    toast.success('Taxi supprimé');
-  };
-
-  const dispatchAll = () => {
+  const createCourse = () => {
     const assignedTaxis = virtualTaxis.filter(taxi => taxi.assignedPassengers.length > 0);
     
     if (assignedTaxis.length === 0) {
-      toast.error('Aucun passager assigné');
+      toast.error('Aucun taxi à dispatcher');
       return;
     }
 
-    // Vérifier si tous les passagers sont assignés
-    const allPassengersAssigned = transportRequest.passengers.every(passenger => 
-      assignedPassengerIds.includes(passenger.id)
-    );
+    // Check if all passengers are assigned
+    const totalAssignedPassengers = assignedTaxis.reduce((sum, taxi) => sum + taxi.assignedPassengers.length, 0);
+    const allPassengersAssigned = totalAssignedPassengers === transportRequest.passengers.length;
 
-    if (!allPassengersAssigned) {
-      // Sauvegarder comme brouillon
-      const draftData = {
-        requestId: transportRequest.id,
-        taxis: virtualTaxis,
-        lastModified: new Date().toISOString()
-      };
+    if (allPassengersAssigned) {
+      setVirtualTaxis(prevTaxis => 
+        prevTaxis.map(taxi => 
+          taxi.assignedPassengers.length > 0 
+            ? { ...taxi, status: 'dispatched' as const }
+            : taxi
+        )
+      );
       
-      localStorage.setItem(`groupDispatchDraft-${transportRequest.id}`, JSON.stringify(draftData));
-      toast.info('Certains passagers ne sont pas assignés. Sauvegardé comme brouillon.');
-      navigate('/transport/drafts');
-      return;
+      setHasDraftChanges(false);
+      toast.success(`Course créée avec ${assignedTaxis.length} taxi(s)`);
+      navigate('/transport/history');
+    } else {
+      toast.error('Tous les passagers doivent être assignés avant de créer la course');
     }
-
-    // Tous les passagers sont assignés, créer la course
-    toast.success('Course créée avec succès');
-    navigate('/transport');
   };
 
   const saveDraft = () => {
+    // Save current state as draft
     const draftData = {
-      requestId: transportRequest.id,
-      taxis: virtualTaxis,
-      lastModified: new Date().toISOString()
+      transportRequestId: transportRequest.id,
+      virtualTaxis: virtualTaxis.filter(taxi => taxi.assignedPassengers.length > 0),
+      savedAt: new Date().toISOString()
     };
     
-    localStorage.setItem(`groupDispatchDraft-${transportRequest.id}`, JSON.stringify(draftData));
+    localStorage.setItem(`dispatch-draft-${transportRequest.id}`, JSON.stringify(draftData));
+    setHasDraftChanges(false);
     toast.success('Brouillon sauvegardé');
-    navigate('/transport/drafts');
   };
 
+  const allPassengersAssigned = Object.keys(unassignedPassengersByDeparture).length === 0;
+
   return (
-    <div className="space-y-4 max-w-7xl relative pb-16">
+    <div className="space-y-4 max-w-7xl">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Button
@@ -308,6 +293,15 @@ export function GroupTransportDispatchPage() {
           
           <h2 className="text-xl font-bold">Dispatch Groupe - {transportRequest.reference}</h2>
         </div>
+
+        {hasDraftChanges && (
+          <Button
+            variant="outline"
+            onClick={saveDraft}
+          >
+            Sauvegarder brouillon
+          </Button>
+        )}
       </div>
 
       {/* Request Summary */}
@@ -324,7 +318,7 @@ export function GroupTransportDispatchPage() {
             </div>
             <div className="flex items-center space-x-2">
               <Car className="h-4 w-4 text-muted-foreground" />
-              <span>{taxiCount} taxi(s) nécessaire(s)</span>
+              <span>{virtualTaxis.length} taxi(s) disponible(s)</span>
             </div>
             <div>
               <div className="font-medium">{transportRequest.enterprise}</div>
@@ -335,20 +329,20 @@ export function GroupTransportDispatchPage() {
       </Card>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        {/* Passengers by governorate */}
+        {/* Passengers by departure */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center space-x-2 text-lg">
               <Users className="h-5 w-5" />
-              <span>Passagers par gouvernorat</span>
+              <span>Passagers par point de départ</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {Object.entries(unassignedPassengersByGovernorate).map(([governorate, passengers]) => (
-              <div key={governorate} className="space-y-2">
+            {Object.entries(unassignedPassengersByDeparture).map(([departure, passengers]) => (
+              <div key={departure} className="space-y-2">
                 <div className="flex items-center space-x-2 p-2 bg-muted rounded text-sm">
                   <MapPin className="h-4 w-4 text-green-500" />
-                  <span className="font-medium flex-1">{governorate}</span>
+                  <span className="font-medium flex-1">{departure}</span>
                   <Badge variant="secondary">{passengers.length}</Badge>
                 </div>
                 
@@ -378,7 +372,7 @@ export function GroupTransportDispatchPage() {
               </div>
             ))}
 
-            {Object.keys(unassignedPassengersByGovernorate).length === 0 && (
+            {Object.keys(unassignedPassengersByDeparture).length === 0 && (
               <div className="text-center py-6 text-muted-foreground text-sm">
                 Tous les passagers ont été assignés
               </div>
@@ -387,70 +381,70 @@ export function GroupTransportDispatchPage() {
         </Card>
 
         {/* Virtual Taxis */}
-        <div className="space-y-3 relative">
-          {virtualTaxis.map((taxi) => (
-            <Collapsible
-              key={taxi.id}
-              open={!taxi.isCollapsed}
-              onOpenChange={() => toggleTaxiCollapse(taxi.id)}
-              className={`border rounded transition-all ${
-                taxi.status === 'available' ? 'border-green-200 bg-green-50/50' :
-                taxi.status === 'assigned' ? 'border-yellow-200 bg-yellow-50/50' :
-                'border-blue-200 bg-blue-50/50'
-              }`}
-            >
-              <CollapsibleTrigger className="w-full">
-                <div className="flex items-center justify-between p-3 cursor-pointer">
-                  <div className="flex items-center space-x-2">
-                    <Car className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium text-sm">{taxi.name}</span>
-                    {taxi.isUserAdded && (
-                      <Badge variant="outline" className="text-xs">Ajouté</Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge 
-                      variant={
-                        taxi.status === 'available' ? 'secondary' :
-                        taxi.status === 'assigned' ? 'default' : 'outline'
-                      }
-                      className="text-xs"
-                    >
-                      {taxi.status === 'available' ? 'Disponible' :
-                       taxi.status === 'assigned' ? 'Assigné' : 'En route'}
-                    </Badge>
-                    <span className={`text-xs ${
-                      taxi.assignedPassengers.length === taxi.capacity ? 'text-red-600 font-bold' : 'text-muted-foreground'
-                    }`}>
-                      {taxi.assignedPassengers.length}/{taxi.capacity}
-                    </span>
-                    <ChevronDown className={`h-4 w-4 transition-transform ${taxi.isCollapsed ? '' : 'rotate-180'}`} />
-                    
-                    {/* Delete button for user-added taxis or empty taxis */}
-                    {(taxi.isUserAdded || taxi.assignedPassengers.length === 0) && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeTaxi(taxi.id);
-                        }}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center space-x-2 text-lg">
+              <Car className="h-5 w-5" />
+              <span>Taxis virtuels</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {virtualTaxis.map((taxi) => (
+              <div
+                key={taxi.id}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, taxi.id)}
+                className={`border rounded transition-all ${
+                  taxi.status === 'available' ? 'border-green-200 bg-green-50/50' :
+                  taxi.status === 'assigned' ? 'border-yellow-200 bg-yellow-50/50' :
+                  'border-blue-200 bg-blue-50/50'
+                }`}
+              >
+                <div className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <Car className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium text-sm">{taxi.name}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge 
+                        variant={
+                          taxi.status === 'available' ? 'secondary' :
+                          taxi.status === 'assigned' ? 'default' : 'outline'
+                        }
+                        className="text-xs"
                       >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                        {taxi.status === 'available' ? 'Disponible' :
+                         taxi.status === 'assigned' ? 'Assigné' : 'En route'}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {taxi.assignedPassengers.length}/{taxi.capacity}
+                      </span>
+                      {taxi.assignedPassengers.length > 0 && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => toggleTaxiCollapse(taxi.id)}
+                            className="h-6 w-6 p-0"
+                          >
+                            {taxi.isCollapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeVirtualTaxi(taxi.id)}
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                            disabled={taxi.assignedPassengers.length > 0}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </CollapsibleTrigger>
-              
-              <CollapsibleContent>
-                <div 
-                  className="p-3 pt-0"
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, taxi.id)}
-                >
-                  {taxi.assignedPassengers.length > 0 ? (
+
+                  {taxi.assignedPassengers.length > 0 && !taxi.isCollapsed && (
                     <div className="space-y-1 mb-2">
                       {taxi.assignedPassengers.map((passenger) => (
                         <div key={passenger.id} className="bg-background rounded border p-2">
@@ -462,7 +456,7 @@ export function GroupTransportDispatchPage() {
                               className="text-red-600 hover:text-red-700 h-5 w-5 p-0"
                               onClick={() => removePassengerFromTaxi(taxi.id, passenger.id)}
                             >
-                              <X className="h-3 w-3" />
+                              ✕
                             </Button>
                           </div>
                           <div className="text-xs text-muted-foreground space-y-1">
@@ -478,52 +472,37 @@ export function GroupTransportDispatchPage() {
                         </div>
                       ))}
                     </div>
-                  ) : (
+                  )}
+
+                  {taxi.assignedPassengers.length === 0 && (
                     <div className="text-center py-3 text-muted-foreground border-2 border-dashed rounded text-xs">
                       Glissez des passagers ici
                     </div>
                   )}
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
-          
-          {virtualTaxis.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              Aucun taxi disponible. Cliquez sur "Ajouter un taxi" pour commencer.
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Floating action buttons */}
-      <div className="fixed bottom-6 right-6 flex space-x-3">
+      {/* Floating Action Buttons */}
+      <div className="fixed bottom-6 right-6 flex flex-col space-y-2">
         <Button
-          onClick={addNewTaxi}
-          variant="outline"
-          className="bg-white shadow-lg border-etaxi-yellow text-etaxi-yellow hover:bg-etaxi-yellow hover:text-black"
+          onClick={addVirtualTaxi}
+          className="rounded-full w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
+          title="Ajouter un taxi virtuel"
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Ajouter un taxi
+          <Plus className="h-6 w-6" />
         </Button>
         
-        {hasDraftData && (
-          <Button
-            variant="outline"
-            onClick={saveDraft}
-            className="bg-white shadow-lg"
-          >
-            Sauvegarder brouillon
-          </Button>
-        )}
-        
         <Button
-          onClick={dispatchAll}
-          className="bg-etaxi-yellow hover:bg-yellow-500 text-black shadow-lg"
-          disabled={!hasDraftData}
+          onClick={createCourse}
+          disabled={!allPassengersAssigned}
+          className="rounded-full w-14 h-14 bg-etaxi-yellow hover:bg-yellow-500 text-black shadow-lg"
+          title="Créer une course"
         >
-          <Navigation className="mr-2 h-4 w-4" />
-          Créer une course
+          <Navigation className="h-6 w-6" />
         </Button>
       </div>
     </div>

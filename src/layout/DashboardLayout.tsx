@@ -40,7 +40,6 @@ import {
   Bell,
   ChevronDown,
   UserCheck,
-  FileText,
   History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -76,7 +75,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
       submenu: [
         { id: 'transport-individual', name: 'Demandes individuelles', path: '/transport/individual' },
         { id: 'transport-group', name: 'Demandes de groupe', path: '/transport/group' },
-        { id: 'transport-history', name: 'Historique des courses', path: '/transport/history' }
+        { id: 'transport-history', name: 'Historique', path: '/transport/history' }
       ]
     },
   ];
@@ -102,7 +101,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
     <div className={cn("flex flex-col h-full", isMobile ? "p-4" : "")}>
       <div className={cn("flex items-center mb-8 px-4", isCollapsed && !isMobile ? "justify-center" : "space-x-2")}>
         {isCollapsed && !isMobile ? (
-          <div className="w-8 h-8 bg-etaxi-yellow rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-etaxi-yellow rounded-full flex items-center justify-center">
             <Car className="h-4 w-4 text-black" />
           </div>
         ) : (
@@ -155,13 +154,6 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
                         if (isMobile) setIsMobileMenuOpen(false);
                       }}
                     >
-                      {subItem.id === 'transport-history' ? (
-                        <History className="h-4 w-4 mr-2" />
-                      ) : subItem.id === 'transport-individual' ? (
-                        <User className="h-4 w-4 mr-2" />
-                      ) : (
-                        <Users className="h-4 w-4 mr-2" />
-                      )}
                       {subItem.name}
                     </Button>
                   ))}

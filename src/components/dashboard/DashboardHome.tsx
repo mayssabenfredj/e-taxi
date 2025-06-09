@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import {
 } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { 
   Car, 
   Users, 
@@ -24,6 +24,7 @@ import {
 
 export function DashboardHome() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   // Sample data for charts
   const transportData = [
@@ -45,14 +46,14 @@ export function DashboardHome() {
 
   const quickActions = [
     {
-      title: 'Nouvelle demande',
+      title: t('newRequest') || 'Nouvelle demande',
       description: 'Créer une demande de transport',
       icon: Plus,
       action: () => navigate('/transport/create'),
       color: 'bg-etaxi-yellow hover:bg-yellow-500'
     },
     {
-      title: 'Ajouter employé',
+      title: t('addEmployee') || 'Ajouter employé',
       description: 'Enregistrer un nouvel employé',
       icon: Users,
       action: () => navigate('/employees'),
@@ -266,7 +267,7 @@ export function DashboardHome() {
       <Card className="animate-slide-up" style={{ animationDelay: '0.7s' }}>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Activité récente</CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/transport')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/transport/history')}>
             Voir tout <ArrowRight className="ml-1 h-4 w-4" />
           </Button>
         </CardHeader>
