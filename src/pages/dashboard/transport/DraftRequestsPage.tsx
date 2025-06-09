@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TableWithPagination } from '@/components/ui/table-with-pagination';
-import { ArrowLeft, Edit, Trash2, FileText } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, FileText, Car, Navigation } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface DraftRequest {
   id: string;
@@ -17,8 +18,18 @@ interface DraftRequest {
   completionPercentage: number;
 }
 
+interface DispatchDraft {
+  id: string;
+  requestId: string;
+  reference: string;
+  passengerCount: number;
+  assignedCount: number;
+  lastModified: string;
+}
+
 export function DraftRequestsPage() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'requests' | 'dispatch'>('requests');
   
   const [drafts, setDrafts] = useState<DraftRequest[]>([
     {
@@ -49,6 +60,47 @@ export function DraftRequestsPage() {
     }
   ]);
 
+  const [dispatchDrafts, setDispatchDrafts] = useState<DispatchDraft[]>([]);
+
+  // Charger les brouillons de dispatch depuis localStorage
+  useEffect(() => {
+    const loadDispatchDrafts = () => {
+      const drafts: DispatchDraft[] = [];
+      
+      // Parcourir localStorage pour trouver les brouillons de dispatch
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('groupDispatchDraft-')) {
+          try {
+            const draftData = JSON.parse(localStorage.getItem(key) || '');
+            const requestId = key.replace('groupDispatchDraft-', '');
+            
+            // Calculer le nombre de passagers assignés
+            const assignedCount = draftData.taxis.reduce(
+              (total: number, taxi: any) => total + taxi.assignedPassengers.length, 
+              0
+            );
+            
+            drafts.push({
+              id: `dispatch-${requestId}`,
+              requestId,
+              reference: `TR-${requestId}`,
+              passengerCount: draftData.passengerCount || assignedCount,
+              assignedCount,
+              lastModified: draftData.lastModified || new Date().toISOString()
+            });
+          } catch (error) {
+            console.error('Error parsing dispatch draft:', error);
+          }
+        }
+      }
+      
+      setDispatchDrafts(drafts);
+    };
+    
+    loadDispatchDrafts();
+  }, []);
+
   const handleEditDraft = (draft: DraftRequest) => {
     if (draft.type === 'individual') {
       navigate('/transport/create', { state: { draftId: draft.id } });
@@ -57,9 +109,19 @@ export function DraftRequestsPage() {
     }
   };
 
+  const handleEditDispatchDraft = (draft: DispatchDraft) => {
+    navigate(`/transport/${draft.requestId}/group-dispatch`);
+  };
+
   const handleDeleteDraft = (draftId: string) => {
     setDrafts(prev => prev.filter(d => d.id !== draftId));
     toast.success('Brouillon supprimé');
+  };
+
+  const handleDeleteDispatchDraft = (draft: DispatchDraft) => {
+    localStorage.removeItem(`groupDispatchDraft-${draft.requestId}`);
+    setDispatchDrafts(prev => prev.filter(d => d.id !== draft.id));
+    toast.success('Brouillon de dispatch supprimé');
   };
 
   const getCompletionBadge = (percentage: number) => {
@@ -68,7 +130,7 @@ export function DraftRequestsPage() {
     return <Badge variant="outline">Début</Badge>;
   };
 
-  const columns = [
+  const requestColumns = [
     {
       header: 'Type',
       accessor: 'type' as keyof DraftRequest,
@@ -122,7 +184,34 @@ export function DraftRequestsPage() {
     }
   ];
 
-  const actions = (draft: DraftRequest) => (
+  const dispatchColumns = [
+    {
+      header: 'Référence',
+      accessor: 'reference' as keyof DispatchDraft,
+      render: (draft: DispatchDraft) => (
+        <div className="font-medium text-etaxi-yellow">{draft.reference}</div>
+      )
+    },
+    {
+      header: 'Passagers',
+      accessor: 'passengerCount' as keyof DispatchDraft,
+      render: (draft: DispatchDraft) => (
+        <div className="flex items-center space-x-2">
+          <span>{draft.assignedCount}/{draft.passengerCount} assigné(s)</span>
+          <Badge variant={draft.assignedCount === draft.passengerCount ? "default" : "outline"}>
+            {draft.assignedCount === draft.passengerCount ? 'Complet' : 'Partiel'}
+          </Badge>
+        </div>
+      )
+    },
+    {
+      header: 'Dernière modification',
+      accessor: 'lastModified' as keyof DispatchDraft,
+      render: (draft: DispatchDraft) => new Date(draft.lastModified).toLocaleString('fr-FR')
+    }
+  ];
+
+  const requestActions = (draft: DraftRequest) => (
     <div className="flex items-center space-x-2">
       <Button
         size="sm"
@@ -150,6 +239,34 @@ export function DraftRequestsPage() {
     </div>
   );
 
+  const dispatchActions = (draft: DispatchDraft) => (
+    <div className="flex items-center space-x-2">
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleEditDispatchDraft(draft);
+        }}
+        title="Continuer le dispatch"
+      >
+        <Navigation className="h-4 w-4" />
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleDeleteDispatchDraft(draft);
+        }}
+        title="Supprimer"
+        className="text-red-500 hover:text-red-700"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -168,21 +285,54 @@ export function DraftRequestsPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Liste des brouillons ({drafts.length})</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <TableWithPagination
-            data={drafts}
-            columns={columns}
-            actions={actions}
-            itemsPerPage={10}
-            onRowClick={handleEditDraft}
-            emptyMessage="Aucun brouillon trouvé"
-          />
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="requests" onValueChange={(value) => setActiveTab(value as 'requests' | 'dispatch')}>
+        <TabsList>
+          <TabsTrigger value="requests" className="flex items-center space-x-2">
+            <FileText className="h-4 w-4" />
+            <span>Demandes ({drafts.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="dispatch" className="flex items-center space-x-2">
+            <Car className="h-4 w-4" />
+            <span>Dispatch ({dispatchDrafts.length})</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="requests">
+          <Card>
+            <CardHeader>
+              <CardTitle>Liste des brouillons de demandes</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <TableWithPagination
+                data={drafts}
+                columns={requestColumns}
+                actions={requestActions}
+                itemsPerPage={10}
+                onRowClick={handleEditDraft}
+                emptyMessage="Aucun brouillon de demande trouvé"
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="dispatch">
+          <Card>
+            <CardHeader>
+              <CardTitle>Liste des brouillons de dispatch</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <TableWithPagination
+                data={dispatchDrafts}
+                columns={dispatchColumns}
+                actions={dispatchActions}
+                itemsPerPage={10}
+                onRowClick={handleEditDispatchDraft}
+                emptyMessage="Aucun brouillon de dispatch trouvé"
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
