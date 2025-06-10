@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,19 @@ export function GroupTransportDispatchPage() {
   
   const [draggedPassenger, setDraggedPassenger] = useState<Passenger | null>(null);
   const [hasDraftChanges, setHasDraftChanges] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const dragRef = useRef<HTMLDivElement>(null);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Mock data for the group transport request
   const transportRequest = {
@@ -120,19 +133,8 @@ export function GroupTransportDispatchPage() {
     return groups;
   }, {} as Record<string, Passenger[]>);
 
-  const handleDragStart = (passenger: Passenger) => {
-    setDraggedPassenger(passenger);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent, taxiId: string) => {
-    e.preventDefault();
-    
-    if (!draggedPassenger) return;
-
+  // Mobile-friendly assignment function
+  const assignPassengerToTaxi = (passenger: Passenger, taxiId: string) => {
     const taxi = virtualTaxis.find(t => t.id === taxiId);
     if (!taxi) return;
 
@@ -146,7 +148,7 @@ export function GroupTransportDispatchPage() {
         t.id === taxiId 
           ? { 
               ...t, 
-              assignedPassengers: [...t.assignedPassengers, draggedPassenger],
+              assignedPassengers: [...t.assignedPassengers, passenger],
               status: 'assigned' as const,
               isCollapsed: t.assignedPassengers.length + 1 >= t.capacity
             }
@@ -165,8 +167,28 @@ export function GroupTransportDispatchPage() {
     });
 
     setHasDraftChanges(true);
-    toast.success(`${draggedPassenger.name} assigné au ${taxi.name}`);
-    setDraggedPassenger(null);
+    toast.success(`${passenger.name} assigné au ${taxi.name}`);
+  };
+
+  // Desktop drag and drop handlers
+  const handleDragStart = (passenger: Passenger) => {
+    if (!isMobile) {
+      setDraggedPassenger(passenger);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!isMobile) {
+      e.preventDefault();
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, taxiId: string) => {
+    if (!isMobile && draggedPassenger) {
+      e.preventDefault();
+      assignPassengerToTaxi(draggedPassenger, taxiId);
+      setDraggedPassenger(null);
+    }
   };
 
   const removePassengerFromTaxi = (taxiId: string, passengerId: string) => {
@@ -280,57 +302,63 @@ export function GroupTransportDispatchPage() {
 
   return (
     <div className="space-y-4 max-w-7xl">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-2 sm:space-x-4 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate(`/transport`)}
+            className="flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Retour
+            <span className="hidden sm:inline">Retour</span>
           </Button>
           
-          <h2 className="text-xl font-bold">Dispatch Groupe - {transportRequest.reference}</h2>
+          <h2 className="text-lg sm:text-xl font-bold truncate">
+            <span className="hidden sm:inline">Dispatch Groupe - </span>{transportRequest.reference}
+          </h2>
         </div>
 
         {hasDraftChanges && (
           <Button
             variant="outline"
             onClick={saveDraft}
+            size="sm"
+            className="w-full sm:w-auto"
           >
             Sauvegarder brouillon
           </Button>
         )}
       </div>
 
-      {/* Request Summary */}
-      <Card>
+      {/* Request Summary - Responsive */}
+      <Card className="bg-card border-border">
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
             <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span>{new Date(transportRequest.scheduledDate).toLocaleString('fr-FR')}</span>
+              <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="truncate">{new Date(transportRequest.scheduledDate).toLocaleString('fr-FR')}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <span>{transportRequest.passengers.length} passagers</span>
             </div>
             <div className="flex items-center space-x-2">
-              <Car className="h-4 w-4 text-muted-foreground" />
-              <span>{virtualTaxis.length} taxi(s) disponible(s)</span>
+              <Car className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span>{virtualTaxis.length} taxi(s)</span>
             </div>
-            <div>
-              <div className="font-medium">{transportRequest.enterprise}</div>
-              <div className="text-muted-foreground">Par: {transportRequest.requestedBy}</div>
+            <div className="col-span-2 sm:col-span-1">
+              <div className="font-medium truncate">{transportRequest.enterprise}</div>
+              <div className="text-muted-foreground text-xs truncate">Par: {transportRequest.requestedBy}</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid lg:grid-cols-2 gap-4">
-        {/* Passengers by departure */}
-        <Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Passengers by departure - Mobile optimized */}
+        <Card className="bg-card border-border">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center space-x-2 text-lg">
               <Users className="h-5 w-5" />
@@ -341,27 +369,44 @@ export function GroupTransportDispatchPage() {
             {Object.entries(unassignedPassengersByDeparture).map(([departure, passengers]) => (
               <div key={departure} className="space-y-2">
                 <div className="flex items-center space-x-2 p-2 bg-muted rounded text-sm">
-                  <MapPin className="h-4 w-4 text-green-500" />
-                  <span className="font-medium flex-1">{departure}</span>
+                  <MapPin className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  <span className="font-medium flex-1 truncate">{departure}</span>
                   <Badge variant="secondary">{passengers.length}</Badge>
                 </div>
                 
-                <div className="space-y-1 ml-6">
+                <div className="space-y-1 ml-2 sm:ml-6">
                   {passengers.map((passenger) => (
                     <div
                       key={passenger.id}
-                      draggable
+                      draggable={!isMobile}
                       onDragStart={() => handleDragStart(passenger)}
-                      className="p-2 border rounded cursor-move hover:bg-muted/50 transition-colors text-sm"
+                      className={`p-2 border rounded transition-colors text-sm bg-card ${
+                        isMobile ? 'active:bg-muted/50' : 'cursor-move hover:bg-muted/50'
+                      }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{passenger.name}</div>
-                          <div className="text-xs text-muted-foreground">{passenger.phone}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium truncate">{passenger.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">{passenger.phone}</div>
                         </div>
+                        {isMobile && (
+                          <div className="flex space-x-1 ml-2">
+                            {virtualTaxis.filter(t => t.assignedPassengers.length < t.capacity).map((taxi) => (
+                              <Button
+                                key={taxi.id}
+                                size="sm"
+                                variant="outline"
+                                onClick={() => assignPassengerToTaxi(passenger, taxi.id)}
+                                className="text-xs h-6 px-2"
+                              >
+                                {taxi.name.replace('Taxi #', 'T')}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center space-x-1 mt-1">
-                        <MapPin className="h-3 w-3 text-red-500" />
+                        <MapPin className="h-3 w-3 text-red-500 flex-shrink-0" />
                         <span className="text-xs text-muted-foreground truncate">
                           → {passenger.arrivalAddress}
                         </span>
@@ -380,8 +425,8 @@ export function GroupTransportDispatchPage() {
           </CardContent>
         </Card>
 
-        {/* Virtual Taxis */}
-        <Card>
+        {/* Virtual Taxis - Mobile optimized */}
+        <Card className="bg-card border-border">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center space-x-2 text-lg">
               <Car className="h-5 w-5" />
@@ -392,12 +437,12 @@ export function GroupTransportDispatchPage() {
             {virtualTaxis.map((taxi) => (
               <div
                 key={taxi.id}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, taxi.id)}
+                onDragOver={!isMobile ? handleDragOver : undefined}
+                onDrop={!isMobile ? (e) => handleDrop(e, taxi.id) : undefined}
                 className={`border rounded transition-all ${
-                  taxi.status === 'available' ? 'border-green-200 bg-green-50/50' :
-                  taxi.status === 'assigned' ? 'border-yellow-200 bg-yellow-50/50' :
-                  'border-blue-200 bg-blue-50/50'
+                  taxi.status === 'available' ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20' :
+                  taxi.status === 'assigned' ? 'border-yellow-200 bg-yellow-50/50 dark:border-yellow-800 dark:bg-yellow-950/20' :
+                  'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/20'
                 }`}
               >
                 <div className="p-3">
@@ -449,7 +494,7 @@ export function GroupTransportDispatchPage() {
                       {taxi.assignedPassengers.map((passenger) => (
                         <div key={passenger.id} className="bg-background rounded border p-2">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium">{passenger.name}</span>
+                            <span className="text-xs font-medium truncate">{passenger.name}</span>
                             <Button
                               size="sm"
                               variant="ghost"
@@ -461,11 +506,11 @@ export function GroupTransportDispatchPage() {
                           </div>
                           <div className="text-xs text-muted-foreground space-y-1">
                             <div className="flex items-center space-x-1">
-                              <MapPin className="h-3 w-3 text-green-500" />
+                              <MapPin className="h-3 w-3 text-green-500 flex-shrink-0" />
                               <span className="truncate">{passenger.departureAddress}</span>
                             </div>
                             <div className="flex items-center space-x-1">
-                              <MapPin className="h-3 w-3 text-red-500" />
+                              <MapPin className="h-3 w-3 text-red-500 flex-shrink-0" />
                               <span className="truncate">{passenger.arrivalAddress}</span>
                             </div>
                           </div>
@@ -476,7 +521,7 @@ export function GroupTransportDispatchPage() {
 
                   {taxi.assignedPassengers.length === 0 && (
                     <div className="text-center py-3 text-muted-foreground border-2 border-dashed rounded text-xs">
-                      Glissez des passagers ici
+                      {isMobile ? 'Taxi disponible' : 'Glissez des passagers ici'}
                     </div>
                   )}
                 </div>
@@ -486,23 +531,23 @@ export function GroupTransportDispatchPage() {
         </Card>
       </div>
 
-      {/* Floating Action Buttons */}
-      <div className="fixed bottom-6 right-6 flex flex-col space-y-2">
+      {/* Floating Action Buttons - Mobile optimized */}
+      <div className="fixed bottom-6 right-6 flex flex-col space-y-2 z-50">
         <Button
           onClick={addVirtualTaxi}
-          className="rounded-full w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
+          className="rounded-full w-12 h-12 sm:w-14 sm:h-14 bg-blue-500 hover:bg-blue-600 text-white shadow-lg"
           title="Ajouter un taxi virtuel"
         >
-          <Plus className="h-6 w-6" />
+          <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
         </Button>
         
         <Button
           onClick={createCourse}
           disabled={!allPassengersAssigned}
-          className="rounded-full w-14 h-14 bg-etaxi-yellow hover:bg-yellow-500 text-black shadow-lg"
+          className="rounded-full w-12 h-12 sm:w-14 sm:h-14 bg-etaxi-yellow hover:bg-yellow-500 text-black shadow-lg"
           title="Créer une course"
         >
-          <Navigation className="h-6 w-6" />
+          <Navigation className="h-5 w-5 sm:h-6 sm:w-6" />
         </Button>
       </div>
     </div>

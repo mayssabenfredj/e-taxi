@@ -282,8 +282,8 @@ export function SubsidiariesPage() {
         <Badge
           className={
             item.status === 'active'
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
+              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
           }
         >
           {item.status === 'active' ? 'Actif' : 'Inactif'}
@@ -332,10 +332,10 @@ export function SubsidiariesPage() {
 
   return (
     <div className="space-y-4 max-w-6xl">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex gap-3">
-          <Card className="w-48">
-            <CardContent className="p-2 flex items-center space-x-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <Card className="w-full sm:w-48 bg-card border-border">
+            <CardContent className="p-3 flex items-center space-x-2">
               <Building2 className="h-4 w-4 text-etaxi-yellow" />
               <div className="text-left">
                 <p className="text-xs text-muted-foreground">Filiales</p>
@@ -343,8 +343,8 @@ export function SubsidiariesPage() {
               </div>
             </CardContent>
           </Card>
-          <Card className="w-48">
-            <CardContent className="p-2 flex items-center space-x-2">
+          <Card className="w-full sm:w-48 bg-card border-border">
+            <CardContent className="p-3 flex items-center space-x-2">
               <Users className="h-4 w-4 text-blue-500" />
               <div className="text-left">
                 <p className="text-xs text-muted-foreground">Employés</p>
@@ -354,8 +354,8 @@ export function SubsidiariesPage() {
               </div>
             </CardContent>
           </Card>
-          <Card className="w-48">
-            <CardContent className="p-2 flex items-center space-x-2">
+          <Card className="w-full sm:w-48 bg-card border-border">
+            <CardContent className="p-3 flex items-center space-x-2">
               <MapPin className="h-4 w-4 text-purple-500" />
               <div className="text-left">
                 <p className="text-xs text-muted-foreground">Villes</p>
@@ -366,27 +366,28 @@ export function SubsidiariesPage() {
             </CardContent>
           </Card>
         </div>
+        
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-etaxi-yellow hover:bg-yellow-500 text-black h-8 text-sm">
+            <Button className="bg-etaxi-yellow hover:bg-yellow-500 text-black h-8 text-sm w-full sm:w-auto">
               <Plus className="mr-1 h-3 w-3" />
               Nouvelle Filiale
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto my-4">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto my-4 mx-4">
             <DialogHeader>
               <DialogTitle className="text-left">
                 {editingSubsidiary ? 'Modifier la Filiale' : 'Nouvelle Filiale'}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-3">
+            <div className="space-y-4 p-1">
               <div>
                 <Label>Nom *</Label>
                 <Input
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Nom de la filiale"
-                  className="h-8 text-sm"
+                  className="h-9 text-sm bg-background border-border"
                 />
               </div>
               <AddressInput
@@ -395,14 +396,14 @@ export function SubsidiariesPage() {
                 onChange={(address) => setFormData({ ...formData, address })}
                 savedAddresses={savedAddresses}
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label>Téléphone</Label>
                   <Input
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+33 X XX XX XX XX"
-                    className="h-8 text-sm"
+                    className="h-9 text-sm bg-background border-border"
                   />
                 </div>
                 <div>
@@ -412,7 +413,7 @@ export function SubsidiariesPage() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="contact@filiale.com"
-                    className="h-8 text-sm"
+                    className="h-9 text-sm bg-background border-border"
                   />
                 </div>
               </div>
@@ -422,10 +423,10 @@ export function SubsidiariesPage() {
                   value={formData.managerId} 
                   onValueChange={(value) => setFormData({ ...formData, managerId: value })}
                 >
-                  <SelectTrigger className="h-8 text-sm">
+                  <SelectTrigger className="h-9 text-sm bg-background border-border">
                     <SelectValue placeholder="Sélectionner un manager" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-popover border-border">
                     {managers.map((manager) => (
                       <SelectItem key={manager.id} value={manager.id}>
                         {manager.name}
@@ -440,7 +441,7 @@ export function SubsidiariesPage() {
                   value={formData.website}
                   onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                   placeholder="www.filiale.com"
-                  className="h-8 text-sm"
+                  className="h-9 text-sm bg-background border-border"
                 />
               </div>
               <div>
@@ -449,16 +450,16 @@ export function SubsidiariesPage() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Description"
-                  className="h-8 text-sm"
+                  className="h-9 text-sm bg-background border-border"
                 />
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={resetForm} className="h-8 text-sm">
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
+                <Button variant="outline" onClick={resetForm} className="h-9 text-sm">
                   Annuler
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  className="bg-etaxi-yellow hover:bg-yellow-500 text-black h-8 text-sm"
+                  className="bg-etaxi-yellow hover:bg-yellow-500 text-black h-9 text-sm"
                 >
                   {editingSubsidiary ? 'Modifier' : 'Créer'}
                 </Button>
@@ -467,13 +468,16 @@ export function SubsidiariesPage() {
           </DialogContent>
         </Dialog>
       </div>
-      <TableWithPagination
-        data={subsidiaries}
-        columns={columns}
-        searchPlaceholder="Rechercher une filiale..."
-        actions={actions}
-        filterOptions={filterOptions}
-      />
+      
+      <div className="bg-card border-border rounded-lg">
+        <TableWithPagination
+          data={subsidiaries}
+          columns={columns}
+          searchPlaceholder="Rechercher une filiale..."
+          actions={actions}
+          filterOptions={filterOptions}
+        />
+      </div>
     </div>
   );
 }

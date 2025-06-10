@@ -112,13 +112,13 @@ export function TransportRequestDetails() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-blue-100 text-blue-800';
-      case 'dispatched': return 'bg-purple-100 text-purple-800';
-      case 'in_progress': return 'bg-orange-100 text-orange-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
+      case 'approved': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100';
+      case 'dispatched': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100';
+      case 'in_progress': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100';
+      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
+      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100';
     }
   };
 
@@ -182,64 +182,70 @@ export function TransportRequestDetails() {
 
   return (
     <div className="space-y-4 max-w-7xl">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-2 sm:space-x-4 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate('/transport/individual')}
+            className="flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
-            Retour
+            <span className="hidden sm:inline">Retour</span>
           </Button>
           
-          <div className="flex items-center space-x-2">
-            <Car className="h-5 w-5 text-etaxi-yellow" />
-            <h2 className="text-xl font-bold">Détails - {request.reference}</h2>
+          <div className="flex items-center space-x-2 min-w-0 flex-1">
+            <Car className="h-5 w-5 text-etaxi-yellow flex-shrink-0" />
+            <h2 className="text-lg sm:text-xl font-bold truncate">
+              <span className="hidden sm:inline">Détails - </span>{request.reference}
+            </h2>
             <Badge className={getStatusColor(request.status)}>
               {getStatusLabel(request.status)}
             </Badge>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        {/* Action Buttons - Responsive */}
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {(request.status === 'pending' || request.status === 'approved') && (
-            <Button variant="outline\" size="sm\" onClick={handleEdit}>
+            <Button variant="outline" size="sm" onClick={handleEdit} className="flex-1 sm:flex-none">
               <Edit className="mr-1 h-3 w-3" />
-              Modifier
+              <span className="hidden sm:inline">Modifier</span>
             </Button>
           )}
           
           {request.status === 'pending' && (
             <Button 
               size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 hover:bg-green-700 text-white flex-1 sm:flex-none"
               onClick={handleApprove}
             >
-              Approuver
+              <span className="hidden sm:inline">Approuver</span>
+              <span className="sm:hidden">✓</span>
             </Button>
           )}
           
           {(request.status === 'approved' || request.status === 'pending') && (
             <Button
               size="sm"
-              className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+              className="bg-etaxi-yellow hover:bg-yellow-500 text-black flex-1 sm:flex-none"
               onClick={handleDispatch}
             >
               <Navigation className="mr-1 h-3 w-3" />
-              Dispatcher
+              <span className="hidden sm:inline">Dispatcher</span>
             </Button>
           )}
           
           {canCancel() && (
             <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
+                <Button variant="destructive" size="sm" className="flex-1 sm:flex-none">
                   <X className="mr-1 h-3 w-3" />
-                  Annuler
+                  <span className="hidden sm:inline">Annuler</span>
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="mx-4">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Annuler la demande</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -259,9 +265,10 @@ export function TransportRequestDetails() {
         </div>
       </div>
 
+      {/* Content - Responsive Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {/* Request Information - Compact */}
-        <Card>
+        <Card className="bg-card border-border">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center space-x-2 text-sm">
               <FileText className="h-4 w-4" />
@@ -313,8 +320,8 @@ export function TransportRequestDetails() {
           </CardContent>
         </Card>
 
-        {/* Passengers - Optimized for space */}
-        <Card className="lg:col-span-3">
+        {/* Passengers - Optimized for mobile */}
+        <Card className="lg:col-span-3 bg-card border-border">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -329,33 +336,33 @@ export function TransportRequestDetails() {
                 {Object.entries(passengersByDeparture).map(([departure, passengers]) => (
                   <div key={departure} className="space-y-2">
                     <div className="flex items-center space-x-2 p-2 bg-muted rounded text-sm">
-                      <MapPin className="h-4 w-4 text-green-500" />
-                      <span className="font-medium flex-1">{departure}</span>
-                      <Badge variant="secondary" className="text-xs">{passengers.length}</Badge>
+                      <MapPin className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span className="font-medium flex-1 truncate">{departure}</span>
+                      <Badge variant="secondary" className="text-xs flex-shrink-0">{passengers.length}</Badge>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 ml-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 ml-2 sm:ml-6">
                       {passengers.map((passenger) => (
-                        <div key={passenger.id} className="border rounded p-2 text-xs">
-                          <div className="font-medium mb-1">{passenger.name}</div>
+                        <div key={passenger.id} className="border rounded p-2 text-xs bg-card">
+                          <div className="font-medium mb-1 truncate">{passenger.name}</div>
                           
                           <div className="space-y-1 text-muted-foreground">
                             <div className="flex items-center space-x-1">
-                              <Phone className="h-3 w-3" />
-                              <span>{passenger.phone}</span>
+                              <Phone className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate">{passenger.phone}</span>
                             </div>
                             <div className="flex items-center space-x-1">
-                              <Mail className="h-3 w-3" />
+                              <Mail className="h-3 w-3 flex-shrink-0" />
                               <span className="truncate">{passenger.email}</span>
                             </div>
                           </div>
                           
                           <div className="mt-2 pt-2 border-t">
                             <div className="flex items-center space-x-1 text-red-600 mb-1">
-                              <MapPin className="h-3 w-3" />
-                              <span className="font-medium">Vers:</span>
+                              <MapPin className="h-3 w-3 flex-shrink-0" />
+                              <span className="font-medium text-xs">Vers:</span>
                             </div>
-                            <p className="text-xs bg-red-50 p-1 rounded border border-red-200 truncate">
+                            <p className="text-xs bg-red-50 dark:bg-red-950/20 p-1 rounded border border-red-200 dark:border-red-800 truncate">
                               {passenger.arrivalAddress}
                             </p>
                           </div>
