@@ -14,6 +14,7 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
 import {
@@ -224,6 +225,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
       {/* Mobile Sidebar */}
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         <SheetContent side="left" className="w-64 p-0">
+          <SheetTitle className="sr-only">Menu de navigation</SheetTitle>
           <Sidebar isMobile />
         </SheetContent>
       </Sheet>

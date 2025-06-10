@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { TableWithPagination } from '@/components/ui/table-with-pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +33,11 @@ export function EmployeesPage() {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  // Dialog state management
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
   const handleEmployeeAdded = (employeeData: any) => {
     const newEmployee: Employee = {
@@ -123,26 +128,43 @@ export function EmployeesPage() {
     }
   };
 
-  const handleDeleteEmployee = (employeeId: string) => {
-    setEmployees(prev => prev.filter(emp => emp.id !== employeeId));
-    toast.success('Employé supprimé avec succès');
+  const handleDeleteEmployee = () => {
+    if (selectedEmployee) {
+      setEmployees(prev => prev.filter(emp => emp.id !== selectedEmployee.id));
+      toast.success('Employé supprimé avec succès');
+      setDeleteDialogOpen(false);
+      setSelectedEmployee(null);
+    }
   };
 
-  const handleToggleEmployeeStatus = (employeeId: string) => {
-    setEmployees(prev => 
-      prev.map(emp => 
-        emp.id === employeeId 
-          ? { 
-              ...emp, 
-              status: emp.status === 'active' ? 'inactive' : 'active' 
-            }
-          : emp
-      )
-    );
-    
-    const employee = employees.find(emp => emp.id === employeeId);
-    const newStatus = employee?.status === 'active' ? 'désactivé' : 'activé';
-    toast.success(`Employé ${newStatus} avec succès`);
+  const handleToggleEmployeeStatus = () => {
+    if (selectedEmployee) {
+      setEmployees(prev => 
+        prev.map(emp => 
+          emp.id === selectedEmployee.id 
+            ? { 
+                ...emp, 
+                status: emp.status === 'active' ? 'inactive' : 'active' 
+              }
+            : emp
+        )
+      );
+      
+      const newStatus = selectedEmployee.status === 'active' ? 'désactivé' : 'activé';
+      toast.success(`Employé ${newStatus} avec succès`);
+      setStatusDialogOpen(false);
+      setSelectedEmployee(null);
+    }
+  };
+
+  const openDeleteDialog = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setDeleteDialogOpen(true);
+  };
+
+  const openStatusDialog = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setStatusDialogOpen(true);
   };
 
   const getStatusText = (status: string) => {
@@ -257,75 +279,35 @@ export function EmployeesPage() {
         <Eye className="h-4 w-4" />
       </Button>
       
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={(e) => e.stopPropagation()}
-            title={employee.status === 'active' ? 'Désactiver' : 'Activer'}
-            className={employee.status === 'active' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
-          >
-            {employee.status === 'active' ? (
-              <UserX className="h-4 w-4" />
-            ) : (
-              <UserCheck className="h-4 w-4" />
-            )}
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {employee.status === 'active' ? 'Désactiver' : 'Activer'} l'employé
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir {employee.status === 'active' ? 'désactiver' : 'activer'} l'employé <strong>{employee.name}</strong> ?
-              {employee.status === 'active' && ' Cet employé ne pourra plus accéder au système.'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => handleToggleEmployeeStatus(employee.id)}
-              className={employee.status === 'active' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
-            >
-              {employee.status === 'active' ? 'Désactiver' : 'Activer'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={(e) => {
+          e.stopPropagation();
+          openStatusDialog(employee);
+        }}
+        title={employee.status === 'active' ? 'Désactiver' : 'Activer'}
+        className={employee.status === 'active' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
+      >
+        {employee.status === 'active' ? (
+          <UserX className="h-4 w-4" />
+        ) : (
+          <UserCheck className="h-4 w-4" />
+        )}
+      </Button>
 
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-red-600 hover:text-red-700"
-            onClick={(e) => e.stopPropagation()}
-            title="Supprimer"
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer l'employé</AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer l'employé <strong>{employee.name}</strong> ? 
-              Cette action est irréversible et supprimera toutes les données associées.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => handleDeleteEmployee(employee.id)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Supprimer définitivement
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="text-red-600 hover:text-red-700"
+        onClick={(e) => {
+          e.stopPropagation();
+          openDeleteDialog(employee);
+        }}
+        title="Supprimer"
+      >
+        <Trash className="h-4 w-4" />
+      </Button>
     </div>
   );
 
@@ -515,6 +497,52 @@ export function EmployeesPage() {
           toast.success(`${employees.length} employé(s) importé(s) avec succès`);
         }}
       />
+
+      {/* Status Toggle Dialog */}
+      <AlertDialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {selectedEmployee?.status === 'active' ? 'Désactiver' : 'Activer'} l'employé
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir {selectedEmployee?.status === 'active' ? 'désactiver' : 'activer'} l'employé <strong>{selectedEmployee?.name}</strong> ?
+              {selectedEmployee?.status === 'active' && ' Cet employé ne pourra plus accéder au système.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleToggleEmployeeStatus}
+              className={selectedEmployee?.status === 'active' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
+            >
+              {selectedEmployee?.status === 'active' ? 'Désactiver' : 'Activer'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer l'employé</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer l'employé <strong>{selectedEmployee?.name}</strong> ? 
+              Cette action est irréversible et supprimera toutes les données associées.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteEmployee}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Supprimer définitivement
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
