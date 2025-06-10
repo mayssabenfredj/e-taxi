@@ -5,7 +5,6 @@ import { CompanyPage } from '../../pages/dashboard/CompanyPage';
 import { EmployeesPage } from '../../pages/dashboard/EmployeesPage';
 import { IndividualTransportPage } from '../../pages/dashboard/transport/IndividualTransportPage';
 import { GroupTransportPage } from '../../pages/dashboard/transport/GroupTransportPage';
-import { TransportHistoryPage } from '../../pages/dashboard/transport/TransportHistoryPage';
 import { TaxiManagementPage } from '../../pages/dashboard/taxi/TaxiManagementPage';
 import { DispatchPage } from '../../pages/dashboard/DispatchPage';
 import { ProfilePage } from '../../pages/dashboard/ProfilePage';
@@ -45,7 +44,6 @@ export function Dashboard() {
         <Route path="/employees/:id" element={<EmployeeDetails />} />
         <Route path="/transport/individual" element={<IndividualTransportPage />} />
         <Route path="/transport/group" element={<GroupTransportPage />} />
-        <Route path="/transport/history" element={<TransportHistoryPage />} />
         <Route path="/transport/:id" element={<TransportRequestDetails />} />
         <Route path="/transport/:id/edit" element={<EditTransportRequest />} />
         <Route path="/transport/drafts" element={<DraftRequestsPage />} />

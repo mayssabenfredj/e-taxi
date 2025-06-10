@@ -41,7 +41,6 @@ import {
   Bell,
   ChevronDown,
   UserCheck,
-  History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/Logo';
@@ -84,8 +83,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
       hasSubmenu: true,
       submenu: [
         { id: 'transport-individual', name: 'Demandes individuelles', path: '/transport/individual' },
-        { id: 'transport-group', name: 'Demandes de groupe', path: '/transport/group' },
-        { id: 'transport-history', name: 'Historique', path: '/transport/history' }
+        { id: 'transport-group', name: 'Demandes de groupe', path: '/transport/group' }
       ]
     },
   ];

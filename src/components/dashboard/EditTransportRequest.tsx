@@ -23,7 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { AddressInput } from '../shared/AddressInput';
-import { ArrowLeft, Save, User, Clock, Calendar, MapPin, Phone, Mail, Home, Briefcase } from 'lucide-react';
+import { ArrowLeft, Save, User, Clock, Calendar, MapPin, Phone, Mail, Home, Briefcase, Plus, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Address {
@@ -77,6 +77,14 @@ export function EditTransportRequest() {
   const [note, setNote] = useState('');
   const [transportType, setTransportType] = useState<'private' | 'public'>('public');
   const [passengers, setPassengers] = useState<Passenger[]>([]);
+  const [showAddPassengerForm, setShowAddPassengerForm] = useState(false);
+  const [newPassenger, setNewPassenger] = useState<Partial<Passenger>>({
+    name: '',
+    phone: '',
+    email: '',
+    departureAddress: '',
+    arrivalAddress: ''
+  });
 
   // Simuler le chargement des données
   useEffect(() => {
@@ -193,6 +201,39 @@ export function EditTransportRequest() {
         };
       })
     );
+  };
+
+  const handleAddPassenger = () => {
+    if (!newPassenger.name || !newPassenger.phone) {
+      toast.error('Veuillez remplir au moins le nom et le téléphone');
+      return;
+    }
+
+    const passenger: Passenger = {
+      id: `new-${Date.now()}`,
+      name: newPassenger.name || '',
+      phone: newPassenger.phone || '',
+      email: newPassenger.email || '',
+      departureAddress: newPassenger.departureAddress || '',
+      arrivalAddress: newPassenger.arrivalAddress || '',
+      isHomeToWork: isHomeToWorkTrip
+    };
+
+    setPassengers(prev => [...prev, passenger]);
+    setNewPassenger({
+      name: '',
+      phone: '',
+      email: '',
+      departureAddress: '',
+      arrivalAddress: ''
+    });
+    setShowAddPassengerForm(false);
+    toast.success('Passager ajouté avec succès');
+  };
+
+  const handleRemovePassenger = (passengerId: string) => {
+    setPassengers(prev => prev.filter(p => p.id !== passengerId));
+    toast.success('Passager supprimé');
   };
 
   if (isLoading) {
@@ -336,16 +377,110 @@ export function EditTransportRequest() {
 
         {/* Passagers */}
         <Card className="lg:col-span-2">
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Passagers ({passengers.length})</CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowAddPassengerForm(!showAddPassengerForm)}
+              className="text-xs"
+            >
+              {showAddPassengerForm ? 'Annuler' : <><UserPlus className="h-3 w-3 mr-1" /> Ajouter</>}
+            </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {showAddPassengerForm && (
+              <Card className="border-dashed mb-4">
+                <CardContent className="p-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Nom complet</Label>
+                      <Input
+                        value={newPassenger.name}
+                        onChange={(e) => setNewPassenger({...newPassenger, name: e.target.value})}
+                        placeholder="Nom du passager"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Téléphone</Label>
+                      <Input
+                        value={newPassenger.phone}
+                        onChange={(e) => setNewPassenger({...newPassenger, phone: e.target.value})}
+                        placeholder="Numéro de téléphone"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Email</Label>
+                      <Input
+                        value={newPassenger.email}
+                        onChange={(e) => setNewPassenger({...newPassenger, email: e.target.value})}
+                        placeholder="Adresse email"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Adresse de départ</Label>
+                      <Select
+                        value={newPassenger.departureAddress}
+                        onValueChange={(value) => setNewPassenger({...newPassenger, departureAddress: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une adresse" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {commonAddresses.map((address) => (
+                            <SelectItem key={address} value={address}>
+                              {address}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label>Adresse d'arrivée</Label>
+                      <Select
+                        value={newPassenger.arrivalAddress}
+                        onValueChange={(value) => setNewPassenger({...newPassenger, arrivalAddress: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner une adresse" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {commonAddresses.map((address) => (
+                            <SelectItem key={address} value={address}>
+                              {address}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleAddPassenger}
+                      className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Ajouter le passager
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Passager</TableHead>
                   <TableHead>Départ</TableHead>
                   <TableHead>Arrivée</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -422,6 +557,16 @@ export function EditTransportRequest() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemovePassenger(passenger.id)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
