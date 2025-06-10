@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -22,11 +22,21 @@ interface Address {
   id: string;
   label: string;
   street: string;
-  city: string;
+  buildingNumber?: string;
+  complement?: string;
   postalCode: string;
+  city: string;
+  region?: string;
   country: string;
   latitude?: number;
   longitude?: number;
+  placeId?: string;
+  formattedAddress?: string;
+  isVerified?: boolean;
+  isExact?: boolean;
+  manuallyEntered?: boolean;
+  addressType?: string;
+  notes?: string;
 }
 
 interface Subsidiary {
@@ -37,8 +47,8 @@ interface Subsidiary {
   email?: string;
   website?: string;
   description?: string;
-  managerId?: string;
-  managerName?: string;
+  managerIds: string[]; // Changed to array for multiple managers
+  managerNames: string[]; // Changed to array for multiple managers
   status: 'active' | 'inactive';
   employeesCount: number;
   createdAt: string;
@@ -55,6 +65,7 @@ export function SubsidiariesPage() {
         id: 'addr1',
         label: 'Siège Paris Nord',
         street: '123 Avenue de la République',
+        buildingNumber: '123',
         city: 'Paris',
         postalCode: '75011',
         country: 'France'
@@ -63,8 +74,8 @@ export function SubsidiariesPage() {
       email: 'paris-nord@techcorp.fr',
       website: 'www.techcorp-paris.fr',
       description: 'Filiale spécialisée dans le développement',
-      managerId: '1',
-      managerName: 'Marie Martin',
+      managerIds: ['1', '2'],
+      managerNames: ['Marie Martin', 'Pierre Durand'],
       status: 'active',
       employeesCount: 45,
       createdAt: '2024-01-15'
@@ -82,8 +93,8 @@ export function SubsidiariesPage() {
       },
       phone: '+33 4 78 78 78 78',
       email: 'lyon@techcorp.fr',
-      managerId: '2',
-      managerName: 'Pierre Durand',
+      managerIds: ['3'],
+      managerNames: ['Sophie Laurent'],
       status: 'active',
       employeesCount: 28,
       createdAt: '2024-02-10'
@@ -98,7 +109,7 @@ export function SubsidiariesPage() {
     email: '',
     website: '',
     description: '',
-    managerId: '',
+    selectedManagerIds: [] as string[],
     address: null as Address | null
   });
 
@@ -107,7 +118,9 @@ export function SubsidiariesPage() {
     { id: '1', name: 'Marie Martin' },
     { id: '2', name: 'Pierre Durand' },
     { id: '3', name: 'Sophie Laurent' },
-    { id: '4', name: 'Jean Dupont' }
+    { id: '4', name: 'Jean Dupont' },
+    { id: '5', name: 'Claire Rousseau' },
+    { id: '6', name: 'Thomas Dubois' }
   ];
 
   const handleSubmit = () => {
@@ -116,7 +129,7 @@ export function SubsidiariesPage() {
       return;
     }
 
-    const selectedManager = managers.find(m => m.id === formData.managerId);
+    const selectedManagers = managers.filter(m => formData.selectedManagerIds.includes(m.id));
 
     const subsidiaryData: Subsidiary = {
       id: editingSubsidiary?.id || `sub-${Date.now()}`,
@@ -126,10 +139,10 @@ export function SubsidiariesPage() {
       email: formData.email,
       website: formData.website,
       description: formData.description,
-      managerId: formData.managerId,
-      managerName: selectedManager?.name,
+      managerIds: formData.selectedManagerIds,
+      managerNames: selectedManagers.map(m => m.name),
       status: 'active',
-      employeesCount: 0,
+      employeesCount: editingSubsidiary?.employeesCount || 0,
       createdAt: editingSubsidiary?.createdAt || new Date().toISOString().split('T')[0]
     };
 
@@ -151,7 +164,7 @@ export function SubsidiariesPage() {
       email: '',
       website: '',
       description: '',
-      managerId: '',
+      selectedManagerIds: [],
       address: null
     });
     setEditingSubsidiary(null);
@@ -166,7 +179,7 @@ export function SubsidiariesPage() {
       email: subsidiary.email || '',
       website: subsidiary.website || '',
       description: subsidiary.description || '',
-      managerId: subsidiary.managerId || '',
+      selectedManagerIds: subsidiary.managerIds || [],
       address: subsidiary.address
     });
     setIsCreateOpen(true);
@@ -175,6 +188,15 @@ export function SubsidiariesPage() {
   const handleDelete = (id: string) => {
     setSubsidiaries(prev => prev.filter(s => s.id !== id));
     toast.success('Filiale supprimée avec succès!');
+  };
+
+  const handleManagerToggle = (managerId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedManagerIds: prev.selectedManagerIds.includes(managerId)
+        ? prev.selectedManagerIds.filter(id => id !== managerId)
+        : [...prev.selectedManagerIds, managerId]
+    }));
   };
 
   const savedAddresses: Address[] = [
@@ -203,16 +225,23 @@ export function SubsidiariesPage() {
       )
     },
     {
-      header: 'Manager',
-      accessor: 'managerName',
+      header: 'Managers',
+      accessor: 'managerNames',
       sortable: true,
       render: (item) => (
-        <div className="flex items-center text-left">
-          {item.managerName ? (
-            <>
-              <User className="mr-1 h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{item.managerName}</span>
-            </>
+        <div className="text-left">
+          {item.managerNames && item.managerNames.length > 0 ? (
+            <div className="space-y-1">
+              {item.managerNames.map((name, index) => (
+                <div key={index} className="flex items-center text-sm">
+                  <User className="mr-1 h-3 w-3 text-muted-foreground" />
+                  <span>{name}</span>
+                </div>
+              ))}
+              <Badge variant="outline" className="text-xs">
+                {item.managerNames.length} manager{item.managerNames.length > 1 ? 's' : ''}
+              </Badge>
+            </div>
           ) : (
             <span className="text-sm text-muted-foreground">Non assigné</span>
           )}
@@ -303,19 +332,7 @@ export function SubsidiariesPage() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => {
-          setEditingSubsidiary(item);
-          setFormData({
-            name: item.name,
-            phone: item.phone || '',
-            email: item.email || '',
-            website: item.website || '',
-            description: item.description || '',
-            managerId: item.managerId || '',
-            address: item.address
-          });
-          setIsCreateOpen(true);
-        }}
+        onClick={() => handleEdit(item)}
       >
         <Edit className="h-4 w-4" />
       </Button>
@@ -356,6 +373,17 @@ export function SubsidiariesPage() {
           </Card>
           <Card className="w-full sm:w-48 bg-card border-border">
             <CardContent className="p-3 flex items-center space-x-2">
+              <User className="h-4 w-4 text-purple-500" />
+              <div className="text-left">
+                <p className="text-xs text-muted-foreground">Managers</p>
+                <p className="text-lg font-bold">
+                  {subsidiaries.reduce((sum, s) => sum + (s.managerIds?.length || 0), 0)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="w-full sm:w-48 bg-card border-border">
+            <CardContent className="p-3 flex items-center space-x-2">
               <MapPin className="h-4 w-4 text-purple-500" />
               <div className="text-left">
                 <p className="text-xs text-muted-foreground">Villes</p>
@@ -390,12 +418,14 @@ export function SubsidiariesPage() {
                   className="h-9 text-sm bg-background border-border"
                 />
               </div>
+              
               <AddressInput
                 label="Adresse *"
                 value={formData.address}
                 onChange={(address) => setFormData({ ...formData, address })}
                 savedAddresses={savedAddresses}
               />
+              
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label>Téléphone</Label>
@@ -417,24 +447,32 @@ export function SubsidiariesPage() {
                   />
                 </div>
               </div>
+              
               <div>
-                <Label>Manager</Label>
-                <Select 
-                  value={formData.managerId} 
-                  onValueChange={(value) => setFormData({ ...formData, managerId: value })}
-                >
-                  <SelectTrigger className="h-9 text-sm bg-background border-border">
-                    <SelectValue placeholder="Sélectionner un manager" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border">
-                    {managers.map((manager) => (
-                      <SelectItem key={manager.id} value={manager.id}>
+                <Label>Managers (sélection multiple)</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto border rounded p-3">
+                  {managers.map((manager) => (
+                    <div key={manager.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={manager.id}
+                        checked={formData.selectedManagerIds.includes(manager.id)}
+                        onCheckedChange={() => handleManagerToggle(manager.id)}
+                      />
+                      <Label htmlFor={manager.id} className="text-sm cursor-pointer">
                         {manager.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {formData.selectedManagerIds.length > 0 && (
+                  <div className="mt-2">
+                    <Badge variant="outline" className="text-xs">
+                      {formData.selectedManagerIds.length} manager{formData.selectedManagerIds.length > 1 ? 's' : ''} sélectionné{formData.selectedManagerIds.length > 1 ? 's' : ''}
+                    </Badge>
+                  </div>
+                )}
               </div>
+              
               <div>
                 <Label>Site web</Label>
                 <Input
@@ -444,6 +482,7 @@ export function SubsidiariesPage() {
                   className="h-9 text-sm bg-background border-border"
                 />
               </div>
+              
               <div>
                 <Label>Description</Label>
                 <Input
@@ -453,6 +492,7 @@ export function SubsidiariesPage() {
                   className="h-9 text-sm bg-background border-border"
                 />
               </div>
+              
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
                 <Button variant="outline" onClick={resetForm} className="h-9 text-sm">
                   Annuler
