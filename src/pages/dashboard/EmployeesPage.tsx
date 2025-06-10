@@ -3,7 +3,9 @@ import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { TableWithPagination } from '@/components/ui/table-with-pagination';
-import { Plus, Eye, Edit, Trash, UserCheck, UserX, Upload } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Eye, Edit, Trash, UserCheck, UserX, Upload, Filter, Users, Building2, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AddEmployeeForm } from '@/components/dashboard/AddEmployeeForm';
 import { AddEmployeeFromCSV } from '@/components/dashboard/AddEmployeeFromCSV';
@@ -28,6 +30,9 @@ export function EmployeesPage() {
   const navigate = useNavigate();
   const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const handleEmployeeAdded = (employeeData: any) => {
     const newEmployee: Employee = {
@@ -166,20 +171,19 @@ export function EmployeesPage() {
     }
   };
 
+  // Get unique values for filters
   const subsidiaries = Array.from(new Set(employees.map(emp => emp.subsidiary)));
-  const filterOptions = [
-    ...subsidiaries.map(subsidiary => ({
-      label: subsidiary,
-      value: subsidiary,
-      field: 'subsidiary' as keyof Employee,
-    })),
-    { label: 'Actif', value: 'active', field: 'status' as keyof Employee },
-    { label: 'Inactif', value: 'inactive', field: 'status' as keyof Employee },
-    { label: 'En attente', value: 'pending', field: 'status' as keyof Employee },
-    { label: 'Manager', value: 'manager', field: 'role' as keyof Employee },
-    { label: 'Employé', value: 'employee', field: 'role' as keyof Employee },
-    { label: 'Administrateur', value: 'admin', field: 'role' as keyof Employee },
-  ];
+  const roles = Array.from(new Set(employees.map(emp => emp.role)));
+  const statuses = Array.from(new Set(employees.map(emp => emp.status)));
+
+  // Apply filters
+  const filteredEmployees = employees.filter(employee => {
+    const matchesRole = roleFilter === 'all' || employee.role === roleFilter;
+    const matchesSubsidiary = subsidiaryFilter === 'all' || employee.subsidiary === subsidiaryFilter;
+    const matchesStatus = statusFilter === 'all' || employee.status === statusFilter;
+    
+    return matchesRole && matchesSubsidiary && matchesStatus;
+  });
 
   const columns = [
     {
@@ -308,7 +312,7 @@ export function EmployeesPage() {
             <AlertDialogTitle>Supprimer l'employé</AlertDialogTitle>
             <AlertDialogDescription>
               Êtes-vous sûr de vouloir supprimer l'employé <strong>{employee.name}</strong> ? 
-              Cette action est irréversible.
+              Cette action est irréversible et supprimera toutes les données associées.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -317,7 +321,7 @@ export function EmployeesPage() {
               onClick={() => handleDeleteEmployee(employee.id)}
               className="bg-red-600 hover:bg-red-700"
             >
-              Supprimer
+              Supprimer définitivement
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -325,9 +329,21 @@ export function EmployeesPage() {
     </div>
   );
 
+  const clearFilters = () => {
+    setRoleFilter('all');
+    setSubsidiaryFilter('all');
+    setStatusFilter('all');
+  };
+
+  const hasActiveFilters = roleFilter !== 'all' || subsidiaryFilter !== 'all' || statusFilter !== 'all';
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Users className="h-6 w-6 text-etaxi-yellow" />
+          <h2 className="text-2xl font-bold">Gestion des employés</h2>
+        </div>
         <div className="flex space-x-2">
           <Button 
             variant="outline"
@@ -347,11 +363,138 @@ export function EmployeesPage() {
         </div>
       </div>
 
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Users className="h-5 w-5 text-blue-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total employés</p>
+                <p className="text-2xl font-bold">{employees.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <div className="h-5 w-5 bg-green-500 rounded-full"></div>
+              <div>
+                <p className="text-sm text-muted-foreground">Actifs</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {employees.filter(emp => emp.status === 'active').length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Shield className="h-5 w-5 text-purple-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Managers</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {employees.filter(emp => emp.isManager).length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Building2 className="h-5 w-5 text-orange-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Filiales</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {subsidiaries.length}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Filter className="h-5 w-5" />
+              <span>Filtres</span>
+            </div>
+            {hasActiveFilters && (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Effacer les filtres
+              </Button>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Rôle</label>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tous les rôles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les rôles</SelectItem>
+                  {roles.map(role => (
+                    <SelectItem key={role} value={role}>
+                      {getRoleText(role)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Filiale</label>
+              <Select value={subsidiaryFilter} onValueChange={setSubsidiaryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Toutes les filiales" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes les filiales</SelectItem>
+                  {subsidiaries.map(subsidiary => (
+                    <SelectItem key={subsidiary} value={subsidiary}>
+                      {subsidiary}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Statut</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tous les statuts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les statuts</SelectItem>
+                  {statuses.map(status => (
+                    <SelectItem key={status} value={status}>
+                      {getStatusText(status)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <TableWithPagination
-        data={employees}
+        data={filteredEmployees}
         columns={columns}
         searchPlaceholder="Rechercher un employé..."
-        filterOptions={filterOptions}
         itemsPerPage={10}
         onRowClick={(employee) => navigate(`/employees/${employee.id}`)}
         actions={getActions}

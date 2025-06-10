@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { AddressInput } from '../shared/AddressInput';
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, Clock, FilePlus, FileMinus, MessageSquare, ChevronDown, Building2, Search, Filter } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, Clock, FilePlus, FileMinus, MessageSquare, ChevronDown, Building2, Search, Filter, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 
@@ -183,6 +183,7 @@ export function EmployeeDetails() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedEmployee, setEditedEmployee] = useState<Employee>({...employee});
   const [newAddress, setNewAddress] = useState<Address | null>(null);
+  const [newAddressLabel, setNewAddressLabel] = useState('');
   
   // Claims pagination and filtering
   const [currentClaimsPage, setCurrentClaimsPage] = useState(1);
@@ -204,14 +205,24 @@ export function EmployeeDetails() {
   };
 
   const handleAddAddress = () => {
-    if (!newAddress) return;
+    if (!newAddress || !newAddressLabel.trim()) {
+      toast.error('Veuillez remplir le libellé et l\'adresse');
+      return;
+    }
     
-    const updatedAddresses = [...editedEmployee.addresses, newAddress];
+    const addressWithLabel = {
+      ...newAddress,
+      id: `new-${Date.now()}`,
+      label: newAddressLabel
+    };
+    
+    const updatedAddresses = [...editedEmployee.addresses, addressWithLabel];
     setEditedEmployee({
       ...editedEmployee,
       addresses: updatedAddresses
     });
     setNewAddress(null);
+    setNewAddressLabel('');
     toast.success('Adresse ajoutée avec succès');
   };
 
@@ -238,6 +249,10 @@ export function EmployeeDetails() {
       defaultAddressId: addressId
     });
     toast.success('Adresse par défaut mise à jour');
+  };
+
+  const handleViewTransportRequest = (requestId: string) => {
+    navigate(`/transport/${requestId}`);
   };
 
   const getClaimTypeColor = (type: string) => {
@@ -506,7 +521,10 @@ export function EmployeeDetails() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => setNewAddress(null)}
+                        onClick={() => {
+                          setNewAddress(null);
+                          setNewAddressLabel('');
+                        }}
                       >
                         <FileMinus className="h-4 w-4 mr-1" />
                         Annuler
@@ -548,8 +566,8 @@ export function EmployeeDetails() {
                       <div className="space-y-2">
                         <Label>Libellé de l'adresse</Label>
                         <Input
-                          value={newAddress.label}
-                          onChange={(e) => setNewAddress({...newAddress, label: e.target.value})}
+                          value={newAddressLabel}
+                          onChange={(e) => setNewAddressLabel(e.target.value)}
                           placeholder="Ex: Domicile, Travail, etc."
                         />
                       </div>
@@ -650,6 +668,7 @@ export function EmployeeDetails() {
                       <TableHead>Arrivée</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead>ID Demande</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -690,6 +709,16 @@ export function EmployeeDetails() {
                         </TableCell>
                         <TableCell>
                           <span className="text-xs font-mono">{transport.requestId}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleViewTransportRequest(transport.requestId)}
+                            title="Voir les détails de la demande"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
