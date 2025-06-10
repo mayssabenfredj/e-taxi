@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ interface TableWithPaginationProps<T> {
   filterOptions?: { label: string; value: string; field: keyof T }[];
   itemsPerPage?: number; // Add itemsPerPage
   emptyMessage?: string;
+  getRowKey?: (item: T, index: number) => string | number; // Add getRowKey prop
 }
 
 export function TableWithPagination<T extends Record<string, any>>({
@@ -37,6 +37,7 @@ export function TableWithPagination<T extends Record<string, any>>({
   filterOptions = [],
   itemsPerPage: initialItemsPerPage = 10, // Default to 10 if not provided
   emptyMessage = "Aucun résultat trouvé", // Default empty message
+  getRowKey, // Add getRowKey to props
 }: TableWithPaginationProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(initialItemsPerPage);
@@ -51,6 +52,19 @@ export function TableWithPagination<T extends Record<string, any>>({
       return path.split('.').reduce((o, p) => o?.[p], obj);
     }
     return obj[path];
+  };
+
+  // Helper function to generate a stable key for each row
+  const generateRowKey = (item: T, index: number): string | number => {
+    if (getRowKey) {
+      return getRowKey(item, index);
+    }
+    // Try to use common id fields, fallback to index if none exist
+    if (item.id !== undefined) return item.id;
+    if (item._id !== undefined) return item._id;
+    if (item.uuid !== undefined) return item.uuid;
+    // As a last resort, create a stable key from the item's content
+    return `${JSON.stringify(item)}-${index}`;
   };
 
   // Filter and search logic
@@ -181,7 +195,7 @@ export function TableWithPagination<T extends Record<string, any>>({
     ) : (
       paginatedData.map((item, index) => (
         <TableRow
-          key={index}
+          key={generateRowKey(item, index)}
           className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
           onClick={() => onRowClick?.(item)}
         >
