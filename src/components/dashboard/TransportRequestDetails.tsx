@@ -209,7 +209,7 @@ export function TransportRequestDetails() {
         {/* Action Buttons - Responsive */}
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {(request.status === 'pending' || request.status === 'approved') && (
-            <Button variant="outline" size="sm" onClick={handleEdit} className="flex-1 sm:flex-none">
+            <Button variant="outline\" size="sm\" onClick={handleEdit} className="flex-1 sm:flex-none">
               <Edit className="mr-1 h-3 w-3" />
               <span className="hidden sm:inline">Modifier</span>
             </Button>
