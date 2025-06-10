@@ -131,10 +131,14 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
           <div key={item.id}>
             {item.hasSubmenu ? (
               <Collapsible 
-                open={isMobile ? openSubmenus[item.id] : isTransportOpen} 
+                open={isMobile ? openSubmenus[item.id] : (isCollapsed ? false : isTransportOpen)} 
                 onOpenChange={isMobile ? 
                   () => toggleSubmenu(item.id) : 
-                  setIsTransportOpen
+                  (open) => {
+                    if (!isCollapsed) {
+                      setIsTransportOpen(open);
+                    }
+                  }
                 }
                 className="w-full"
               >
@@ -147,6 +151,12 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
                       activePage === item.id && "bg-etaxi-yellow/10 text-etaxi-yellow hover:bg-etaxi-yellow/20"
                     )}
                     title={isCollapsed && !isMobile ? item.name : undefined}
+                    onClick={() => {
+                      if (isCollapsed && !isMobile) {
+                        // When sidebar is collapsed, clicking on a menu with submenu should open a dropdown
+                        setIsTransportOpen(!isTransportOpen);
+                      }
+                    }}
                   >
                     <div className="flex items-center space-x-2">
                       <item.icon className="h-5 w-5" />
@@ -160,24 +170,50 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
                     )}
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-1 mt-1">
-                  {item.submenu?.map((subItem) => (
-                    <Button
-                      key={subItem.id}
-                      variant="ghost"
-                      className={cn(
-                        "w-full justify-start ml-6 text-sm",
-                        location.pathname === subItem.path && "bg-etaxi-yellow/10 text-etaxi-yellow"
-                      )}
-                      onClick={() => {
-                        navigateTo(subItem.path, subItem.id);
-                        if (isMobile) setIsMobileMenuOpen(false);
-                      }}
-                    >
-                      {subItem.name}
-                    </Button>
-                  ))}
-                </CollapsibleContent>
+                
+                {/* Dropdown for collapsed sidebar */}
+                {isCollapsed && !isMobile && isTransportOpen && (
+                  <div className="absolute left-16 mt-0 w-48 z-50 bg-popover rounded-md shadow-md border border-border overflow-hidden">
+                    {item.submenu?.map((subItem) => (
+                      <Button
+                        key={subItem.id}
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start text-sm px-4 py-2 rounded-none",
+                          location.pathname === subItem.path && "bg-etaxi-yellow/10 text-etaxi-yellow"
+                        )}
+                        onClick={() => {
+                          navigateTo(subItem.path, subItem.id);
+                          setIsTransportOpen(false);
+                        }}
+                      >
+                        {subItem.name}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Regular submenu for expanded sidebar */}
+                {(!isCollapsed || isMobile) && (
+                  <CollapsibleContent className="space-y-1 mt-1">
+                    {item.submenu?.map((subItem) => (
+                      <Button
+                        key={subItem.id}
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start ml-6 text-sm",
+                          location.pathname === subItem.path && "bg-etaxi-yellow/10 text-etaxi-yellow"
+                        )}
+                        onClick={() => {
+                          navigateTo(subItem.path, subItem.id);
+                          if (isMobile) setIsMobileMenuOpen(false);
+                        }}
+                      >
+                        {subItem.name}
+                      </Button>
+                    ))}
+                  </CollapsibleContent>
+                )}
               </Collapsible>
             ) : (
               <Button
