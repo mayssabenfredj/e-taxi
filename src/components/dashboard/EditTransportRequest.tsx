@@ -23,7 +23,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { AddressInput } from '../shared/AddressInput';
-import { ArrowLeft, Save, User, Clock, Calendar, MapPin, Phone, Mail, Home, Briefcase, Plus, UserPlus } from 'lucide-react';
+import { ArrowLeft, Save, User, Clock, Calendar, MapPin, Phone, Mail, Home, Briefcase, Plus, UserPlus, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Address {
