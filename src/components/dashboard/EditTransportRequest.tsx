@@ -86,6 +86,42 @@ export function EditTransportRequest() {
     arrivalAddress: ''
   });
 
+  // Liste des employés disponibles pour la sélection
+  const employees = [
+    {
+      id: 'emp1',
+      name: 'Jean Dupont',
+      phone: '+33 6 12 34 56 78',
+      email: 'jean.dupont@email.com',
+      homeAddress: '15 Rue du Louvre, 75001 Paris',
+      workAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris'
+    },
+    {
+      id: 'emp2',
+      name: 'Marie Martin',
+      phone: '+33 6 98 76 54 32',
+      email: 'marie.martin@email.com',
+      homeAddress: '25 Rue de Rivoli, 75004 Paris',
+      workAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris'
+    },
+    {
+      id: 'emp3',
+      name: 'Pierre Durand',
+      phone: '+33 6 55 55 55 55',
+      email: 'pierre.durand@email.com',
+      homeAddress: '8 Avenue Montaigne, 75008 Paris',
+      workAddress: 'La Défense, 92800 Puteaux'
+    },
+    {
+      id: 'emp4',
+      name: 'Sophie Leclerc',
+      phone: '+33 6 11 22 33 44',
+      email: 'sophie.leclerc@email.com',
+      homeAddress: '12 Boulevard Saint-Germain, 75005 Paris',
+      workAddress: 'Opéra, 75009 Paris'
+    }
+  ];
+
   // Simuler le chargement des données
   useEffect(() => {
     const loadRequest = () => {
@@ -203,6 +239,26 @@ export function EditTransportRequest() {
     );
   };
 
+  const handleSelectEmployee = (employeeId: string) => {
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (!employee) return;
+
+    // Déterminer les adresses de départ et d'arrivée en fonction du type de trajet
+    const departureAddress = isHomeToWorkTrip ? employee.homeAddress : employee.workAddress;
+    const arrivalAddress = isHomeToWorkTrip ? employee.workAddress : employee.homeAddress;
+    
+    setNewPassenger({
+      name: employee.name,
+      phone: employee.phone,
+      email: employee.email,
+      departureAddress,
+      arrivalAddress,
+      homeAddress: employee.homeAddress,
+      workAddress: employee.workAddress,
+      isHomeToWork: isHomeToWorkTrip
+    });
+  };
+
   const handleAddPassenger = () => {
     if (!newPassenger.name || !newPassenger.phone) {
       toast.error('Veuillez remplir au moins le nom et le téléphone');
@@ -216,6 +272,8 @@ export function EditTransportRequest() {
       email: newPassenger.email || '',
       departureAddress: newPassenger.departureAddress || '',
       arrivalAddress: newPassenger.arrivalAddress || '',
+      homeAddress: newPassenger.homeAddress,
+      workAddress: newPassenger.workAddress,
       isHomeToWork: isHomeToWorkTrip
     };
 
@@ -392,83 +450,133 @@ export function EditTransportRequest() {
             {showAddPassengerForm && (
               <Card className="border-dashed mb-4">
                 <CardContent className="p-4 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Nom complet</Label>
-                      <Input
-                        value={newPassenger.name}
-                        onChange={(e) => setNewPassenger({...newPassenger, name: e.target.value})}
-                        placeholder="Nom du passager"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Téléphone</Label>
-                      <Input
-                        value={newPassenger.phone}
-                        onChange={(e) => setNewPassenger({...newPassenger, phone: e.target.value})}
-                        placeholder="Numéro de téléphone"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input
-                        value={newPassenger.email}
-                        onChange={(e) => setNewPassenger({...newPassenger, email: e.target.value})}
-                        placeholder="Adresse email"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Adresse de départ</Label>
-                      <Select
-                        value={newPassenger.departureAddress}
-                        onValueChange={(value) => setNewPassenger({...newPassenger, departureAddress: value})}
-                      >
+                      <Label>Sélectionner un employé</Label>
+                      <Select onValueChange={handleSelectEmployee}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner une adresse" />
+                          <SelectValue placeholder="Sélectionner un employé..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {commonAddresses.map((address) => (
-                            <SelectItem key={address} value={address}>
-                              {address}
+                          {employees.map(emp => (
+                            <SelectItem key={emp.id} value={emp.id}>
+                              {emp.name} - {emp.email}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label>Adresse d'arrivée</Label>
-                      <Select
-                        value={newPassenger.arrivalAddress}
-                        onValueChange={(value) => setNewPassenger({...newPassenger, arrivalAddress: value})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner une adresse" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {commonAddresses.map((address) => (
-                            <SelectItem key={address} value={address}>
-                              {address}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Nom complet</Label>
+                        <Input
+                          value={newPassenger.name}
+                          onChange={(e) => setNewPassenger({...newPassenger, name: e.target.value})}
+                          placeholder="Nom du passager"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Téléphone</Label>
+                        <Input
+                          value={newPassenger.phone}
+                          onChange={(e) => setNewPassenger({...newPassenger, phone: e.target.value})}
+                          placeholder="Numéro de téléphone"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Email</Label>
+                        <Input
+                          value={newPassenger.email}
+                          onChange={(e) => setNewPassenger({...newPassenger, email: e.target.value})}
+                          placeholder="Adresse email"
+                        />
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex justify-end">
-                    <Button
-                      onClick={handleAddPassenger}
-                      className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Ajouter le passager
-                    </Button>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Adresse de départ</Label>
+                        <Select
+                          value={newPassenger.departureAddress}
+                          onValueChange={(value) => setNewPassenger({...newPassenger, departureAddress: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner une adresse" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {newPassenger.homeAddress && isHomeToWorkTrip && (
+                              <SelectItem value={newPassenger.homeAddress}>
+                                <div className="flex items-center">
+                                  <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
+                                  {newPassenger.homeAddress}
+                                </div>
+                              </SelectItem>
+                            )}
+                            {newPassenger.workAddress && !isHomeToWorkTrip && (
+                              <SelectItem value={newPassenger.workAddress}>
+                                <div className="flex items-center">
+                                  <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
+                                  {newPassenger.workAddress}
+                                </div>
+                              </SelectItem>
+                            )}
+                            {commonAddresses.map((address) => (
+                              <SelectItem key={address} value={address}>
+                                {address}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Adresse d'arrivée</Label>
+                        <Select
+                          value={newPassenger.arrivalAddress}
+                          onValueChange={(value) => setNewPassenger({...newPassenger, arrivalAddress: value})}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner une adresse" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {newPassenger.workAddress && isHomeToWorkTrip && (
+                              <SelectItem value={newPassenger.workAddress}>
+                                <div className="flex items-center">
+                                  <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
+                                  {newPassenger.workAddress}
+                                </div>
+                              </SelectItem>
+                            )}
+                            {newPassenger.homeAddress && !isHomeToWorkTrip && (
+                              <SelectItem value={newPassenger.homeAddress}>
+                                <div className="flex items-center">
+                                  <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
+                                  {newPassenger.homeAddress}
+                                </div>
+                              </SelectItem>
+                            )}
+                            {commonAddresses.map((address) => (
+                              <SelectItem key={address} value={address}>
+                                {address}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={handleAddPassenger}
+                        className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Ajouter le passager
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -477,32 +585,32 @@ export function EditTransportRequest() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Passager</TableHead>
-                  <TableHead>Départ</TableHead>
-                  <TableHead>Arrivée</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-xs">Passager</TableHead>
+                  <TableHead className="text-xs">Départ</TableHead>
+                  <TableHead className="text-xs">Arrivée</TableHead>
+                  <TableHead className="text-xs">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {passengers.map((passenger) => (
                   <TableRow key={passenger.id}>
-                    <TableCell>
-                      <div className="text-sm">
+                    <TableCell className="p-2">
+                      <div className="text-xs">
                         <div className="font-medium">{passenger.name}</div>
-                        <div className="text-xs text-muted-foreground">{passenger.phone}</div>
+                        <div className="text-muted-foreground">{passenger.phone}</div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <Select
                         value={passenger.departureAddress}
                         onValueChange={(value) => updatePassengerAddress(passenger.id, 'departureAddress', value)}
                       >
-                        <SelectTrigger className="text-sm">
+                        <SelectTrigger className="text-xs h-8">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {passenger.isHomeToWork && passenger.homeAddress && (
-                            <SelectItem value={passenger.homeAddress}>
+                            <SelectItem value={passenger.homeAddress} className="text-xs">
                               <div className="flex items-center">
                                 <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
                                 {passenger.homeAddress}
@@ -510,7 +618,7 @@ export function EditTransportRequest() {
                             </SelectItem>
                           )}
                           {!passenger.isHomeToWork && passenger.workAddress && (
-                            <SelectItem value={passenger.workAddress}>
+                            <SelectItem value={passenger.workAddress} className="text-xs">
                               <div className="flex items-center">
                                 <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
                                 {passenger.workAddress}
@@ -518,24 +626,24 @@ export function EditTransportRequest() {
                             </SelectItem>
                           )}
                           {commonAddresses.map((address) => (
-                            <SelectItem key={address} value={address}>
+                            <SelectItem key={address} value={address} className="text-xs">
                               {address}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <Select
                         value={passenger.arrivalAddress}
                         onValueChange={(value) => updatePassengerAddress(passenger.id, 'arrivalAddress', value)}
                       >
-                        <SelectTrigger className="text-sm">
+                        <SelectTrigger className="text-xs h-8">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {!passenger.isHomeToWork && passenger.homeAddress && (
-                            <SelectItem value={passenger.homeAddress}>
+                            <SelectItem value={passenger.homeAddress} className="text-xs">
                               <div className="flex items-center">
                                 <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
                                 {passenger.homeAddress}
@@ -543,7 +651,7 @@ export function EditTransportRequest() {
                             </SelectItem>
                           )}
                           {passenger.isHomeToWork && passenger.workAddress && (
-                            <SelectItem value={passenger.workAddress}>
+                            <SelectItem value={passenger.workAddress} className="text-xs">
                               <div className="flex items-center">
                                 <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
                                 {passenger.workAddress}
@@ -551,14 +659,14 @@ export function EditTransportRequest() {
                             </SelectItem>
                           )}
                           {commonAddresses.map((address) => (
-                            <SelectItem key={address} value={address}>
+                            <SelectItem key={address} value={address} className="text-xs">
                               {address}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <Button
                         variant="ghost"
                         size="sm"
