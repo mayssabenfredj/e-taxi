@@ -197,64 +197,95 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
   return (
     <div className={`space-y-4 mx-auto max-w-3xl ${className}`}>
       <Tabs defaultValue="map" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="map">Carte</TabsTrigger>
-          <TabsTrigger value="search">Recherche</TabsTrigger>
-          <TabsTrigger value="manual">Adresse</TabsTrigger>
-          <TabsTrigger value="coords">Coordonnées</TabsTrigger>
+          <TabsTrigger value="address">Adresse</TabsTrigger>
         </TabsList>
         
         <TabsContent value="map" className="space-y-4">
-          <div className="flex justify-center space-x-2">
-            <Button onClick={getCurrentLocation} variant="outline" size="sm">
-              <Target className="mr-2 h-4 w-4" />
-              Ma position
-            </Button>
-          </div>
-          
-          <div 
-            onClick={handleMapClick}
-            className="w-full h-64 md:h-96 bg-gradient-to-br from-green-100 to-blue-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-crosshair relative overflow-hidden"
-          >
-            {/* Simulation d'une carte */}
-            <div className="absolute inset-0 opacity-30">
-              <div className="absolute top-4 left-4 w-8 h-8 bg-blue-500 rounded-full"></div>
-              <div className="absolute top-12 right-8 w-6 h-6 bg-green-500 rounded-full"></div>
-              <div className="absolute bottom-8 left-8 w-4 h-4 bg-red-500 rounded-full"></div>
-              <div className="absolute bottom-4 right-4 w-10 h-10 bg-yellow-500 rounded-full"></div>
+          {/* Carte et recherche */}
+          <div className="space-y-4">
+            {/* Recherche */}
+            <div className="space-y-2">
+              <Label>Rechercher une adresse</Label>
+              <div className="flex space-x-2">
+                <Input
+                  placeholder="Entrez une adresse..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                />
+                <Button onClick={handleSearch} variant="outline">
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             
-            {/* Marqueur de position */}
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <MapPin className="h-8 w-8 text-red-500 drop-shadow-lg" />
+            {/* Coordonnées */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Latitude</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={manualLat}
+                  onChange={(e) => setManualLat(e.target.value)}
+                  placeholder="48.8566"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Longitude</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={manualLng}
+                  onChange={(e) => setManualLng(e.target.value)}
+                  placeholder="2.3522"
+                />
+              </div>
             </div>
             
-            <div className="text-center text-gray-600">
-              <MapPin className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Carte interactive</p>
-              <p className="text-sm">Cliquez pour sélectionner une position</p>
-            </div>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="search" className="space-y-4">
-          <div className="space-y-2">
-            <Label>Rechercher une adresse</Label>
-            <div className="flex space-x-2">
-              <Input
-                placeholder="Entrez une adresse..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
-              <Button onClick={handleSearch} variant="outline">
-                <Search className="h-4 w-4" />
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={getCurrentLocation} variant="outline" className="flex-1">
+                <Target className="mr-2 h-4 w-4" />
+                Ma position actuelle
+              </Button>
+              
+              <Button onClick={handleManualCoordinates} variant="outline" className="flex-1">
+                <Navigation className="mr-2 h-4 w-4" />
+                Utiliser ces coordonnées
               </Button>
             </div>
+            
+            {/* Carte */}
+            <div 
+              onClick={handleMapClick}
+              className="w-full h-64 md:h-96 bg-gradient-to-br from-green-100 to-blue-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-crosshair relative overflow-hidden"
+            >
+              {/* Simulation d'une carte */}
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-4 left-4 w-8 h-8 bg-blue-500 rounded-full"></div>
+                <div className="absolute top-12 right-8 w-6 h-6 bg-green-500 rounded-full"></div>
+                <div className="absolute bottom-8 left-8 w-4 h-4 bg-red-500 rounded-full"></div>
+                <div className="absolute bottom-4 right-4 w-10 h-10 bg-yellow-500 rounded-full"></div>
+              </div>
+              
+              {/* Marqueur de position */}
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <MapPin className="h-8 w-8 text-red-500 drop-shadow-lg" />
+              </div>
+              
+              <div className="text-center text-gray-600">
+                <MapPin className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                <p>Carte interactive</p>
+                <p className="text-sm">Cliquez pour sélectionner une position</p>
+              </div>
+            </div>
           </div>
         </TabsContent>
         
-        <TabsContent value="manual" className="space-y-3">
+        <TabsContent value="address" className="space-y-4">
+          {/* Formulaire d'adresse manuelle */}
           <div className="space-y-2">
             <Label>Adresse complète</Label>
             <div className="grid grid-cols-2 gap-2">
@@ -316,50 +347,13 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          
-          <Button 
-            onClick={handleManualAddressSubmit}
-            className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-sm"
-            size="sm"
-          >
-            Utiliser cette adresse
-          </Button>
-        </TabsContent>
-        
-        <TabsContent value="coords" className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Latitude</Label>
-              <Input
-                type="number"
-                step="any"
-                value={manualLat}
-                onChange={(e) => setManualLat(e.target.value)}
-                placeholder="48.8566"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Longitude</Label>
-              <Input
-                type="number"
-                step="any"
-                value={manualLng}
-                onChange={(e) => setManualLng(e.target.value)}
-                placeholder="2.3522"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={getCurrentLocation} variant="outline" className="flex-1">
-              <Target className="mr-2 h-4 w-4" />
-              Ma position actuelle
-            </Button>
             
-            <Button onClick={handleManualCoordinates} variant="outline" className="flex-1">
-              <Navigation className="mr-2 h-4 w-4" />
-              Utiliser ces coordonnées
+            <Button 
+              onClick={handleManualAddressSubmit}
+              className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-sm mt-2"
+              size="sm"
+            >
+              Utiliser cette adresse
             </Button>
           </div>
         </TabsContent>
