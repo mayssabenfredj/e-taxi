@@ -32,7 +32,6 @@ import { fr } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AddEmployeeFromCSV } from './AddEmployeeFromCSV';
-import { Steps, Step } from '@/components/shared/Steps';
 
 interface Employee {
   id: string;
@@ -94,6 +93,7 @@ export function CreateGroupTransportRequest() {
   const [routeEstimations, setRouteEstimations] = useState<RouteEstimation[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const employees: Employee[] = [
     {
@@ -402,37 +402,20 @@ export function CreateGroupTransportRequest() {
     toast.success(`${newPassengers.length} employé(s) ajouté(s) à la demande`);
   };
 
-  const nextStep = () => {
-    if (currentStep === 0 && (!scheduledDate || !scheduledTime)) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
-      return;
-    }
-    
-    if (currentStep === 1 && selectedPassengers.length === 0) {
+  const handleShowConfirmation = () => {
+    if (selectedPassengers.length === 0) {
       toast.error('Veuillez sélectionner au moins un passager');
       return;
     }
     
-    if (currentStep === 2) {
-      // Calculer les itinéraires avant de passer à l'étape de confirmation
-      calculateRoutes();
-    }
-    
-    if (currentStep < 3) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-  
-  const prevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
+    // Calculer les itinéraires avant d'afficher la confirmation
+    setIsCalculating(true);
+    setShowConfirmation(true);
+    calculateRoutes();
   };
 
   const steps = [
-    { name: 'Informations' },
-    { name: 'Passagers' },
-    { name: 'Calcul et estimation' },
+    { name: 'Configuration' },
     { name: 'Confirmation' }
   ];
 
@@ -462,144 +445,9 @@ export function CreateGroupTransportRequest() {
         </div>
       </div>
 
-      <Steps currentStep={currentStep} steps={steps} />
+      <Steps currentStep={showConfirmation ? 1 : 0} steps={steps} />
 
-      {currentStep === 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Informations générales</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="space-y-1">
-                <Label className="text-sm">Date</Label>
-                <Input
-                  type="date"
-                  value={scheduledDate.toISOString().split('T')[0]}
-                  onChange={(e) => setScheduledDate(new Date(e.target.value))}
-                  className="text-sm"
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <Label className="text-sm">
-                  {isHomeToWorkTrip ? "Heure d'arrivée" : "Heure de départ"}
-                </Label>
-                <Input
-                  type="time"
-                  value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
-                  className="text-sm"
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <Label className="text-sm">Type</Label>
-                <Select
-                  value={transportType}
-                  onValueChange={(value: 'public' | 'private') => setTransportType(value)}
-                >
-                  <SelectTrigger className="text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="private">Privé</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center space-x-2 pt-6">
-                <Checkbox 
-                  id="recurring" 
-                  checked={isRecurring} 
-                  onCheckedChange={(checked) => setIsRecurring(checked === true)}
-                />
-                <Label htmlFor="recurring" className="text-sm">Récurrent</Label>
-              </div>
-            </div>
-
-            {/* Direction de trajet */}
-            <div className="flex items-center justify-between space-x-4 p-3 border rounded-md">
-              <div className="space-y-1">
-                <Label className="text-sm font-medium">Direction du trajet</Label>
-                <div className="text-sm text-muted-foreground">
-                  {isHomeToWorkTrip 
-                    ? "Domicile → Travail (heure d'arrivée)" 
-                    : "Travail → Domicile (heure de départ)"}
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Home className={`h-4 w-4 ${isHomeToWorkTrip ? 'text-etaxi-yellow' : 'text-muted-foreground'}`} />
-                <Switch 
-                  checked={!isHomeToWorkTrip}
-                  onCheckedChange={() => handleToggleTripDirection()}
-                />
-                <Briefcase className={`h-4 w-4 ${!isHomeToWorkTrip ? 'text-etaxi-yellow' : 'text-muted-foreground'}`} />
-              </div>
-            </div>
-
-            {/* Recurring Configuration */}
-            {isRecurring && (
-              <div className="space-y-3 p-3 border rounded">
-                <Label className="text-sm font-medium">Dates de récurrence</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Calendar
-                    mode="multiple"
-                    selected={recurringDates.map(rd => rd.date)}
-                    onSelect={handleRecurringDateChange}
-                    className="rounded-md border text-sm"
-                  />
-                  
-                  {recurringDates.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-sm">Heures par date</Label>
-                      <ScrollArea className="h-32">
-                        {recurringDates.map((rd, index) => (
-                          <div key={index} className="flex items-center space-x-2 mb-2">
-                            <span className="text-xs w-20">
-                              {format(rd.date, 'dd/MM', { locale: fr })}
-                            </span>
-                            <Input
-                              type="time"
-                              value={rd.time}
-                              onChange={(e) => updateRecurringTime(index, e.target.value)}
-                              className="text-xs h-8"
-                            />
-                          </div>
-                        ))}
-                      </ScrollArea>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Note */}
-            <div className="space-y-1">
-              <Label className="text-sm">Note</Label>
-              <Textarea
-                placeholder="Ajouter une note..."
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className="text-sm h-16"
-              />
-            </div>
-            
-            {/* Submit Button */}
-            <div className="flex justify-end">
-              <Button
-                onClick={nextStep}
-                className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
-              >
-                Continuer
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {currentStep === 1 && (
+      {!showConfirmation ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Employee Selection */}
           {showEmployeeList && (
@@ -698,6 +546,112 @@ export function CreateGroupTransportRequest() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Transport Configuration */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-sm">Date</Label>
+                  <Input
+                    type="date"
+                    value={scheduledDate.toISOString().split('T')[0]}
+                    onChange={(e) => setScheduledDate(new Date(e.target.value))}
+                    className="text-sm"
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  <Label className="text-sm">
+                    {isHomeToWorkTrip ? "Heure d'arrivée" : "Heure de départ"}
+                  </Label>
+                  <Input
+                    type="time"
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  <Label className="text-sm">Type</Label>
+                  <Select
+                    value={transportType}
+                    onValueChange={(value: 'public' | 'private') => setTransportType(value)}
+                  >
+                    <SelectTrigger className="text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="public">Public</SelectItem>
+                      <SelectItem value="private">Privé</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center space-x-2 pt-6">
+                  <Checkbox 
+                    id="recurring" 
+                    checked={isRecurring} 
+                    onCheckedChange={(checked) => setIsRecurring(checked === true)}
+                  />
+                  <Label htmlFor="recurring" className="text-sm">Récurrent</Label>
+                </div>
+              </div>
+
+              {/* Direction de trajet */}
+              <div className="flex items-center justify-between space-x-4 p-3 border rounded-md">
+                <div className="space-y-1">
+                  <Label className="text-sm font-medium">Direction du trajet</Label>
+                  <div className="text-sm text-muted-foreground">
+                    {isHomeToWorkTrip 
+                      ? "Domicile → Travail (heure d'arrivée)" 
+                      : "Travail → Domicile (heure de départ)"}
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Home className={`h-4 w-4 ${isHomeToWorkTrip ? 'text-etaxi-yellow' : 'text-muted-foreground'}`} />
+                  <Switch 
+                    checked={!isHomeToWorkTrip}
+                    onCheckedChange={() => handleToggleTripDirection()}
+                  />
+                  <Briefcase className={`h-4 w-4 ${!isHomeToWorkTrip ? 'text-etaxi-yellow' : 'text-muted-foreground'}`} />
+                </div>
+              </div>
+
+              {/* Recurring Configuration */}
+              {isRecurring && (
+                <div className="space-y-3 p-3 border rounded">
+                  <Label className="text-sm font-medium">Dates de récurrence</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Calendar
+                      mode="multiple"
+                      selected={recurringDates.map(rd => rd.date)}
+                      onSelect={handleRecurringDateChange}
+                      className="rounded-md border text-sm"
+                    />
+                    
+                    {recurringDates.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm">Heures par date</Label>
+                        <ScrollArea className="h-32">
+                          {recurringDates.map((rd, index) => (
+                            <div key={index} className="flex items-center space-x-2 mb-2">
+                              <span className="text-xs w-20">
+                                {format(rd.date, 'dd/MM', { locale: fr })}
+                              </span>
+                              <Input
+                                type="time"
+                                value={rd.time}
+                                onChange={(e) => updateRecurringTime(index, e.target.value)}
+                                className="text-xs h-8"
+                              />
+                            </div>
+                          ))}
+                        </ScrollArea>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Passengers Table */}
               {selectedPassengers.length > 0 && (
                 <div className="space-y-2">
@@ -814,29 +768,35 @@ export function CreateGroupTransportRequest() {
                   <p className="text-sm">Utilisez la liste des employés pour ajouter des passagers</p>
                 </div>
               )}
+
+              {/* Note */}
+              <div className="space-y-1">
+                <Label className="text-sm">Note</Label>
+                <Textarea
+                  placeholder="Ajouter une note..."
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  className="text-sm h-16"
+                />
+              </div>
               
-              {/* Navigation Buttons */}
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={prevStep}>
-                  Retour
-                </Button>
+              {/* Submit Button */}
+              <div className="flex justify-end">
                 <Button
-                  onClick={nextStep}
+                  onClick={handleShowConfirmation}
                   className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
-                  disabled={selectedPassengers.length === 0}
+                  disabled={selectedEmployees.length === 0}
                 >
-                  Continuer
+                  Continuer vers la confirmation
                 </Button>
               </div>
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {currentStep === 2 && (
+      ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Calcul et estimation</CardTitle>
+            <CardTitle>Confirmation de la demande</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {isCalculating ? (
@@ -847,225 +807,217 @@ export function CreateGroupTransportRequest() {
               </div>
             ) : (
               <>
-                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start space-x-3">
-                  <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-blue-800 dark:text-blue-300">Estimation des trajets</p>
-                    <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                      Les prix et durées affichés sont des estimations et peuvent varier en fonction des conditions de circulation.
-                    </p>
-                  </div>
+                {/* Récapitulatif */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">Informations générales</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className="space-y-2">
+                        <div className="flex justify-between">
+                          <dt className="font-medium">Date:</dt>
+                          <dd>{scheduledDate.toLocaleDateString('fr-FR')}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="font-medium">Heure:</dt>
+                          <dd>{scheduledTime}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="font-medium">Type de transport:</dt>
+                          <dd>
+                            <Badge variant="outline">
+                              {transportType === 'private' ? 'Privé' : 'Public'}
+                            </Badge>
+                          </dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="font-medium">Direction:</dt>
+                          <dd>
+                            <Badge variant="outline">
+                              {isHomeToWorkTrip ? 'Domicile → Travail' : 'Travail → Domicile'}
+                            </Badge>
+                          </dd>
+                        </div>
+                        {isRecurring && (
+                          <div>
+                            <dt className="font-medium">Récurrence:</dt>
+                            <dd className="text-sm mt-1">
+                              {recurringDates.length} date(s) programmée(s)
+                            </dd>
+                          </div>
+                        )}
+                        {note && (
+                          <div>
+                            <dt className="font-medium">Note:</dt>
+                            <dd className="text-sm mt-1">{note}</dd>
+                          </div>
+                        )}
+                      </dl>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center justify-between text-base">
+                        <span>Passagers</span>
+                        <Badge>
+                          {selectedPassengers.length}
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="max-h-48 overflow-y-auto">
+                      {selectedPassengers.map((passenger, idx) => (
+                        <div key={passenger.id} className={`py-2 ${idx > 0 ? 'border-t' : ''}`}>
+                          <div className="font-medium">{passenger.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            <div>{passenger.department} - {passenger.subsidiary}</div>
+                            <div>{passenger.phone}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
                 </div>
                 
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Détails des trajets</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>#</TableHead>
-                        <TableHead>Passager</TableHead>
-                        <TableHead>Trajet</TableHead>
-                        <TableHead>Distance</TableHead>
-                        <TableHead>Durée</TableHead>
-                        <TableHead>Prix estimé</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedPassengers.map((passenger, idx) => (
-                        <TableRow key={passenger.id}>
-                          <TableCell>{idx + 1}</TableCell>
-                          <TableCell>
-                            <div className="font-medium">{passenger.name}</div>
-                            <div className="text-xs text-muted-foreground">{passenger.department}</div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm space-y-1">
-                              <div className="flex items-center space-x-1">
-                                <MapPin className="h-3 w-3 text-green-500" />
-                                <span className="truncate max-w-[150px]">{passenger.departureAddress}</span>
+                {/* Tableau détaillé des trajets et estimation */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center space-x-2">
+                      <Route className="h-4 w-4 text-etaxi-yellow" />
+                      <span>Détail des trajets et estimation</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start space-x-3 mb-4">
+                      <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-blue-800 dark:text-blue-300">Estimation des trajets</p>
+                        <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                          Les prix et durées affichés sont des estimations et peuvent varier en fonction des conditions de circulation.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>#</TableHead>
+                          <TableHead>Passager</TableHead>
+                          <TableHead>Départ</TableHead>
+                          <TableHead>Arrivée</TableHead>
+                          <TableHead>Distance</TableHead>
+                          <TableHead>Durée</TableHead>
+                          <TableHead>Prix</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedPassengers.map((passenger, idx) => (
+                          <TableRow key={passenger.id}>
+                            <TableCell>{idx + 1}</TableCell>
+                            <TableCell>
+                              <div className="font-medium">{passenger.name}</div>
+                              <div className="text-xs text-muted-foreground">{passenger.phone}</div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <div className="flex items-center space-x-1">
+                                  <MapPin className="h-3 w-3 text-green-500" />
+                                  <span className="truncate max-w-[150px]">{passenger.departureAddress}</span>
+                                </div>
                               </div>
-                              <div className="flex items-center space-x-1">
-                                <MapPin className="h-3 w-3 text-red-500" />
-                                <span className="truncate max-w-[150px]">{passenger.arrivalAddress}</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <div className="flex items-center space-x-1">
+                                  <MapPin className="h-3 w-3 text-red-500" />
+                                  <span className="truncate max-w-[150px]">{passenger.arrivalAddress}</span>
+                                </div>
                               </div>
-                            </div>
+                            </TableCell>
+                            <TableCell>
+                              {routeEstimations[idx]?.distance || '-'}
+                            </TableCell>
+                            <TableCell>
+                              {routeEstimations[idx]?.duration || '-'}
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-medium text-etaxi-yellow">
+                                {routeEstimations[idx]?.price.toFixed(2)}€
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-right font-bold">
+                            Total
                           </TableCell>
-                          <TableCell>
-                            {routeEstimations[idx]?.distance || '-'}
-                          </TableCell>
-                          <TableCell>
-                            {routeEstimations[idx]?.duration || '-'}
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-medium text-etaxi-yellow">
-                              {routeEstimations[idx]?.price.toFixed(2)}€
-                            </span>
+                          <TableCell className="font-bold text-etaxi-yellow">
+                            {totalPrice.toFixed(2)}€
                           </TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
                 
-                <div className="bg-etaxi-yellow/10 p-4 rounded-lg flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Euro className="h-5 w-5 text-etaxi-yellow" />
-                    <span className="font-medium">Prix total estimé:</span>
-                  </div>
-                  <span className="text-xl font-bold text-etaxi-yellow">{totalPrice.toFixed(2)}€</span>
-                </div>
+                {/* Estimation financière */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center space-x-2">
+                      <Euro className="h-4 w-4 text-etaxi-yellow" />
+                      <span>Estimation financière</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="bg-etaxi-yellow/10 p-4 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <Euro className="h-5 w-5 text-etaxi-yellow" />
+                            <span className="font-medium">Prix total estimé:</span>
+                          </div>
+                          <span className="text-xl font-bold text-etaxi-yellow">{totalPrice.toFixed(2)}€</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-2">
+                          <p>Basé sur {selectedPassengers.length} passager(s) et les adresses fournies</p>
+                        </div>
+                      </div>
+                      
+                      <div className="text-sm text-muted-foreground">
+                        <p>Cette estimation est basée sur les tarifs actuels et peut varier en fonction des conditions de circulation.</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
                 
-                <div className="flex justify-between mt-4">
-                  <Button variant="outline" onClick={prevStep}>
+                {/* Conditions et politique d'annulation */}
+                <Card className="bg-muted/30">
+                  <CardContent className="p-4">
+                    <h4 className="font-medium mb-2">Conditions et politique d'annulation</h4>
+                    <ul className="text-sm space-y-1 list-disc pl-5">
+                      <li>Annulation gratuite jusqu'à 30 minutes avant le départ</li>
+                      <li>Les prix affichés sont des estimations et peuvent varier</li>
+                      <li>Le paiement sera effectué selon les modalités de votre contrat</li>
+                      <li>En confirmant, vous acceptez les conditions générales de service</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+                
+                <div className="flex justify-between">
+                  <Button variant="outline" onClick={() => setShowConfirmation(false)}>
                     Retour
                   </Button>
                   <Button
-                    onClick={nextStep}
+                    onClick={handleSubmit}
                     className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
                   >
-                    Continuer vers la confirmation
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Confirmer la demande
                   </Button>
                 </div>
               </>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {currentStep === 3 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Confirmation de la demande</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Récapitulatif */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Informations générales</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl className="space-y-2">
-                    <div className="flex justify-between">
-                      <dt className="font-medium">Date:</dt>
-                      <dd>{scheduledDate.toLocaleDateString('fr-FR')}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="font-medium">Heure:</dt>
-                      <dd>{scheduledTime}</dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="font-medium">Type de transport:</dt>
-                      <dd>
-                        <Badge variant="outline">
-                          {transportType === 'private' ? 'Privé' : 'Public'}
-                        </Badge>
-                      </dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="font-medium">Direction:</dt>
-                      <dd>
-                        <Badge variant="outline">
-                          {isHomeToWorkTrip ? 'Domicile → Travail' : 'Travail → Domicile'}
-                        </Badge>
-                      </dd>
-                    </div>
-                    {isRecurring && (
-                      <div>
-                        <dt className="font-medium">Récurrence:</dt>
-                        <dd className="text-sm mt-1">
-                          {recurringDates.length} date(s) programmée(s)
-                        </dd>
-                      </div>
-                    )}
-                    {note && (
-                      <div>
-                        <dt className="font-medium">Note:</dt>
-                        <dd className="text-sm mt-1">{note}</dd>
-                      </div>
-                    )}
-                  </dl>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center justify-between text-base">
-                    <span>Passagers</span>
-                    <Badge>
-                      {selectedPassengers.length}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="max-h-48 overflow-y-auto">
-                  {selectedPassengers.map((passenger, idx) => (
-                    <div key={passenger.id} className={`py-2 ${idx > 0 ? 'border-t' : ''}`}>
-                      <div className="font-medium">{passenger.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        <div>{passenger.department} - {passenger.subsidiary}</div>
-                        <div>{passenger.phone}</div>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-            
-            {/* Estimation financière */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center space-x-2">
-                  <Route className="h-4 w-4 text-etaxi-yellow" />
-                  <span>Estimation financière</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="bg-etaxi-yellow/10 p-4 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Euro className="h-5 w-5 text-etaxi-yellow" />
-                        <span className="font-medium">Prix total estimé:</span>
-                      </div>
-                      <span className="text-xl font-bold text-etaxi-yellow">{totalPrice.toFixed(2)}€</span>
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-2">
-                      <p>Basé sur {selectedPassengers.length} passager(s) et les adresses fournies</p>
-                    </div>
-                  </div>
-                  
-                  <div className="text-sm text-muted-foreground">
-                    <p>Cette estimation est basée sur les tarifs actuels et peut varier en fonction des conditions de circulation.</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Conditions et politique d'annulation */}
-            <Card className="bg-muted/30">
-              <CardContent className="p-4">
-                <h4 className="font-medium mb-2">Conditions et politique d'annulation</h4>
-                <ul className="text-sm space-y-1 list-disc pl-5">
-                  <li>Annulation gratuite jusqu'à 30 minutes avant le départ</li>
-                  <li>Les prix affichés sont des estimations et peuvent varier</li>
-                  <li>Le paiement sera effectué selon les modalités de votre contrat</li>
-                  <li>En confirmant, vous acceptez les conditions générales de service</li>
-                </ul>
-              </CardContent>
-            </Card>
-            
-            <div className="flex justify-between">
-              <Button variant="outline" onClick={prevStep}>
-                Retour
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
-              >
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Confirmer la demande
-              </Button>
-            </div>
           </CardContent>
         </Card>
       )}
