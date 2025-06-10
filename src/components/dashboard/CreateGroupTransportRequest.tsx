@@ -32,6 +32,7 @@ import { fr } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AddEmployeeFromCSV } from './AddEmployeeFromCSV';
+import { Steps } from '@/components/shared/Steps';
 
 interface Employee {
   id: string;
