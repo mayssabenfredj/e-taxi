@@ -25,13 +25,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ArrowLeft, Save, User, Clock, Calendar as CalendarIcon, Search, MapPin, Phone, Mail, Upload, Home, Briefcase } from 'lucide-react';
+import { ArrowLeft, Save, User, Clock, Calendar as CalendarIcon, Search, MapPin, Phone, Mail, Upload, Home, Briefcase, Route, Euro, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AddEmployeeFromCSV } from './AddEmployeeFromCSV';
+import { Steps, Step } from '@/components/shared/Steps';
 
 interface Employee {
   id: string;
@@ -55,6 +56,12 @@ interface RecurringDateTime {
   time: string;
 }
 
+interface RouteEstimation {
+  distance: string;
+  duration: string;
+  price: number;
+}
+
 const commonAddresses = [
   'Aéroport Charles de Gaulle, 95700 Roissy',
   'Gare de Lyon, 75012 Paris',
@@ -70,6 +77,7 @@ export function CreateGroupTransportRequest() {
   const location = useLocation();
   const { t } = useLanguage();
   
+  const [currentStep, setCurrentStep] = useState(0);
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [selectedPassengers, setSelectedPassengers] = useState<SelectedPassenger[]>([]);
   const [transportType, setTransportType] = useState<'public' | 'private'>('public');
@@ -83,6 +91,9 @@ export function CreateGroupTransportRequest() {
   const [isHomeToWorkTrip, setIsHomeToWorkTrip] = useState(true);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('all');
+  const [routeEstimations, setRouteEstimations] = useState<RouteEstimation[]>([]);
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [isCalculating, setIsCalculating] = useState(false);
 
   const employees: Employee[] = [
     {
@@ -295,6 +306,32 @@ export function CreateGroupTransportRequest() {
     navigate('/transport/drafts');
   };
 
+  const calculateRoutes = () => {
+    setIsCalculating(true);
+    
+    // Simulation de calcul d'itinéraire
+    setTimeout(() => {
+      const estimations = selectedPassengers.map(passenger => {
+        // Génération de données fictives pour la démonstration
+        const distance = Math.floor(Math.random() * 30) + 5; // 5-35 km
+        const durationMinutes = Math.floor(distance * 2) + 10; // ~2 min/km + 10 min
+        const basePrice = 2.5; // Prix de base
+        const pricePerKm = 1.8; // Prix par km
+        const price = basePrice + (distance * pricePerKm);
+        
+        return {
+          distance: `${distance} km`,
+          duration: `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`,
+          price: parseFloat(price.toFixed(2))
+        };
+      });
+      
+      setRouteEstimations(estimations);
+      setTotalPrice(parseFloat(estimations.reduce((sum, est) => sum + est.price, 0).toFixed(2)));
+      setIsCalculating(false);
+    }, 1500);
+  };
+
   const handleSubmit = () => {
     if (selectedEmployees.length === 0) {
       toast.error('Veuillez sélectionner au moins un employé');
@@ -365,6 +402,40 @@ export function CreateGroupTransportRequest() {
     toast.success(`${newPassengers.length} employé(s) ajouté(s) à la demande`);
   };
 
+  const nextStep = () => {
+    if (currentStep === 0 && (!scheduledDate || !scheduledTime)) {
+      toast.error('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+    
+    if (currentStep === 1 && selectedPassengers.length === 0) {
+      toast.error('Veuillez sélectionner au moins un passager');
+      return;
+    }
+    
+    if (currentStep === 2) {
+      // Calculer les itinéraires avant de passer à l'étape de confirmation
+      calculateRoutes();
+    }
+    
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+  
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const steps = [
+    { name: 'Informations' },
+    { name: 'Passagers' },
+    { name: 'Calcul et estimation' },
+    { name: 'Confirmation' }
+  ];
+
   return (
     <div className="space-y-4 max-w-7xl">
       <div className="flex items-center justify-between">
@@ -391,105 +462,14 @@ export function CreateGroupTransportRequest() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Employee Selection */}
-        {showEmployeeList && (
-          <Card className="lg:col-span-1">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center justify-between">
-                <span>Sélection des employés</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCsvImportOpen(true)}
-                  className="text-xs h-7"
-                >
-                  <Upload className="h-3 w-3 mr-1" />
-                  Importer CSV
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex flex-col space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Rechercher..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="text-sm"
-                  />
-                </div>
-                
-                <Select value={subsidiaryFilter} onValueChange={setSubsidiaryFilter}>
-                  <SelectTrigger className="text-sm">
-                    <SelectValue placeholder="Filtrer par filiale" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Toutes les filiales</SelectItem>
-                    {subsidiaries.map(subsidiary => (
-                      <SelectItem key={subsidiary} value={subsidiary}>
-                        {subsidiary}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <ScrollArea className="h-64">
-                <div className="space-y-2">
-                  {filteredEmployees.map(employee => (
-                    <div
-                      key={employee.id}
-                      className={`p-2 border rounded cursor-pointer text-sm ${
-                        selectedEmployees.includes(employee.id) 
-                          ? 'bg-etaxi-yellow/20 border-etaxi-yellow' 
-                          : 'hover:bg-muted'
-                      }`}
-                      onClick={() => handleEmployeeSelect(employee.id)}
-                    >
-                      <div className="font-medium">{employee.name}</div>
-                      <div className="text-xs text-muted-foreground">{employee.department} - {employee.subsidiary}</div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-              
-              {selectedEmployees.length > 0 && (
-                <div className="text-sm">
-                  <Badge variant="secondary">{selectedEmployees.length} sélectionné(s)</Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="ml-2"
-                    onClick={() => setShowEmployeeList(false)}
-                  >
-                    Masquer la liste
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+      <Steps currentStep={currentStep} steps={steps} />
 
-        {/* Configuration and Passengers */}
-        <Card className={showEmployeeList ? "lg:col-span-2" : "lg:col-span-3"}>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Configuration et passagers</CardTitle>
-              {!showEmployeeList && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowEmployeeList(true)}
-                >
-                  Afficher la liste des employés
-                </Button>
-              )}
-            </div>
+      {currentStep === 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Informations générales</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Transport Configuration */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div className="space-y-1">
                 <Label className="text-sm">Date</Label>
@@ -595,115 +575,6 @@ export function CreateGroupTransportRequest() {
               </div>
             )}
 
-            {/* Passengers Table */}
-            {selectedPassengers.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Passagers ({selectedPassengers.length})</Label>
-                <div className="border rounded">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-xs">Passager</TableHead>
-                        <TableHead className="text-xs">Contact</TableHead>
-                        <TableHead className="text-xs">Départ</TableHead>
-                        <TableHead className="text-xs">Arrivée</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedPassengers.map((passenger) => (
-                        <TableRow key={passenger.id}>
-                          <TableCell className="p-2">
-                            <div className="text-xs">
-                              <div className="font-medium">{passenger.name}</div>
-                              <div className="text-muted-foreground">{passenger.department}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="p-2">
-                            <div className="text-xs space-y-1">
-                              <div className="flex items-center space-x-1">
-                                <Phone className="h-3 w-3" />
-                                <span>{passenger.phone}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Mail className="h-3 w-3" />
-                                <span className="truncate max-w-24">{passenger.email}</span>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="p-2">
-                            <Select
-                              value={passenger.departureAddress}
-                              onValueChange={(value) => updatePassengerAddress(passenger.id, 'departureAddress', value)}
-                            >
-                              <SelectTrigger className="text-xs h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {passenger.isHomeToWork && passenger.homeAddress && (
-                                  <SelectItem value={passenger.homeAddress} className="text-xs">
-                                    <div className="flex items-center">
-                                      <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                      {passenger.homeAddress}
-                                    </div>
-                                  </SelectItem>
-                                )}
-                                {!passenger.isHomeToWork && passenger.workAddress && (
-                                  <SelectItem value={passenger.workAddress} className="text-xs">
-                                    <div className="flex items-center">
-                                      <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                      {passenger.workAddress}
-                                    </div>
-                                  </SelectItem>
-                                )}
-                                {commonAddresses.map((address) => (
-                                  <SelectItem key={address} value={address} className="text-xs">
-                                    {address}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="p-2">
-                            <Select
-                              value={passenger.arrivalAddress}
-                              onValueChange={(value) => updatePassengerAddress(passenger.id, 'arrivalAddress', value)}
-                            >
-                              <SelectTrigger className="text-xs h-8">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {!passenger.isHomeToWork && passenger.homeAddress && (
-                                  <SelectItem value={passenger.homeAddress} className="text-xs">
-                                    <div className="flex items-center">
-                                      <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                      {passenger.homeAddress}
-                                    </div>
-                                  </SelectItem>
-                                )}
-                                {passenger.isHomeToWork && passenger.workAddress && (
-                                  <SelectItem value={passenger.workAddress} className="text-xs">
-                                    <div className="flex items-center">
-                                      <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                      {passenger.workAddress}
-                                    </div>
-                                  </SelectItem>
-                                )}
-                                {commonAddresses.map((address) => (
-                                  <SelectItem key={address} value={address} className="text-xs">
-                                    {address}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
-
             {/* Note */}
             <div className="space-y-1">
               <Label className="text-sm">Note</Label>
@@ -718,16 +589,486 @@ export function CreateGroupTransportRequest() {
             {/* Submit Button */}
             <div className="flex justify-end">
               <Button
+                onClick={nextStep}
+                className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+              >
+                Continuer
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {currentStep === 1 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Employee Selection */}
+          {showEmployeeList && (
+            <Card className="lg:col-span-1">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center justify-between">
+                  <span>Sélection des employés</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCsvImportOpen(true)}
+                    className="text-xs h-7"
+                  >
+                    <Upload className="h-3 w-3 mr-1" />
+                    Importer CSV
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                  
+                  <Select value={subsidiaryFilter} onValueChange={setSubsidiaryFilter}>
+                    <SelectTrigger className="text-sm">
+                      <SelectValue placeholder="Filtrer par filiale" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes les filiales</SelectItem>
+                      {subsidiaries.map(subsidiary => (
+                        <SelectItem key={subsidiary} value={subsidiary}>
+                          {subsidiary}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <ScrollArea className="h-64">
+                  <div className="space-y-2">
+                    {filteredEmployees.map(employee => (
+                      <div
+                        key={employee.id}
+                        className={`p-2 border rounded cursor-pointer text-sm ${
+                          selectedEmployees.includes(employee.id) 
+                            ? 'bg-etaxi-yellow/20 border-etaxi-yellow' 
+                            : 'hover:bg-muted'
+                        }`}
+                        onClick={() => handleEmployeeSelect(employee.id)}
+                      >
+                        <div className="font-medium">{employee.name}</div>
+                        <div className="text-xs text-muted-foreground">{employee.department} - {employee.subsidiary}</div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+                
+                {selectedEmployees.length > 0 && (
+                  <div className="text-sm">
+                    <Badge variant="secondary">{selectedEmployees.length} sélectionné(s)</Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="ml-2"
+                      onClick={() => setShowEmployeeList(false)}
+                    >
+                      Masquer la liste
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Configuration and Passengers */}
+          <Card className={showEmployeeList ? "lg:col-span-2" : "lg:col-span-3"}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Configuration et passagers</CardTitle>
+                {!showEmployeeList && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowEmployeeList(true)}
+                  >
+                    Afficher la liste des employés
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Passengers Table */}
+              {selectedPassengers.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Passagers ({selectedPassengers.length})</Label>
+                  <div className="border rounded">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Passager</TableHead>
+                          <TableHead className="text-xs">Contact</TableHead>
+                          <TableHead className="text-xs">Départ</TableHead>
+                          <TableHead className="text-xs">Arrivée</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedPassengers.map((passenger) => (
+                          <TableRow key={passenger.id}>
+                            <TableCell className="p-2">
+                              <div className="text-xs">
+                                <div className="font-medium">{passenger.name}</div>
+                                <div className="text-muted-foreground">{passenger.department}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="p-2">
+                              <div className="text-xs space-y-1">
+                                <div className="flex items-center space-x-1">
+                                  <Phone className="h-3 w-3" />
+                                  <span>{passenger.phone}</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <Mail className="h-3 w-3" />
+                                  <span className="truncate max-w-24">{passenger.email}</span>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="p-2">
+                              <Select
+                                value={passenger.departureAddress}
+                                onValueChange={(value) => updatePassengerAddress(passenger.id, 'departureAddress', value)}
+                              >
+                                <SelectTrigger className="text-xs h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {passenger.isHomeToWork && passenger.homeAddress && (
+                                    <SelectItem value={passenger.homeAddress} className="text-xs">
+                                      <div className="flex items-center">
+                                        <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
+                                        {passenger.homeAddress}
+                                      </div>
+                                    </SelectItem>
+                                  )}
+                                  {!passenger.isHomeToWork && passenger.workAddress && (
+                                    <SelectItem value={passenger.workAddress} className="text-xs">
+                                      <div className="flex items-center">
+                                        <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
+                                        {passenger.workAddress}
+                                      </div>
+                                    </SelectItem>
+                                  )}
+                                  {commonAddresses.map((address) => (
+                                    <SelectItem key={address} value={address} className="text-xs">
+                                      {address}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="p-2">
+                              <Select
+                                value={passenger.arrivalAddress}
+                                onValueChange={(value) => updatePassengerAddress(passenger.id, 'arrivalAddress', value)}
+                              >
+                                <SelectTrigger className="text-xs h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {!passenger.isHomeToWork && passenger.homeAddress && (
+                                    <SelectItem value={passenger.homeAddress} className="text-xs">
+                                      <div className="flex items-center">
+                                        <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
+                                        {passenger.homeAddress}
+                                      </div>
+                                    </SelectItem>
+                                  )}
+                                  {passenger.isHomeToWork && passenger.workAddress && (
+                                    <SelectItem value={passenger.workAddress} className="text-xs">
+                                      <div className="flex items-center">
+                                        <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
+                                        {passenger.workAddress}
+                                      </div>
+                                    </SelectItem>
+                                  )}
+                                  {commonAddresses.map((address) => (
+                                    <SelectItem key={address} value={address} className="text-xs">
+                                      {address}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {selectedPassengers.length === 0 && (
+                <div className="text-center p-8 text-muted-foreground">
+                  <User className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p>Aucun passager sélectionné</p>
+                  <p className="text-sm">Utilisez la liste des employés pour ajouter des passagers</p>
+                </div>
+              )}
+              
+              {/* Navigation Buttons */}
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={prevStep}>
+                  Retour
+                </Button>
+                <Button
+                  onClick={nextStep}
+                  className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+                  disabled={selectedPassengers.length === 0}
+                >
+                  Continuer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {currentStep === 2 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Calcul et estimation</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {isCalculating ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-etaxi-yellow mb-4"></div>
+                <p className="text-lg font-medium">Calcul des itinéraires en cours...</p>
+                <p className="text-sm text-muted-foreground">Veuillez patienter pendant que nous estimons les trajets</p>
+              </div>
+            ) : (
+              <>
+                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start space-x-3">
+                  <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-blue-800 dark:text-blue-300">Estimation des trajets</p>
+                    <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                      Les prix et durées affichés sont des estimations et peuvent varier en fonction des conditions de circulation.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Détails des trajets</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>#</TableHead>
+                        <TableHead>Passager</TableHead>
+                        <TableHead>Trajet</TableHead>
+                        <TableHead>Distance</TableHead>
+                        <TableHead>Durée</TableHead>
+                        <TableHead>Prix estimé</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedPassengers.map((passenger, idx) => (
+                        <TableRow key={passenger.id}>
+                          <TableCell>{idx + 1}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{passenger.name}</div>
+                            <div className="text-xs text-muted-foreground">{passenger.department}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm space-y-1">
+                              <div className="flex items-center space-x-1">
+                                <MapPin className="h-3 w-3 text-green-500" />
+                                <span className="truncate max-w-[150px]">{passenger.departureAddress}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <MapPin className="h-3 w-3 text-red-500" />
+                                <span className="truncate max-w-[150px]">{passenger.arrivalAddress}</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {routeEstimations[idx]?.distance || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {routeEstimations[idx]?.duration || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-etaxi-yellow">
+                              {routeEstimations[idx]?.price.toFixed(2)}€
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                
+                <div className="bg-etaxi-yellow/10 p-4 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Euro className="h-5 w-5 text-etaxi-yellow" />
+                    <span className="font-medium">Prix total estimé:</span>
+                  </div>
+                  <span className="text-xl font-bold text-etaxi-yellow">{totalPrice.toFixed(2)}€</span>
+                </div>
+                
+                <div className="flex justify-between mt-4">
+                  <Button variant="outline" onClick={prevStep}>
+                    Retour
+                  </Button>
+                  <Button
+                    onClick={nextStep}
+                    className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+                  >
+                    Continuer vers la confirmation
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {currentStep === 3 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Confirmation de la demande</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Récapitulatif */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Informations générales</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl className="space-y-2">
+                    <div className="flex justify-between">
+                      <dt className="font-medium">Date:</dt>
+                      <dd>{scheduledDate.toLocaleDateString('fr-FR')}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="font-medium">Heure:</dt>
+                      <dd>{scheduledTime}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="font-medium">Type de transport:</dt>
+                      <dd>
+                        <Badge variant="outline">
+                          {transportType === 'private' ? 'Privé' : 'Public'}
+                        </Badge>
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="font-medium">Direction:</dt>
+                      <dd>
+                        <Badge variant="outline">
+                          {isHomeToWorkTrip ? 'Domicile → Travail' : 'Travail → Domicile'}
+                        </Badge>
+                      </dd>
+                    </div>
+                    {isRecurring && (
+                      <div>
+                        <dt className="font-medium">Récurrence:</dt>
+                        <dd className="text-sm mt-1">
+                          {recurringDates.length} date(s) programmée(s)
+                        </dd>
+                      </div>
+                    )}
+                    {note && (
+                      <div>
+                        <dt className="font-medium">Note:</dt>
+                        <dd className="text-sm mt-1">{note}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center justify-between text-base">
+                    <span>Passagers</span>
+                    <Badge>
+                      {selectedPassengers.length}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="max-h-48 overflow-y-auto">
+                  {selectedPassengers.map((passenger, idx) => (
+                    <div key={passenger.id} className={`py-2 ${idx > 0 ? 'border-t' : ''}`}>
+                      <div className="font-medium">{passenger.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        <div>{passenger.department} - {passenger.subsidiary}</div>
+                        <div>{passenger.phone}</div>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Estimation financière */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center space-x-2">
+                  <Route className="h-4 w-4 text-etaxi-yellow" />
+                  <span>Estimation financière</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="bg-etaxi-yellow/10 p-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Euro className="h-5 w-5 text-etaxi-yellow" />
+                        <span className="font-medium">Prix total estimé:</span>
+                      </div>
+                      <span className="text-xl font-bold text-etaxi-yellow">{totalPrice.toFixed(2)}€</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-2">
+                      <p>Basé sur {selectedPassengers.length} passager(s) et les adresses fournies</p>
+                    </div>
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground">
+                    <p>Cette estimation est basée sur les tarifs actuels et peut varier en fonction des conditions de circulation.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Conditions et politique d'annulation */}
+            <Card className="bg-muted/30">
+              <CardContent className="p-4">
+                <h4 className="font-medium mb-2">Conditions et politique d'annulation</h4>
+                <ul className="text-sm space-y-1 list-disc pl-5">
+                  <li>Annulation gratuite jusqu'à 30 minutes avant le départ</li>
+                  <li>Les prix affichés sont des estimations et peuvent varier</li>
+                  <li>Le paiement sera effectué selon les modalités de votre contrat</li>
+                  <li>En confirmant, vous acceptez les conditions générales de service</li>
+                </ul>
+              </CardContent>
+            </Card>
+            
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={prevStep}>
+                Retour
+              </Button>
+              <Button
                 onClick={handleSubmit}
                 className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
-                disabled={selectedEmployees.length === 0}
               >
+                <CheckCircle className="mr-2 h-4 w-4" />
                 Confirmer la demande
               </Button>
             </div>
           </CardContent>
         </Card>
-      </div>
+      )}
 
       <AddEmployeeFromCSV
         open={csvImportOpen}

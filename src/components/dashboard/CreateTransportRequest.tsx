@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +23,7 @@ import {
 } from '@/components/ui/table';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { AddressInput } from '../shared/AddressInput';
-import { Calendar, ArrowLeft, Plus, Users, Clock, Upload, Trash2, CheckCircle } from 'lucide-react';
+import { Calendar, ArrowLeft, Plus, Users, Clock, Upload, Trash2, CheckCircle, MapPin, Route, Euro, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Steps, Step } from '@/components/shared/Steps';
 
@@ -46,6 +45,12 @@ interface Passenger {
   email?: string;
   departureAddress: Address | null;
   arrivalAddress: Address | null;
+}
+
+interface RouteEstimation {
+  distance: string;
+  duration: string;
+  price: number;
 }
 
 export function CreateTransportRequest() {
@@ -70,6 +75,10 @@ export function CreateTransportRequest() {
     departureAddress: null,
     arrivalAddress: null,
   });
+  
+  const [routeEstimations, setRouteEstimations] = useState<RouteEstimation[]>([]);
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [isCalculating, setIsCalculating] = useState(false);
   
   const savedAddresses = [
     {
@@ -208,6 +217,32 @@ export function CreateTransportRequest() {
     }
   };
   
+  const calculateRoutes = () => {
+    setIsCalculating(true);
+    
+    // Simulation de calcul d'itinéraire
+    setTimeout(() => {
+      const estimations = requestData.passengers.map(passenger => {
+        // Génération de données fictives pour la démonstration
+        const distance = Math.floor(Math.random() * 30) + 5; // 5-35 km
+        const durationMinutes = Math.floor(distance * 2) + 10; // ~2 min/km + 10 min
+        const basePrice = 2.5; // Prix de base
+        const pricePerKm = 1.8; // Prix par km
+        const price = basePrice + (distance * pricePerKm);
+        
+        return {
+          distance: `${distance} km`,
+          duration: `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`,
+          price: parseFloat(price.toFixed(2))
+        };
+      });
+      
+      setRouteEstimations(estimations);
+      setTotalPrice(parseFloat(estimations.reduce((sum, est) => sum + est.price, 0).toFixed(2)));
+      setIsCalculating(false);
+    }, 1500);
+  };
+  
   const handleCreateRequest = () => {
     if (!requestData.date || !requestData.time || requestData.passengers.length === 0) {
       toast.error('Veuillez remplir tous les champs obligatoires et ajouter au moins un passager');
@@ -222,7 +257,8 @@ export function CreateTransportRequest() {
   const steps = [
     { name: 'Informations générales' },
     { name: 'Ajout des passagers' },
-    { name: 'Révision et confirmation' }
+    { name: 'Calcul et estimation' },
+    { name: 'Confirmation' }
   ];
   
   const nextStep = () => {
@@ -230,6 +266,17 @@ export function CreateTransportRequest() {
       toast.error('Veuillez remplir tous les champs obligatoires');
       return;
     }
+    
+    if (currentStep === 1 && requestData.passengers.length === 0) {
+      toast.error('Veuillez ajouter au moins un passager');
+      return;
+    }
+    
+    if (currentStep === 2) {
+      // Calculer les itinéraires avant de passer à l'étape de confirmation
+      calculateRoutes();
+    }
+    
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
@@ -559,7 +606,107 @@ export function CreateTransportRequest() {
       {currentStep === 2 && (
         <Card>
           <CardHeader>
-            <CardTitle>Révision et confirmation</CardTitle>
+            <CardTitle>Calcul et estimation</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {isCalculating ? (
+              <div className="flex flex-col items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-etaxi-yellow mb-4"></div>
+                <p className="text-lg font-medium">Calcul des itinéraires en cours...</p>
+                <p className="text-sm text-muted-foreground">Veuillez patienter pendant que nous estimons les trajets</p>
+              </div>
+            ) : (
+              <>
+                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start space-x-3">
+                  <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-blue-800 dark:text-blue-300">Estimation des trajets</p>
+                    <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                      Les prix et durées affichés sont des estimations et peuvent varier en fonction des conditions de circulation.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Détails des trajets</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Passager</TableHead>
+                        <TableHead>Trajet</TableHead>
+                        <TableHead>Distance</TableHead>
+                        <TableHead>Durée</TableHead>
+                        <TableHead>Prix estimé</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {requestData.passengers.map((passenger, index) => (
+                        <TableRow key={passenger.id}>
+                          <TableCell className="font-medium">
+                            {passenger.name}
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm space-y-1">
+                              <div className="flex items-center space-x-1">
+                                <MapPin className="h-3 w-3 text-green-500" />
+                                <span className="truncate max-w-[150px]">
+                                  {passenger.departureAddress?.street}, {passenger.departureAddress?.city}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <MapPin className="h-3 w-3 text-red-500" />
+                                <span className="truncate max-w-[150px]">
+                                  {passenger.arrivalAddress?.street}, {passenger.arrivalAddress?.city}
+                                </span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {routeEstimations[index]?.distance || '-'}
+                          </TableCell>
+                          <TableCell>
+                            {routeEstimations[index]?.duration || '-'}
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-etaxi-yellow">
+                              {routeEstimations[index]?.price.toFixed(2)}€
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                
+                <div className="bg-etaxi-yellow/10 p-4 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Euro className="h-5 w-5 text-etaxi-yellow" />
+                    <span className="font-medium">Prix total estimé:</span>
+                  </div>
+                  <span className="text-xl font-bold text-etaxi-yellow">{totalPrice.toFixed(2)}€</span>
+                </div>
+                
+                <div className="flex justify-between mt-4">
+                  <Button variant="outline" onClick={prevStep}>
+                    Retour
+                  </Button>
+                  <Button
+                    onClick={nextStep}
+                    className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+                  >
+                    Continuer vers la confirmation
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+      
+      {currentStep === 3 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Confirmation de la demande</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Récapitulatif */}
@@ -619,10 +766,13 @@ export function CreateTransportRequest() {
               </Card>
             </div>
             
-            {/* Tableau détaillé des passagers */}
+            {/* Tableau détaillé des passagers et estimation */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Détail des trajets</CardTitle>
+                <CardTitle className="text-base flex items-center space-x-2">
+                  <Route className="h-4 w-4 text-etaxi-yellow" />
+                  <span>Détail des trajets et estimation</span>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -632,6 +782,9 @@ export function CreateTransportRequest() {
                       <TableHead>Passager</TableHead>
                       <TableHead>Départ</TableHead>
                       <TableHead>Arrivée</TableHead>
+                      <TableHead>Distance</TableHead>
+                      <TableHead>Durée</TableHead>
+                      <TableHead>Prix</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -668,10 +821,42 @@ export function CreateTransportRequest() {
                             </div>
                           )}
                         </TableCell>
+                        <TableCell>
+                          {routeEstimations[idx]?.distance || '-'}
+                        </TableCell>
+                        <TableCell>
+                          {routeEstimations[idx]?.duration || '-'}
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium text-etaxi-yellow">
+                            {routeEstimations[idx]?.price.toFixed(2)}€
+                          </span>
+                        </TableCell>
                       </TableRow>
                     ))}
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-right font-bold">
+                        Total
+                      </TableCell>
+                      <TableCell className="font-bold text-etaxi-yellow">
+                        {totalPrice.toFixed(2)}€
+                      </TableCell>
+                    </TableRow>
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+            
+            {/* Conditions et politique d'annulation */}
+            <Card className="bg-muted/30">
+              <CardContent className="p-4">
+                <h4 className="font-medium mb-2">Conditions et politique d'annulation</h4>
+                <ul className="text-sm space-y-1 list-disc pl-5">
+                  <li>Annulation gratuite jusqu'à 30 minutes avant le départ</li>
+                  <li>Les prix affichés sont des estimations et peuvent varier</li>
+                  <li>Le paiement sera effectué selon les modalités de votre contrat</li>
+                  <li>En confirmant, vous acceptez les conditions générales de service</li>
+                </ul>
               </CardContent>
             </Card>
             
@@ -684,7 +869,7 @@ export function CreateTransportRequest() {
                 className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
               >
                 <CheckCircle className="mr-2 h-4 w-4" />
-                Créer la demande
+                Confirmer la demande
               </Button>
             </div>
           </CardContent>
