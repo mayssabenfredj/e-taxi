@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -14,8 +14,8 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetTitle,
   SheetTrigger,
+  SheetTitle,
 } from '@/components/ui/sheet';
 import {
   Collapsible,
@@ -61,6 +61,15 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isTransportOpen, setIsTransportOpen] = useState(false);
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
+
+  // Initialize transport submenu based on current path
+  useEffect(() => {
+    if (location.pathname.startsWith('/transport')) {
+      setIsTransportOpen(true);
+      setOpenSubmenus(prev => ({ ...prev, transport: true }));
+    }
+  }, [location.pathname]);
 
   const navigation = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, path: '/dashboard' },
@@ -98,6 +107,13 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
     onPageChange(id);
   };
 
+  const toggleSubmenu = (id: string) => {
+    setOpenSubmenus(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
   const Sidebar = ({ isMobile = false }) => (
     <div className={cn("flex flex-col h-full", isMobile ? "p-4" : "")}>
       <div className={cn("flex items-center mb-8 px-4", isCollapsed && !isMobile ? "justify-center" : "space-x-2")}>
@@ -115,8 +131,11 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
           <div key={item.id}>
             {item.hasSubmenu ? (
               <Collapsible 
-                open={isTransportOpen} 
-                onOpenChange={setIsTransportOpen}
+                open={isMobile ? openSubmenus[item.id] : isTransportOpen} 
+                onOpenChange={isMobile ? 
+                  () => toggleSubmenu(item.id) : 
+                  setIsTransportOpen
+                }
                 className="w-full"
               >
                 <CollapsibleTrigger asChild>
@@ -136,7 +155,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
                     {(!isCollapsed || isMobile) && (
                       <ChevronDown className={cn(
                         "h-4 w-4 transition-transform",
-                        isTransportOpen && "rotate-180"
+                        (isMobile ? openSubmenus[item.id] : isTransportOpen) && "rotate-180"
                       )} />
                     )}
                   </Button>
