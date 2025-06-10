@@ -50,6 +50,19 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
 
   useEffect(() => {
     loadGoogleMapsAndInitialize();
+
+    // Cleanup function to properly dispose of Google Maps resources
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.setMap(null);
+        markerRef.current = null;
+      }
+      if (mapInstanceRef.current) {
+        // Clear all listeners
+        google.maps.event?.clearInstanceListeners(mapInstanceRef.current);
+        mapInstanceRef.current = null;
+      }
+    };
   }, []);
 
   const loadGoogleMapsAndInitialize = async () => {
