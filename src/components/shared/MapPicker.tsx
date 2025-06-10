@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MapPin, Search, Target, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,14 +12,12 @@ interface Coordinates {
   lng: number;
 }
 
-interface Address {
-  address: string;
-  coordinates: Coordinates;
-  placeId?: string;
-}
-
 interface MapPickerProps {
-  onLocationSelect: (location: Address) => void;
+  onLocationSelect: (location: {
+    address: string;
+    coordinates: Coordinates;
+    placeId?: string;
+  }) => void;
   initialLocation?: Coordinates;
   className?: string;
 }
@@ -33,19 +30,9 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
   const [manualLat, setManualLat] = useState(coordinates.lat.toString());
   const [manualLng, setManualLng] = useState(coordinates.lng.toString());
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Manual address form
-  const [manualAddress, setManualAddress] = useState({
-    street: '',
-    buildingNumber: '',
-    complement: '',
-    postalCode: '',
-    city: '',
-    region: '',
-    country: 'France'
-  });
+  const mapRef = useRef<HTMLDivElement>(null);
 
-  // Map simulation
+  // Simulation d'une carte interactive
   const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -61,7 +48,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
     setManualLng(newLng.toFixed(6));
     
     // Simulation d'une adresse
-    const simulatedAddress = generateSimulatedAddress(newLat, newLng);
+    const simulatedAddress = `${Math.floor(Math.random() * 999)} Rue de la Paix, Paris, France`;
     setAddress(simulatedAddress);
     
     onLocationSelect({
@@ -71,67 +58,27 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
     });
   };
 
-  const generateSimulatedAddress = (lat: number, lng: number) => {
-    // Générer une adresse simulée basée sur les coordonnées
-    const streetNumbers = ['123', '45', '67', '89', '12', '34'];
-    const streetNames = ['Rue de la Paix', 'Avenue des Champs-Élysées', 'Boulevard Saint-Germain', 
-                        'Rue de Rivoli', 'Avenue Montaigne', 'Rue du Faubourg Saint-Honoré'];
-    const cities = ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Lille', 'Strasbourg'];
-    const postalCodes = ['75001', '75008', '75016', '69001', '13001', '33000'];
-    
-    // Utiliser les coordonnées pour sélectionner des éléments de manière déterministe
-    const streetIndex = Math.abs(Math.floor(lng * 10)) % streetNames.length;
-    const numberIndex = Math.abs(Math.floor(lat * 10)) % streetNumbers.length;
-    const cityIndex = Math.abs(Math.floor((lat + lng) * 10)) % cities.length;
-    
-    return `${streetNumbers[numberIndex]} ${streetNames[streetIndex]}, ${postalCodes[cityIndex]} ${cities[cityIndex]}, France`;
-  };
-
   const handleSearch = () => {
     if (!searchQuery.trim()) return;
     
     // Simulation de recherche d'adresse
-    const simulatedLat = 48.8566 + (Math.random() - 0.5) * 0.1;
-    const simulatedLng = 2.3522 + (Math.random() - 0.5) * 0.1;
+    const simulatedCoords = {
+      lat: 48.8566 + (Math.random() - 0.5) * 0.1,
+      lng: 2.3522 + (Math.random() - 0.5) * 0.1
+    };
     
-    setCoordinates({ lat: simulatedLat, lng: simulatedLng });
-    setManualLat(simulatedLat.toFixed(6));
-    setManualLng(simulatedLng.toFixed(6));
+    setCoordinates(simulatedCoords);
+    setManualLat(simulatedCoords.lat.toFixed(6));
+    setManualLng(simulatedCoords.lng.toFixed(6));
     setAddress(searchQuery);
     
     onLocationSelect({
       address: searchQuery,
-      coordinates: { lat: simulatedLat, lng: simulatedLng },
+      coordinates: simulatedCoords,
       placeId: `search_${Date.now()}`
     });
     
     toast.success('Adresse trouvée!');
-  };
-
-  const handleManualAddressSubmit = () => {
-    if (!manualAddress.street || !manualAddress.city || !manualAddress.postalCode) {
-      toast.error('Veuillez remplir au moins la rue, la ville et le code postal');
-      return;
-    }
-    
-    // Simulation de coordonnées pour l'adresse manuelle
-    const simulatedLat = 48.8566 + (Math.random() - 0.5) * 0.1;
-    const simulatedLng = 2.3522 + (Math.random() - 0.5) * 0.1;
-    
-    const formattedAddress = `${manualAddress.buildingNumber} ${manualAddress.street}, ${manualAddress.postalCode} ${manualAddress.city}, ${manualAddress.country}`;
-    
-    setCoordinates({ lat: simulatedLat, lng: simulatedLng });
-    setManualLat(simulatedLat.toFixed(6));
-    setManualLng(simulatedLng.toFixed(6));
-    setAddress(formattedAddress);
-    
-    onLocationSelect({
-      address: formattedAddress,
-      coordinates: { lat: simulatedLat, lng: simulatedLng },
-      placeId: `manual_${Date.now()}`
-    });
-    
-    toast.success('Adresse manuelle ajoutée');
   };
 
   const handleManualCoordinates = () => {
@@ -143,21 +90,15 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
       return;
     }
     
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      toast.error('Coordonnées hors limites');
-      return;
-    }
-    
     const newCoords = { lat, lng };
     setCoordinates(newCoords);
     
-    const simulatedAddress = generateSimulatedAddress(lat, lng);
+    const simulatedAddress = `Coordonnées: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     setAddress(simulatedAddress);
     
     onLocationSelect({
       address: simulatedAddress,
-      coordinates: newCoords,
-      placeId: `coords_${Date.now()}`
+      coordinates: newCoords
     });
     
     toast.success('Coordonnées mises à jour!');
@@ -171,20 +112,21 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
     
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
+        const newCoords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
         
-        setCoordinates({ lat, lng });
-        setManualLat(lat.toFixed(6));
-        setManualLng(lng.toFixed(6));
+        setCoordinates(newCoords);
+        setManualLat(newCoords.lat.toFixed(6));
+        setManualLng(newCoords.lng.toFixed(6));
         
-        const simulatedAddress = generateSimulatedAddress(lat, lng);
+        const simulatedAddress = 'Ma position actuelle';
         setAddress(simulatedAddress);
         
         onLocationSelect({
           address: simulatedAddress,
-          coordinates: { lat, lng },
-          placeId: `geolocation_${Date.now()}`
+          coordinates: newCoords
         });
         
         toast.success('Position actuelle obtenue!');
@@ -196,17 +138,17 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
   };
 
   return (
-    <div className={`space-y-4 mx-auto max-w-3xl ${className}`}>
-      <Tabs defaultValue="map" className="w-full">
+    <div className={`space-y-4 ${className}`}>
+      <Tabs defaultValue="carte" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="map">Carte</TabsTrigger>
-          <TabsTrigger value="address">Adresse</TabsTrigger>
+          <TabsTrigger value="carte">Carte</TabsTrigger>
+          <TabsTrigger value="adresse">Adresse</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="map" className="space-y-4">
-          <ScrollArea className="max-h-[80vh]">
-            <div className="space-y-4 p-1">
-              {/* Recherche */}
+        <TabsContent value="carte" className="space-y-4">
+          <ScrollArea className="max-h-[70vh]">
+            <div className="space-y-4 p-2">
+              {/* Recherche d'adresse */}
               <div className="space-y-2">
                 <Label>Rechercher une adresse</Label>
                 <div className="flex space-x-2">
@@ -221,139 +163,116 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
                   </Button>
                 </div>
               </div>
-              
-              {/* Carte */}
-              <div 
-                onClick={handleMapClick}
-                className="w-full h-64 md:h-80 bg-gradient-to-br from-green-100 to-blue-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-crosshair relative overflow-hidden"
-              >
-                {/* Simulation d'une carte */}
-                <div className="absolute inset-0 opacity-30">
-                  <div className="absolute top-4 left-4 w-8 h-8 bg-blue-500 rounded-full"></div>
-                  <div className="absolute top-12 right-8 w-6 h-6 bg-green-500 rounded-full"></div>
-                  <div className="absolute bottom-8 left-8 w-4 h-4 bg-red-500 rounded-full"></div>
-                  <div className="absolute bottom-4 right-4 w-10 h-10 bg-yellow-500 rounded-full"></div>
-                </div>
-                
-                {/* Marqueur de position */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <MapPin className="h-8 w-8 text-red-500 drop-shadow-lg" />
-                </div>
-                
-                <div className="text-center text-gray-600">
-                  <MapPin className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p>Carte interactive</p>
-                  <p className="text-sm">Cliquez pour sélectionner une position</p>
-                </div>
-              </div>
-              
-              {/* Coordonnées */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Latitude</Label>
-                  <Input
-                    type="number"
-                    step="any"
-                    value={manualLat}
-                    onChange={(e) => setManualLat(e.target.value)}
-                    placeholder="48.8566"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Longitude</Label>
-                  <Input
-                    type="number"
-                    step="any"
-                    value={manualLng}
-                    onChange={(e) => setManualLng(e.target.value)}
-                    placeholder="2.3522"
-                  />
+
+              {/* Carte simulée */}
+              <div className="space-y-2">
+                <Label>Cliquez sur la carte pour sélectionner</Label>
+                <div
+                  ref={mapRef}
+                  onClick={handleMapClick}
+                  className="w-full h-48 md:h-64 bg-gradient-to-br from-green-100 to-blue-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-crosshair relative overflow-hidden"
+                >
+                  {/* Simulation d'une carte */}
+                  <div className="absolute inset-0 opacity-30">
+                    <div className="absolute top-4 left-4 w-8 h-8 bg-blue-500 rounded-full"></div>
+                    <div className="absolute top-12 right-8 w-6 h-6 bg-green-500 rounded-full"></div>
+                    <div className="absolute bottom-8 left-8 w-4 h-4 bg-red-500 rounded-full"></div>
+                    <div className="absolute bottom-4 right-4 w-10 h-10 bg-yellow-500 rounded-full"></div>
+                  </div>
+                  
+                  {/* Marqueur de position */}
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <MapPin className="h-8 w-8 text-red-500 drop-shadow-lg" />
+                  </div>
+                  
+                  <div className="text-center text-gray-600">
+                    <MapPin className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                    <p>Carte interactive</p>
+                    <p className="text-sm">Cliquez pour sélectionner une position</p>
+                  </div>
                 </div>
               </div>
-              
+
+              {/* Coordonnées manuelles */}
+              <div className="space-y-2">
+                <Label>Coordonnées</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Latitude</Label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={manualLat}
+                      onChange={(e) => setManualLat(e.target.value)}
+                      placeholder="48.8566"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Longitude</Label>
+                    <Input
+                      type="number"
+                      step="any"
+                      value={manualLng}
+                      onChange={(e) => setManualLng(e.target.value)}
+                      placeholder="2.3522"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button onClick={getCurrentLocation} variant="outline" className="flex-1">
                   <Target className="mr-2 h-4 w-4" />
-                  Ma position actuelle
+                  Ma position
                 </Button>
-                
                 <Button onClick={handleManualCoordinates} variant="outline" className="flex-1">
                   <Navigation className="mr-2 h-4 w-4" />
-                  Utiliser ces coordonnées
+                  Utiliser coordonnées
                 </Button>
               </div>
             </div>
           </ScrollArea>
         </TabsContent>
         
-        <TabsContent value="address" className="space-y-4">
-          <ScrollArea className="max-h-[80vh]">
-            <div className="space-y-4 p-1">
+        <TabsContent value="adresse" className="space-y-4">
+          <ScrollArea className="max-h-[70vh]">
+            <div className="space-y-4 p-2">
               {/* Formulaire d'adresse manuelle */}
               <div className="space-y-2">
                 <Label>Adresse complète</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Input
                     placeholder="N° bâtiment"
-                    value={manualAddress.buildingNumber}
-                    onChange={(e) => setManualAddress({...manualAddress, buildingNumber: e.target.value})}
+                    value=""
                     className="text-sm"
                   />
                   <Input
                     placeholder="Rue *"
-                    value={manualAddress.street}
-                    onChange={(e) => setManualAddress({...manualAddress, street: e.target.value})}
+                    value=""
                     className="text-sm"
                   />
                 </div>
                 
                 <Input
                   placeholder="Complément d'adresse"
-                  value={manualAddress.complement}
-                  onChange={(e) => setManualAddress({...manualAddress, complement: e.target.value})}
+                  value=""
                   className="text-sm"
                 />
                 
                 <div className="grid grid-cols-2 gap-2">
                   <Input
                     placeholder="Code postal *"
-                    value={manualAddress.postalCode}
-                    onChange={(e) => setManualAddress({...manualAddress, postalCode: e.target.value})}
+                    value=""
                     className="text-sm"
                   />
                   <Input
                     placeholder="Ville *"
-                    value={manualAddress.city}
-                    onChange={(e) => setManualAddress({...manualAddress, city: e.target.value})}
+                    value=""
                     className="text-sm"
                   />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    placeholder="Région"
-                    value={manualAddress.region}
-                    onChange={(e) => setManualAddress({...manualAddress, region: e.target.value})}
-                    className="text-sm"
-                  />
-                  <Select 
-                    value={manualAddress.country} 
-                    onValueChange={(value) => setManualAddress({...manualAddress, country: value})}
-                  >
-                    <SelectTrigger className="text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="France">France</SelectItem>
-                      <SelectItem value="Belgique">Belgique</SelectItem>
-                      <SelectItem value="Suisse">Suisse</SelectItem>
-                      <SelectItem value="Canada">Canada</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
                 
                 <Button 
-                  onClick={handleManualAddressSubmit}
                   className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-sm mt-2"
                   size="sm"
                 >
