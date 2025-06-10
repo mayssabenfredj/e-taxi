@@ -29,7 +29,7 @@ import { SavedAddressSelector } from './address/SavedAddressSelector';
 import { AddressSearchInput } from './address/AddressSearchInput';
 import { ManualAddressForm } from './address/ManualAddressForm';
 import { CoordinatesInput } from './address/CoordinatesInput';
-import { MapPicker } from './address/MapPicker';
+import { MapPicker } from '../shared/MapPicker';
 
 interface Address {
   id: string;
@@ -79,7 +79,22 @@ export function AddressInput({
     toast.success('Adresse sélectionnée');
   };
 
-  const handleMapSelect = (address: Address) => {
+  const handleMapSelect = (mapData: { address: string; coordinates: { lat: number; lng: number }; placeId?: string }) => {
+    const address: Address = {
+      id: `map-${Date.now()}`,
+      label: mapData.address,
+      street: mapData.address.split(',')[0] || '',
+      postalCode: '',
+      city: mapData.address.split(',')[1]?.trim() || '',
+      country: 'France',
+      latitude: mapData.coordinates.lat,
+      longitude: mapData.coordinates.lng,
+      placeId: mapData.placeId,
+      formattedAddress: mapData.address,
+      isVerified: false,
+      manuallyEntered: true
+    };
+    
     onChange(address);
     setMapOpen(false);
     toast.success('Adresse sélectionnée depuis la carte');
