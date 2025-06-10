@@ -292,24 +292,30 @@ export function GroupTransportPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header - Responsive */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-2">
-          <Users className="h-6 w-6 text-etaxi-yellow" />
-          <h2 className="text-2xl font-bold">Demandes de transport de groupe</h2>
+          <Users className="h-6 w-6 text-etaxi-yellow flex-shrink-0" />
+          <h2 className="text-xl sm:text-2xl font-bold truncate">
+            <span className="hidden sm:inline">Demandes de transport de groupe</span>
+            <span className="sm:hidden">Transport de groupe</span>
+          </h2>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
           <Button 
             variant="outline"
             onClick={() => navigate('/transport/drafts')}
+            className="w-full sm:w-auto"
           >
             Brouillons
           </Button>
           <Button 
             onClick={() => navigate('/transport/create-group')}
-            className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+            className="bg-etaxi-yellow hover:bg-yellow-500 text-black w-full sm:w-auto"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Nouvelle demande de groupe
+            <span className="hidden sm:inline">Nouvelle demande de groupe</span>
+            <span className="sm:hidden">Nouvelle demande</span>
           </Button>
         </div>
       </div>
@@ -325,7 +331,7 @@ export function GroupTransportPage() {
 
       {/* Dialog pour dupliquer une demande */}
       <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto my-4 mx-4">
           <DialogHeader>
             <DialogTitle>Dupliquer la demande de groupe - Sélection multiple</DialogTitle>
           </DialogHeader>
@@ -347,9 +353,9 @@ export function GroupTransportPage() {
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {duplicateSchedules.map((schedule, index) => (
                   <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg">
-                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">
+                    <CalendarIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">
                         {schedule.date.toLocaleDateString('fr-FR', { 
                           weekday: 'long', 
                           year: 'numeric', 
@@ -362,13 +368,13 @@ export function GroupTransportPage() {
                       type="time"
                       value={schedule.time}
                       onChange={(e) => updateScheduleTime(schedule.date, e.target.value)}
-                      className="w-32"
+                      className="w-32 flex-shrink-0"
                     />
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => removeSchedule(schedule.date)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 flex-shrink-0"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -383,13 +389,13 @@ export function GroupTransportPage() {
             </div>
           </div>
           
-          <div className="flex justify-end space-x-2 mt-6">
-            <Button variant="outline" onClick={() => setDuplicateDialogOpen(false)}>
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setDuplicateDialogOpen(false)} className="w-full sm:w-auto">
               Annuler
             </Button>
             <Button 
               onClick={confirmDuplicate}
-              className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+              className="bg-etaxi-yellow hover:bg-yellow-500 text-black w-full sm:w-auto"
               disabled={duplicateSchedules.length === 0}
             >
               Dupliquer ({duplicateSchedules.length})
