@@ -450,101 +450,80 @@ export function CreateGroupTransportRequest() {
 
       {!showConfirmation ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Employee Selection */}
-          {showEmployeeList && (
-            <Card className="lg:col-span-1">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg flex items-center justify-between">
-                  <span>Sélection des employés</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCsvImportOpen(true)}
-                    className="text-xs h-7"
-                  >
-                    <Upload className="h-3 w-3 mr-1" />
-                    Importer CSV
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex flex-col space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Search className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Rechercher..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
-                  
-                  <Select value={subsidiaryFilter} onValueChange={setSubsidiaryFilter}>
-                    <SelectTrigger className="text-sm">
-                      <SelectValue placeholder="Filtrer par filiale" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Toutes les filiales</SelectItem>
-                      {subsidiaries.map(subsidiary => (
-                        <SelectItem key={subsidiary} value={subsidiary}>
-                          {subsidiary}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          {/* Employee Selection - Always visible in first step */}
+          <Card className="lg:col-span-1">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center justify-between">
+                <span>Sélection des employés</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCsvImportOpen(true)}
+                  className="text-xs h-7"
+                >
+                  <Upload className="h-3 w-3 mr-1" />
+                  Importer CSV
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Rechercher..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="text-sm"
+                  />
                 </div>
                 
-                <ScrollArea className="h-64">
-                  <div className="space-y-2">
-                    {filteredEmployees.map(employee => (
-                      <div
-                        key={employee.id}
-                        className={`p-2 border rounded cursor-pointer text-sm ${
-                          selectedEmployees.includes(employee.id) 
-                            ? 'bg-etaxi-yellow/20 border-etaxi-yellow' 
-                            : 'hover:bg-muted'
-                        }`}
-                        onClick={() => handleEmployeeSelect(employee.id)}
-                      >
-                        <div className="font-medium">{employee.name}</div>
-                        <div className="text-xs text-muted-foreground">{employee.department} - {employee.subsidiary}</div>
-                      </div>
+                <Select value={subsidiaryFilter} onValueChange={setSubsidiaryFilter}>
+                  <SelectTrigger className="text-sm">
+                    <SelectValue placeholder="Filtrer par filiale" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Toutes les filiales</SelectItem>
+                    {subsidiaries.map(subsidiary => (
+                      <SelectItem key={subsidiary} value={subsidiary}>
+                        {subsidiary}
+                      </SelectItem>
                     ))}
-                  </div>
-                </ScrollArea>
-                
-                {selectedEmployees.length > 0 && (
-                  <div className="text-sm">
-                    <Badge variant="secondary">{selectedEmployees.length} sélectionné(s)</Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="ml-2"
-                      onClick={() => setShowEmployeeList(false)}
-                    >
-                      Masquer la liste
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Configuration and Passengers */}
-          <Card className={showEmployeeList ? "lg:col-span-2" : "lg:col-span-3"}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Configuration et passagers</CardTitle>
-                {!showEmployeeList && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowEmployeeList(true)}
-                  >
-                    Afficher la liste des employés
-                  </Button>
-                )}
+                  </SelectContent>
+                </Select>
               </div>
+              
+              <ScrollArea className="h-64">
+                <div className="space-y-2">
+                  {filteredEmployees.map(employee => (
+                    <div
+                      key={employee.id}
+                      className={`p-2 border rounded cursor-pointer text-sm ${
+                        selectedEmployees.includes(employee.id) 
+                          ? 'bg-etaxi-yellow/20 border-etaxi-yellow' 
+                          : 'hover:bg-muted'
+                      }`}
+                      onClick={() => handleEmployeeSelect(employee.id)}
+                    >
+                      <div className="font-medium">{employee.name}</div>
+                      <div className="text-xs text-muted-foreground">{employee.department} - {employee.subsidiary}</div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              
+              {selectedEmployees.length > 0 && (
+                <div className="text-sm">
+                  <Badge variant="secondary">{selectedEmployees.length} sélectionné(s)</Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Configuration */}
+          <Card className="lg:col-span-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Configuration du transport</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Transport Configuration */}
@@ -653,123 +632,6 @@ export function CreateGroupTransportRequest() {
                 </div>
               )}
 
-              {/* Passengers Table */}
-              {selectedPassengers.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Passagers ({selectedPassengers.length})</Label>
-                  <div className="border rounded">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-xs">Passager</TableHead>
-                          <TableHead className="text-xs">Contact</TableHead>
-                          <TableHead className="text-xs">Départ</TableHead>
-                          <TableHead className="text-xs">Arrivée</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {selectedPassengers.map((passenger) => (
-                          <TableRow key={passenger.id}>
-                            <TableCell className="p-2">
-                              <div className="text-xs">
-                                <div className="font-medium">{passenger.name}</div>
-                                <div className="text-muted-foreground">{passenger.department}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="p-2">
-                              <div className="text-xs space-y-1">
-                                <div className="flex items-center space-x-1">
-                                  <Phone className="h-3 w-3" />
-                                  <span>{passenger.phone}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <Mail className="h-3 w-3" />
-                                  <span className="truncate max-w-24">{passenger.email}</span>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="p-2">
-                              <Select
-                                value={passenger.departureAddress}
-                                onValueChange={(value) => updatePassengerAddress(passenger.id, 'departureAddress', value)}
-                              >
-                                <SelectTrigger className="text-xs h-8">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {passenger.isHomeToWork && passenger.homeAddress && (
-                                    <SelectItem value={passenger.homeAddress} className="text-xs">
-                                      <div className="flex items-center">
-                                        <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                        {passenger.homeAddress}
-                                      </div>
-                                    </SelectItem>
-                                  )}
-                                  {!passenger.isHomeToWork && passenger.workAddress && (
-                                    <SelectItem value={passenger.workAddress} className="text-xs">
-                                      <div className="flex items-center">
-                                        <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                        {passenger.workAddress}
-                                      </div>
-                                    </SelectItem>
-                                  )}
-                                  {commonAddresses.map((address) => (
-                                    <SelectItem key={address} value={address} className="text-xs">
-                                      {address}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell className="p-2">
-                              <Select
-                                value={passenger.arrivalAddress}
-                                onValueChange={(value) => updatePassengerAddress(passenger.id, 'arrivalAddress', value)}
-                              >
-                                <SelectTrigger className="text-xs h-8">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {!passenger.isHomeToWork && passenger.homeAddress && (
-                                    <SelectItem value={passenger.homeAddress} className="text-xs">
-                                      <div className="flex items-center">
-                                        <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                        {passenger.homeAddress}
-                                      </div>
-                                    </SelectItem>
-                                  )}
-                                  {passenger.isHomeToWork && passenger.workAddress && (
-                                    <SelectItem value={passenger.workAddress} className="text-xs">
-                                      <div className="flex items-center">
-                                        <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                        {passenger.workAddress}
-                                      </div>
-                                    </SelectItem>
-                                  )}
-                                  {commonAddresses.map((address) => (
-                                    <SelectItem key={address} value={address} className="text-xs">
-                                      {address}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              )}
-
-              {selectedPassengers.length === 0 && (
-                <div className="text-center p-8 text-muted-foreground">
-                  <User className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p>Aucun passager sélectionné</p>
-                  <p className="text-sm">Utilisez la liste des employés pour ajouter des passagers</p>
-                </div>
-              )}
-
               {/* Note */}
               <div className="space-y-1">
                 <Label className="text-sm">Note</Label>
@@ -780,6 +642,27 @@ export function CreateGroupTransportRequest() {
                   className="text-sm h-16"
                 />
               </div>
+              
+              {/* Selected Passengers Summary */}
+              {selectedPassengers.length > 0 && (
+                <div className="p-4 border rounded-md bg-muted/20">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium">Passagers sélectionnés</h3>
+                    <Badge>{selectedPassengers.length}</Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {selectedPassengers.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedPassengers.map(passenger => (
+                          <Badge key={passenger.id} variant="outline" className="text-xs">
+                            {passenger.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               
               {/* Submit Button */}
               <div className="flex justify-end">
