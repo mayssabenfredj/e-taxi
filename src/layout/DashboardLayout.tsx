@@ -233,27 +233,27 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
         "lg:flex lg:flex-col lg:flex-1 transition-all duration-300",
         isCollapsed ? "lg:pl-16" : "lg:pl-64"
       )}>
-        {/* Top Header */}
-        <header className="bg-card border-b px-4 py-4 flex items-center justify-between">
+        {/* Top Header - Responsive */}
+        <header className="bg-card border-b px-4 py-4 flex items-center justify-between sticky top-0 z-40">
           <div className="flex items-center space-x-4">
             <Button variant="outline" size="sm" className="lg:hidden" onClick={() => setIsMobileMenuOpen(true)}>
               <Menu className="h-4 w-4" />
             </Button>
 
-            <h1 className="text-2xl font-semibold text-foreground">
+            <h1 className="text-xl md:text-2xl font-semibold text-foreground truncate">
               {navigation.find(item => item.id === activePage)?.name || (
                 activePage === 'profile' ? 'Profil' : t('dashboard')
               )}
             </h1>
           </div>
 
-          <div className="flex items-center space-x-2">
-            {/* Language Selector */}
+          <div className="flex items-center space-x-1 md:space-x-2">
+            {/* Language Selector - Hidden on small screens */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Globe className="h-4 w-4 mr-2" />
-                  {language.toUpperCase()}
+                <Button variant="outline" size="sm" className="hidden sm:flex">
+                  <Globe className="h-4 w-4 mr-1 md:mr-2" />
+                  <span className="hidden md:inline">{language.toUpperCase()}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
@@ -274,6 +274,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
                 <Sun className="h-4 w-4" />
               )}
             </Button>
+
             {/* Notification */}
             <Button variant="outline" size="sm" onClick={() => navigate('/notifications')}>
               <Bell className="h-4 w-4" />
@@ -282,12 +283,27 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <User className="h-4 w-4 mr-2" />
-                  {user?.fullName || user?.email}
+                <Button variant="outline" size="sm" className="max-w-[200px]">
+                  <User className="h-4 w-4 mr-1 md:mr-2 flex-shrink-0" />
+                  <span className="truncate hidden sm:inline">
+                    {user?.fullName || user?.email}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-56">
+                {/* Mobile-only language selector */}
+                <div className="sm:hidden">
+                  <DropdownMenuItem onClick={() => setLanguage('fr')}>
+                    <Globe className="mr-2 h-4 w-4" />
+                    Français
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setLanguage('en')}>
+                    <Globe className="mr-2 h-4 w-4" />
+                    English
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </div>
+                
                 <DropdownMenuItem onClick={() => navigate('/profile')}>
                   <User className="mr-2 h-4 w-4" />
                   Profil
@@ -307,7 +323,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 md:p-6">
           <div className="animate-fade-in">
             {children}
           </div>
