@@ -244,32 +244,37 @@ export function CreateGroupTransportRequest() {
     (subsidiaryFilter === 'all' || employee.subsidiary === subsidiaryFilter)
   );
 
-  const handleEmployeeSelect = (employeeId: string) => {
-    const employee = employees.find(emp => emp.id === employeeId);
-    if (!employee) return;
+ const handleEmployeeSelect = (employeeId: string) => {
+  const employee = employees.find(emp => emp.id === employeeId);
+  if (!employee) return;
 
-    if (selectedEmployees.includes(employeeId)) {
-      setSelectedEmployees(prev => prev.filter(id => id !== employeeId));
-      setSelectedPassengers(prev => prev.filter(p => p.id !== employeeId));
-    } else {
-      setSelectedEmployees(prev => [...prev, employeeId]);
-      
-      // Déterminer les adresses de départ et d'arrivée en fonction du type de trajet
-      const departureAddress = isHomeToWorkTrip 
-        ? (employee.homeAddress || '') 
-        : (employee.workAddress || '');
-      const arrivalAddress = isHomeToWorkTrip 
-        ? (employee.workAddress || '') 
-        : (employee.homeAddress || '');
-      
-      setSelectedPassengers(prev => [...prev, {
+  if (selectedEmployees.includes(employeeId)) {
+    // Supprimer l'employé si déjà sélectionné
+    setSelectedEmployees(prev => prev.filter(id => id !== employeeId));
+    setSelectedPassengers(prev => prev.filter(p => p.id !== employeeId));
+  } else {
+    // Ajouter l'employé
+    setSelectedEmployees(prev => [...prev, employeeId]);
+
+    // Déterminer les adresses de départ et d'arrivée en fonction du type de trajet
+    const departureAddress = isHomeToWorkTrip
+      ? (employee.homeAddress || 'Adresse domicile non définie')
+      : (employee.workAddress || 'Adresse travail non définie');
+    const arrivalAddress = isHomeToWorkTrip
+      ? (employee.workAddress || 'Adresse travail non définie')
+      : (employee.homeAddress || 'Adresse domicile non définie');
+
+    setSelectedPassengers(prev => [
+      ...prev,
+      {
         ...employee,
         departureAddress,
         arrivalAddress,
-        isHomeToWork: isHomeToWorkTrip
-      }]);
-    }
-  };
+        isHomeToWork: isHomeToWorkTrip,
+      },
+    ]);
+  }
+};
 
   const updatePassengerAddress = (passengerId: string, field: 'departureAddress' | 'arrivalAddress', value: string) => {
     setSelectedPassengers(prev => 
@@ -344,42 +349,41 @@ export function CreateGroupTransportRequest() {
     navigate('/transport/group');
   };
 
-  const handleToggleTripDirection = () => {
-    setIsHomeToWorkTrip(!isHomeToWorkTrip);
-    
-    // Mettre à jour les adresses de tous les passagers sélectionnés
-    setSelectedPassengers(prev => 
-      prev.map(passenger => {
-        // Inverser les adresses de départ et d'arrivée
-        const employee = employees.find(emp => emp.id === passenger.id);
-        if (!employee) return passenger;
-        
-        const departureAddress = !isHomeToWorkTrip 
-          ? (employee.homeAddress || '') 
-          : (employee.workAddress || '');
-        const arrivalAddress = !isHomeToWorkTrip 
-          ? (employee.workAddress || '') 
-          : (employee.homeAddress || '');
-        
-        return {
-          ...passenger,
-          departureAddress,
-          arrivalAddress,
-          isHomeToWork: !isHomeToWorkTrip
-        };
-      })
-    );
-  };
+ const handleToggleTripDirection = () => {
+  setIsHomeToWorkTrip(!isHomeToWorkTrip);
+
+  // Mettre à jour les adresses de tous les passagers sélectionnés
+  setSelectedPassengers(prev =>
+    prev.map(passenger => {
+      const employee = employees.find(emp => emp.id === passenger.id);
+      if (!employee) return passenger;
+
+      const departureAddress = !isHomeToWorkTrip
+        ? (employee.homeAddress || 'Adresse domicile non définie')
+        : (employee.workAddress || 'Adresse travail non définie');
+      const arrivalAddress = !isHomeToWorkTrip
+        ? (employee.workAddress || 'Adresse travail non définie')
+        : (employee.homeAddress || 'Adresse domicile non définie');
+
+      return {
+        ...passenger,
+        departureAddress,
+        arrivalAddress,
+        isHomeToWork: !isHomeToWorkTrip,
+      };
+    })
+  );
+};
 
   const handleEmployeesImported = (importedEmployees: any[]) => {
     // Convertir les employés importés en passagers
     const newPassengers = importedEmployees.map(emp => {
       const departureAddress = isHomeToWorkTrip 
-        ? (emp.homeAddress || '') 
-        : (emp.workAddress || '');
+        ? (emp.homeAddress ) 
+        : (emp.workAddress );
       const arrivalAddress = isHomeToWorkTrip 
-        ? (emp.workAddress || '') 
-        : (emp.homeAddress || '');
+        ? (emp.workAddress ) 
+        : (emp.homeAddress );
       
       return {
         id: emp.id,
@@ -451,7 +455,7 @@ export function CreateGroupTransportRequest() {
       {!showConfirmation ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Employee Selection - Always visible in first step */}
-          <Card className="lg:col-span-1">
+          {showEmployeeList && (<Card className="lg:col-span-1">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center justify-between">
                 <span>Sélection des employés</span>
@@ -515,15 +519,34 @@ export function CreateGroupTransportRequest() {
               {selectedEmployees.length > 0 && (
                 <div className="text-sm">
                   <Badge variant="secondary">{selectedEmployees.length} sélectionné(s)</Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-2"
+                    onClick={() => setShowEmployeeList(false)}
+                  >
+                    Masquer la liste
+                  </Button>
                 </div>
               )}
             </CardContent>
-          </Card>
+          </Card>)}
 
           {/* Configuration */}
-          <Card className="lg:col-span-2">
+          <Card className={showEmployeeList ? "lg:col-span-2" : "lg:col-span-3"}>
             <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
               <CardTitle className="text-lg">Configuration du transport</CardTitle>
+               {!showEmployeeList && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowEmployeeList(true)}
+                >
+                  Afficher la liste des employés
+                </Button>
+                )}
+                </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Transport Configuration */}
@@ -631,6 +654,82 @@ export function CreateGroupTransportRequest() {
                   </div>
                 </div>
               )}
+                {/* Passengers Table */}
+            {selectedPassengers.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Passagers ({selectedPassengers.length})</Label>
+                <div className="border rounded">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs">Passager</TableHead>
+                        <TableHead className="text-xs">Contact</TableHead>
+                        <TableHead className="text-xs">Départ</TableHead>
+                        <TableHead className="text-xs">Arrivée</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedPassengers.map((passenger) => (
+                        <TableRow key={passenger.id}>
+                          <TableCell className="p-2">
+                            <div className="text-xs">
+                              <div className="font-medium">{passenger.name}</div>
+                              <div className="text-muted-foreground">{passenger.department}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="p-2">
+                            <div className="text-xs space-y-1">
+                              <div className="flex items-center space-x-1">
+                                <Phone className="h-3 w-3" />
+                                <span>{passenger.phone}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Mail className="h-3 w-3" />
+                                <span className="truncate max-w-24">{passenger.email}</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="p-2">
+                            <Select
+                              value={passenger.departureAddress}
+                              onValueChange={(value) => updatePassengerAddress(passenger.id, 'departureAddress', value)}
+                            >
+                              <SelectTrigger className="text-xs h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {commonAddresses.map((address) => (
+                                  <SelectItem key={address} value={address} className="text-xs">
+                                    {address}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="p-2">
+                            <Select
+                              value={passenger.arrivalAddress}
+                              onValueChange={(value) => updatePassengerAddress(passenger.id, 'arrivalAddress', value)}
+                            >
+                              <SelectTrigger className="text-xs h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {commonAddresses.map((address) => (
+                                  <SelectItem key={address} value={address} className="text-xs">
+                                    {address}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
 
               {/* Note */}
               <div className="space-y-1">
@@ -642,27 +741,6 @@ export function CreateGroupTransportRequest() {
                   className="text-sm h-16"
                 />
               </div>
-              
-              {/* Selected Passengers Summary */}
-              {selectedPassengers.length > 0 && (
-                <div className="p-4 border rounded-md bg-muted/20">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-medium">Passagers sélectionnés</h3>
-                    <Badge>{selectedPassengers.length}</Badge>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {selectedPassengers.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {selectedPassengers.map(passenger => (
-                          <Badge key={passenger.id} variant="outline" className="text-xs">
-                            {passenger.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
               
               {/* Submit Button */}
               <div className="flex justify-end">
