@@ -46,7 +46,7 @@ export function SignInForm({ onToggleMode, onForgotPassword }: SignInFormProps) 
   };
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-2xl">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold flex items-center justify-center space-x-2">
           <LogIn className="h-6 w-6 text-etaxi-yellow" />
@@ -58,7 +58,7 @@ export function SignInForm({ onToggleMode, onForgotPassword }: SignInFormProps) 
       </CardHeader>
       
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 text-start">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input

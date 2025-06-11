@@ -50,7 +50,7 @@ export function SignUpForm() {
   };
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-2xl">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold flex items-center justify-center space-x-2">
           <Building2 className="h-6 w-6 text-etaxi-yellow" />
@@ -62,10 +62,10 @@ export function SignUpForm() {
       </CardHeader>
       
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 text-start">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Nom complet</Label>
+              <Label htmlFor="fullName" className="text-start">Nom complet</Label>
               <Input
                 id="fullName"
                 value={formData.fullName}
@@ -74,7 +74,7 @@ export function SignUpForm() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Téléphone</Label>
+              <Label htmlFor="phone" className="text-start">Téléphone</Label>
               <Input
                 id="phone"
                 type="tel"
@@ -84,9 +84,10 @@ export function SignUpForm() {
               />
             </div>
           </div>
-          
+                    <div className="grid grid-cols-2 gap-4">
+
           <div className="space-y-2">
-            <Label htmlFor="companyName">Nom de l'entreprise</Label>
+            <Label htmlFor="companyName" className="text-start">Nom de l'entreprise</Label>
             <Input
               id="companyName"
               value={formData.companyName}
@@ -96,7 +97,7 @@ export function SignUpForm() {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-start">Email</Label>
             <Input
               id="email"
               type="email"
@@ -104,10 +105,11 @@ export function SignUpForm() {
               onChange={(e) => handleInputChange('email', e.target.value)}
               required
             />
-          </div>
-          
+            </div>
+            </div>
+          <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="password">Mot de passe</Label>
+            <Label htmlFor="password" className="text-start">Mot de passe</Label>
             <Input
               id="password"
               type="password"
@@ -118,7 +120,7 @@ export function SignUpForm() {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+            <Label htmlFor="confirmPassword" className="text-start">Confirmer le mot de passe</Label>
             <Input
               id="confirmPassword"
               type="password"
@@ -126,7 +128,8 @@ export function SignUpForm() {
               onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
               required
             />
-          </div>
+            </div>
+            </div>
         </CardContent>
         
         <CardFooter>
