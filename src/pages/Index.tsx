@@ -15,7 +15,7 @@ const Index = () => {
     );
   }
 
-  if (!user || !user.isVerified) {
+  if (!user) {
     return <LandingPage />;
   }
 

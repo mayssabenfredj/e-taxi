@@ -1,23 +1,38 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Mail, Phone } from 'lucide-react';
+import { entrepriseService } from '@/services/entreprise.service';
+import { toast } from 'sonner';
 
 export function ConfirmAccount() {
   const navigate = useNavigate();
+  const { token } = useParams<{ token: string }>();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
   useEffect(() => {
-    // Simulate account confirmation process
-    const timer = setTimeout(() => {
-      // Random success/error for demo
-      setStatus(Math.random() > 0.3 ? 'success' : 'error');
-    }, 2000);
+    const verifyAccount = async () => {
+      if (!token) {
+        setStatus('error');
+        toast.error('Jeton d\'activation manquant');
+        return;
+      }
 
-    return () => clearTimeout(timer);
-  }, []);
+      try {
+                console.log('Toookeen', token);
+        await entrepriseService.verifyAccount(token);
+        setStatus('success');
+        toast.success('Compte activé avec succès !');
+      } catch (error: any) {
+        setStatus('error');
+        const errorMessage = error.response?.data?.message || 'Erreur lors de l\'activation du compte';
+        toast.error(errorMessage);
+      }
+    };
+
+    verifyAccount();
+  }, [token]);
 
   const handleRedirect = () => {
     if (status === 'success') {
@@ -58,7 +73,7 @@ export function ConfirmAccount() {
           {status === 'success' && (
             <>
               <p className="text-muted-foreground">
-                Votre compte a été activé avec succès ! Vous pouvez maintenant vous connecter.
+                Votre compte a été activé avec succès ! Vous recevez un email contenant votre mot de passe pour vous connecter.
               </p>
               <Button 
                 className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black"
