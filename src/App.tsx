@@ -25,7 +25,7 @@ function App() {
                 <Route path="/auth" element={<AuthPage />} />
                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               <Route path="/update-password" element={<UpdatePasswordPage />} />
-                <Route path="/confirm-account" element={<ConfirmAccount />} />
+                <Route path="/confirm-account/:token" element={<ConfirmAccount />} />
                 <Route path="/*" element={<Dashboard />} />
 
               </Routes>

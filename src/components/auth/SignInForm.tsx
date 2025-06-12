@@ -19,7 +19,7 @@ export function SignInForm({ onToggleMode, onForgotPassword }: SignInFormProps) 
     email: '',
     password: ''
   });
-  const { login } = useAuth();
+  const { login, error } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,10 +32,12 @@ export function SignInForm({ onToggleMode, onForgotPassword }: SignInFormProps) 
         toast.success('Connexion réussie! Redirection vers le dashboard...');
         navigate('/dashboard');
       } else {
-        toast.error('Email ou mot de passe incorrect');
+        // Use the error from AuthContext if available
+        toast.error(error || 'Une erreur est survenue lors de la connexion');
       }
-    } catch (error) {
-      toast.error('Erreur lors de la connexion');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Erreur lors de la connexion';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -100,7 +102,6 @@ export function SignInForm({ onToggleMode, onForgotPassword }: SignInFormProps) 
             >
               Mot de passe oublié ?
             </Button>
-            
           </div>
         </CardFooter>
       </form>

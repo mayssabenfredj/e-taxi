@@ -1,22 +1,14 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-interface User {
-  id: string;
-  email: string;
-  fullName: string;
-  phone: string;
-  companyName?: string;
-  isVerified: boolean;
-  role?: string;
-}
+import { LoginResponse, User, UserDetail } from '@/types/user';
+import { authService } from '@/services/auth.service';
 
 interface AuthContextType {
-  user: User | null;
+  user: UserDetail | null;
   isLoading: boolean;
+  error: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   register: (data: any) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   verifyEmail: (token: string) => Promise<boolean>;
   resetPassword: (email: string) => Promise<boolean>;
   updatePassword: (token: string, password: string) => Promise<boolean>;
@@ -25,84 +17,117 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate checking for existing auth
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    // Check for existing auth token and fetch user data
+    const initializeAuth = async () => {
+      const token = authService.getStoredToken();
+      if (token) {
+        try {
+          const userData = await authService.getCurrentUser();
+          console.log("user in the context", userData);
+          setUser(userData);
+          console.log('useeerrr', userData);
+        } catch (err) {
+          authService.clearTokens();
+        }
+      }
+      setIsLoading(false);
+    };
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
+    setError(null);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const mockUser: User = {
-        id: '1',
-        email,
-        fullName: 'John Doe',
-        phone: '+33 6 12 34 56 78',
-        companyName: 'TechCorp SARL',
-        isVerified: true,
-        role: 'admin'
-      };
-      
-      setUser(mockUser);
-      localStorage.setItem('user', JSON.stringify(mockUser));
+      console.log('emaill, pass', email);
+      const response: LoginResponse = await authService.login(email, password);
+      authService.setTokens(response.access_token);
+
+      // Fetch full user data after successful login
+      const userData = await authService.getCurrentUser();
+      setUser(userData);
+console.log("user in the context", userData);
       setIsLoading(false);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       setIsLoading(false);
+      const errorMessage = error.response?.data?.message || 'Erreur lors de la connexion';
+      setError(errorMessage);
       return false;
     }
   };
 
   const register = async (data: any): Promise<boolean> => {
     setIsLoading(true);
+    setError(null);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsLoading(false);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       setIsLoading(false);
+      setError(error.message || 'Erreur lors de l\'inscription');
       return false;
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
+  const logout = async (): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authService.logout();
+      setUser(null);
+      authService.clearTokens();
+    } catch (error: any) {
+      setError(error.message || 'Erreur lors de la déconnexion');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const verifyEmail = async (token: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsLoading(false);
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      setIsLoading(false);
+      setError(error.message || 'Erreur lors de la vérification de l\'email');
       return false;
     }
   };
 
   const resetPassword = async (email: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsLoading(false);
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      setIsLoading(false);
+      setError(error.message || 'Erreur lors de la réinitialisation du mot de passe');
       return false;
     }
   };
 
   const updatePassword = async (token: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsLoading(false);
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      setIsLoading(false);
+      setError(error.message || 'Erreur lors de la mise à jour du mot de passe');
       return false;
     }
   };
@@ -112,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         isLoading,
+        error,
         login,
         register,
         logout,
