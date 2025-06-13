@@ -189,7 +189,7 @@ export function ProfilePage() {
             <div className="flex items-center space-x-2 p-3 bg-etaxi-yellow/10 rounded-md">
               <Building className="h-5 w-5 text-etaxi-yellow" />
               <div>
-                <p className="font-medium">{user?.companyName}</p>
+                <p className="font-medium">{user?.enterprise?.name}</p>
                 <p className="text-sm text-muted-foreground">Entreprise principale</p>
               </div>
             </div>

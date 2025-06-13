@@ -46,7 +46,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
+  const markerRef = useRef<google.maps.Marker | null>(null as any);
 
   useEffect(() => {
     loadGoogleMapsAndInitialize();
