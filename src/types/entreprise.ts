@@ -1,4 +1,4 @@
-import { Address } from "./addresse";
+import { Address, AddressType } from "./addresse";
 
 // Types derived from CreateEnterpriseDto and EntityStatus
 export enum EntityStatus {
@@ -8,13 +8,7 @@ export enum EntityStatus {
   ARCHIVED = "ARCHIVED",
 }
 
-export interface AddressDto {
-  street?: string;
-  city?: string;
-  state?: string;
-  postalCode?: string;
-  country?: string;
-}
+
 
 export interface CreateEnterpriseDto {
   titre: string;
@@ -43,7 +37,29 @@ export interface UpdateEnterpriseDto {
   secteurActivite?: string;
   matriculeFiscal?: string;
   status?: EntityStatus;
+  logoUrl?: string;
   address?: AddressDto;
+  website?: string;
+}
+
+export interface AddressDto {
+  label?: string;
+  street?: string;
+  buildingNumber?: string;
+  complement?: string;
+  postalCode?: string;
+  cityId?: string;
+  regionId?: string;
+  countryId?: string;
+  latitude?: number;
+  longitude?: number;
+  placeId?: string;
+  formattedAddress?: string;
+  isVerified?: boolean;
+  isExact?: boolean;
+  manuallyEntered?: boolean;
+  addressType?: AddressType;
+  notes?: string;
 }
 
 export interface EnterpriseResponse {
@@ -65,7 +81,7 @@ export interface Enterprise {
   website?: string | null;
   industry: string;
   taxId: string;
-  status: string;
+  status: EntityStatus;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;

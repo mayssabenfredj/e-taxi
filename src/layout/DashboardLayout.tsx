@@ -117,6 +117,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
     try {
       await logout();
       toast.success('Déconnexion réussie');
+      
       navigate('/'); // Redirect to root page
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la déconnexion');
