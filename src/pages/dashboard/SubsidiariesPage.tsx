@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,95 +14,36 @@ import {
 } from '@/components/ui/dialog';
 import { AddressInput } from '@/components/shared/AddressInput';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Building2, Plus, Edit, Trash2, MapPin, Phone, Mail, Globe, Users, User } from 'lucide-react';
+import { Building2, Plus, Edit, Trash2, MapPin, Phone, Mail, Globe, Users, User, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TableWithPagination } from '@/components/ui/table-with-pagination';
+import SubsidiaryService from '@/services/subsidiarie.service';
+import { Subsidiary, CreateSubsidiary, UpdateSubsidiary, EntityStatus } from '@/types/subsidiary';
+import { Address, AddressType } from '@/types/addresse';
+import { useAuth } from '@/contexts/AuthContext';
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface Address {
-  id: string;
-  label: string;
-  street: string;
-  buildingNumber?: string;
-  complement?: string;
-  postalCode: string;
-  city: string;
-  region?: string;
-  country: string;
-  latitude?: number;
-  longitude?: number;
-  placeId?: string;
-  formattedAddress?: string;
-  isVerified?: boolean;
-  isExact?: boolean;
-  manuallyEntered?: boolean;
-  addressType?: string;
-  notes?: string;
-}
-
-interface Subsidiary {
+interface Manager {
   id: string;
   name: string;
-  address: Address;
-  phone?: string;
-  email?: string;
-  website?: string;
-  description?: string;
-  managerIds: string[]; // Changed to array for multiple managers
-  managerNames: string[]; // Changed to array for multiple managers
-  status: 'active' | 'inactive';
-  employeesCount: number;
-  createdAt: string;
 }
 
-export function SubsidiariesPage() {
+export function SubsidariesPage() {
   const { t } = useLanguage();
-  
-  const [subsidiaries, setSubsidiaries] = useState<Subsidiary[]>([
-    {
-      id: '1',
-      name: 'Filiale Paris Nord',
-      address: {
-        id: 'addr1',
-        label: 'Siège Paris Nord',
-        street: '123 Avenue de la République',
-        buildingNumber: '123',
-        city: 'Paris',
-        postalCode: '75011',
-        country: 'France'
-      },
-      phone: '+33 1 42 42 42 42',
-      email: 'paris-nord@techcorp.fr',
-      website: 'www.techcorp-paris.fr',
-      description: 'Filiale spécialisée dans le développement',
-      managerIds: ['1', '2'],
-      managerNames: ['Marie Martin', 'Pierre Durand'],
-      status: 'active',
-      employeesCount: 45,
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      name: 'Filiale Lyon',
-      address: {
-        id: 'addr2',
-        label: 'Bureau Lyon',
-        street: '67 Rue de la Part-Dieu',
-        city: 'Lyon',
-        postalCode: '69003',
-        country: 'France'
-      },
-      phone: '+33 4 78 78 78 78',
-      email: 'lyon@techcorp.fr',
-      managerIds: ['3'],
-      managerNames: ['Sophie Laurent'],
-      status: 'active',
-      employeesCount: 28,
-      createdAt: '2024-02-10'
-    }
-  ]);
-
+  const { user } = useAuth();
+  const [subsidiaries, setSubsidiaries] = useState<Subsidiary[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSubsidiary, setEditingSubsidiary] = useState<Subsidiary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [skip, setSkip] = useState(0);
+  const [take, setTake] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [nameFilter, setNameFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<EntityStatus | 'all'>('all');
+
+  const enterpriseId = user?.enterpriseId;
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -110,51 +51,161 @@ export function SubsidiariesPage() {
     website: '',
     description: '',
     selectedManagerIds: [] as string[],
-    address: null as Address | null
+    address: null as Address | null,
+    enterpriseId: enterpriseId || '',
   });
 
-  // Mock managers data
-  const managers = [
+  const managers: Manager[] = [
     { id: '1', name: 'Marie Martin' },
     { id: '2', name: 'Pierre Durand' },
     { id: '3', name: 'Sophie Laurent' },
     { id: '4', name: 'Jean Dupont' },
     { id: '5', name: 'Claire Rousseau' },
-    { id: '6', name: 'Thomas Dubois' }
+    { id: '6', name: 'Thomas Dubois' },
   ];
 
-  const handleSubmit = () => {
-    if (!formData.name || !formData.address) {
+  // Fetch subsidiaries with pagination
+  useEffect(() => {
+    const fetchSubsidiaries = async () => {
+      if (!enterpriseId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const query = {
+          enterpriseId,
+          name: nameFilter || undefined,
+          status: statusFilter === 'all' ? undefined : statusFilter,
+          skip,
+          take,
+        };
+        const { data, total } = await SubsidiaryService.getAllSubsidiaries(query);
+        const mappedData: Subsidiary[] = data.map((sub) => ({
+          id: sub.id,
+          name: sub.name,
+          address: sub.address || null,
+          phone: sub.phone,
+          email: sub.email,
+          website: sub.website,
+          description: sub.description,
+          status: sub.status || EntityStatus.ACTIVE,
+          createdAt: sub.createdAt || new Date().toISOString().split('T')[0],
+          updatedAt: sub.updatedAt,
+          deletedAt: sub.deletedAt,
+          enterpriseId: sub.enterpriseId,
+          employeeCount: sub.employeeCount || 0,
+          employeesCount: sub.employeesCount || 0,
+          adminIds: sub.adminIds || [],
+          managerIds: sub.adminIds || [],
+          managerNames: sub.adminIds
+            ? managers.filter((m) => sub.adminIds!.includes(m.id)).map((m) => m.name)
+            : [],
+        }));
+        setSubsidiaries(mappedData);
+        setTotal(total);
+        toast.success('Filiales chargées avec succès!');
+      } catch (error: any) {
+        toast.error(`Erreur lors du chargement des filiales: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSubsidiaries();
+  }, [enterpriseId, skip, take]);
+
+  const handlePageChange = (newSkip: number, newTake: number) => {
+    setSkip(newSkip);
+    setTake(newTake);
+  };
+
+  const handleSubmit = async () => {
+    if (!formData.name || !formData.address || !enterpriseId) {
       toast.error('Veuillez remplir tous les champs obligatoires');
       return;
     }
 
-    const selectedManagers = managers.filter(m => formData.selectedManagerIds.includes(m.id));
+    try {
+      const addressData: Omit<Address, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'city' | 'region' | 'country'> = {
+        label: formData.address.label || '',
+        street: formData.address.street || '',
+        buildingNumber: formData.address.buildingNumber || undefined,
+        complement: formData.address.complement || undefined,
+        postalCode: formData.address.postalCode || '',
+        cityId: formData.address.cityId || null,
+        regionId: formData.address.regionId || null,
+        countryId: formData.address.countryId || null,
+        latitude: formData.address.latitude || undefined,
+        longitude: formData.address.longitude || undefined,
+        placeId: formData.address.placeId || undefined,
+        formattedAddress: formData.address.formattedAddress || undefined,
+        isVerified: formData.address.isVerified || false,
+        isExact: formData.address.isExact || false,
+        manuallyEntered: formData.address.manuallyEntered || true,
+        addressType: formData.address.addressType || AddressType.OFFICE,
+        notes: formData.address.notes || undefined,
+      };
 
-    const subsidiaryData: Subsidiary = {
-      id: editingSubsidiary?.id || `sub-${Date.now()}`,
-      name: formData.name,
-      address: formData.address,
-      phone: formData.phone,
-      email: formData.email,
-      website: formData.website,
-      description: formData.description,
-      managerIds: formData.selectedManagerIds,
-      managerNames: selectedManagers.map(m => m.name),
-      status: 'active',
-      employeesCount: editingSubsidiary?.employeesCount || 0,
-      createdAt: editingSubsidiary?.createdAt || new Date().toISOString().split('T')[0]
-    };
-
-    if (editingSubsidiary) {
-      setSubsidiaries(prev => prev.map(s => s.id === editingSubsidiary.id ? subsidiaryData : s));
-      toast.success('Filiale modifiée avec succès!');
-    } else {
-      setSubsidiaries(prev => [...prev, subsidiaryData]);
-      toast.success('Filiale créée avec succès!');
+      if (editingSubsidiary) {
+        const updateData: UpdateSubsidiary = {
+          name: formData.name,
+          phone: formData.phone || undefined,
+          email: formData.email || undefined,
+          website: formData.website || undefined,
+          description: formData.description || undefined,
+          adminIds: formData.selectedManagerIds.length ? formData.selectedManagerIds : undefined,
+          address: addressData,
+          status: EntityStatus.ACTIVE,
+        };
+        const updated = await SubsidiaryService.updateSubsidiary(editingSubsidiary.id, updateData);
+        setSubsidiaries((prev) =>
+          prev.map((s) =>
+            s.id === updated.id
+              ? {
+                  ...updated,
+                  managerIds: updated.adminIds || [],
+                  managerNames: updated.adminIds
+                    ? managers.filter((m) => updated.adminIds!.includes(m.id)).map((m) => m.name)
+                    : [],
+                  employeeCount: updated.employeeCount || 0,
+                  employeesCount: updated.employeesCount || 0,
+                }
+              : s
+          )
+        );
+        toast.success('Filiale modifiée avec succès!');
+      } else {
+        const createData: CreateSubsidiary = {
+          name: formData.name,
+          enterpriseId,
+          phone: formData.phone || undefined,
+          email: formData.email || undefined,
+          website: formData.website || undefined,
+          description: formData.description || undefined,
+          adminIds: formData.selectedManagerIds.length ? formData.selectedManagerIds : undefined,
+          address: addressData,
+          status: EntityStatus.ACTIVE,
+        };
+        const created = await SubsidiaryService.createSubsidiary(createData);
+        setSubsidiaries((prev) => [
+          ...prev,
+          {
+            ...created,
+            managerIds: created.adminIds || [],
+            managerNames: created.adminIds
+              ? managers.filter((m) => created.adminIds!.includes(m.id)).map((m) => m.name)
+              : [],
+            employeeCount: created.employeeCount || 0,
+            employeesCount: created.employeesCount || 0,
+          },
+        ]);
+        toast.success('Filiale créée avec succès!');
+      }
+      resetForm();
+    } catch (error: any) {
+      toast.error(`Erreur: ${error.message}`);
     }
-
-    resetForm();
   };
 
   const resetForm = () => {
@@ -165,7 +216,8 @@ export function SubsidiariesPage() {
       website: '',
       description: '',
       selectedManagerIds: [],
-      address: null
+      address: null,
+      enterpriseId: enterpriseId || '',
     });
     setEditingSubsidiary(null);
     setIsCreateOpen(false);
@@ -179,23 +231,38 @@ export function SubsidiariesPage() {
       email: subsidiary.email || '',
       website: subsidiary.website || '',
       description: subsidiary.description || '',
-      selectedManagerIds: subsidiary.managerIds || [],
-      address: subsidiary.address
+      selectedManagerIds: subsidiary.adminIds || [],
+      address: subsidiary.address || null,
+      enterpriseId: enterpriseId || '',
     });
     setIsCreateOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setSubsidiaries(prev => prev.filter(s => s.id !== id));
-    toast.success('Filiale supprimée avec succès!');
+  const handleUpdateStatus = async (subsidiary: Subsidiary, newStatus: EntityStatus) => {
+    try {
+      const updated = await SubsidiaryService.updateSubsidiaryStatus(subsidiary.id, newStatus);
+      setSubsidiaries((prev) =>
+        prev.map((s) =>
+          s.id === updated.id
+            ? {
+                ...s,
+                status: updated.status,
+              }
+            : s
+        )
+      );
+      toast.success(`Statut de la filiale mis à jour à "${newStatus}" avec succès!`);
+    } catch (error: any) {
+      toast.error(`Erreur lors du changement de statut: ${error.message}`);
+    }
   };
 
   const handleManagerToggle = (managerId: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       selectedManagerIds: prev.selectedManagerIds.includes(managerId)
-        ? prev.selectedManagerIds.filter(id => id !== managerId)
-        : [...prev.selectedManagerIds, managerId]
+        ? prev.selectedManagerIds.filter((id) => id !== managerId)
+        : [...prev.selectedManagerIds, managerId],
     }));
   };
 
@@ -204,10 +271,14 @@ export function SubsidiariesPage() {
       id: 'saved1',
       label: 'Siège social',
       street: '101 Avenue des Champs-Élysées',
-      city: 'Paris',
       postalCode: '75008',
-      country: 'France'
-    }
+      city: { id: 'city1', name: 'Paris', postalCode: '75008', regionId: 'region1' },
+      country: { id: 'country1', name: 'France', code: 'FR' },
+      addressType: AddressType.OFFICE,
+      isVerified: false,
+      isExact: false,
+      manuallyEntered: false,
+    },
   ];
 
   const columns = [
@@ -215,20 +286,20 @@ export function SubsidiariesPage() {
       header: 'Nom',
       accessor: 'name',
       sortable: true,
-      render: (item) => (
+      render: (item: Subsidiary) => (
         <div className="text-left">
           <div className="font-medium text-sm">{item.name}</div>
           {item.description && (
             <div className="text-xs text-muted-foreground">{item.description}</div>
           )}
         </div>
-      )
+      ),
     },
     {
       header: 'Managers',
       accessor: 'managerNames',
       sortable: true,
-      render: (item) => (
+      render: (item: Subsidiary) => (
         <div className="text-left">
           {item.managerNames && item.managerNames.length > 0 ? (
             <div className="space-y-1">
@@ -246,29 +317,29 @@ export function SubsidiariesPage() {
             <span className="text-sm text-muted-foreground">Non assigné</span>
           )}
         </div>
-      )
+      ),
     },
     {
       header: 'Adresse',
       accessor: 'address',
       sortable: false,
-      render: (item) => (
+      render: (item: Subsidiary) => (
         <div className="flex items-center text-left">
           <MapPin className="mr-1 h-4 w-4" />
           <div>
-            <div className="text-sm">{item.address.street}</div>
+            <div className="text-sm">{item.address?.street || 'N/A'}</div>
             <div className="text-xs text-muted-foreground">
-              {item.address.postalCode} {item.address.city}
+              {item.address?.postalCode} {typeof item.address?.city === 'object' ? item.address?.city?.name : (item.address?.city as string) || 'N/A'}
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
       header: 'Contact',
       accessor: 'contact',
       sortable: false,
-      render: (item) => (
+      render: (item: Subsidiary) => (
         <div className="space-y-1 text-left">
           {item.phone && (
             <div className="flex items-center text-sm">
@@ -289,66 +360,97 @@ export function SubsidiariesPage() {
             </div>
           )}
         </div>
-      )
+      ),
     },
     {
       header: 'Employés',
       accessor: 'employeesCount',
       sortable: true,
-      render: (item) => (
+      render: (item: Subsidiary) => (
         <div className="flex items-center text-left">
           <Users className="mr-1 h-4 w-4" />
-          {item.employeesCount}
+          {item.employeesCount || item.employeeCount || 0}
         </div>
-      )
+      ),
     },
     {
       header: 'Statut',
       accessor: 'status',
       sortable: true,
       filterable: true,
-      render: (item) => (
+      render: (item: Subsidiary) => (
         <Badge
           className={
-            item.status === 'active'
+            item.status === EntityStatus.ACTIVE
               ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
               : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
           }
         >
-          {item.status === 'active' ? 'Actif' : 'Inactif'}
+          {item.status === EntityStatus.ACTIVE ? 'Actif' : item.status === EntityStatus.INACTIVE ? 'Inactif' : item.status}
         </Badge>
-      )
-    }
+      ),
+    },
   ];
 
   const filterOptions = [
     { label: 'Tous', value: 'all', field: 'status' },
-    { label: 'Actif', value: 'active', field: 'status' },
-    { label: 'Inactif', value: 'inactive', field: 'status' }
+    { label: 'Actif', value: EntityStatus.ACTIVE, field: 'status' },
+    { label: 'Inactif', value: EntityStatus.INACTIVE, field: 'status' },
+    { label: 'En attente', value: EntityStatus.PENDING, field: 'status' },
+    { label: 'Archivé', value: EntityStatus.ARCHIVED, field: 'status' },
   ];
 
-  const actions = (item) => (
+  const actions = (item: Subsidiary) => (
     <div className="flex space-x-1">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => handleEdit(item)}
-      >
+      <Button variant="ghost" size="sm" onClick={() => handleEdit(item)}>
         <Edit className="h-4 w-4" />
       </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="text-red-600"
-        onClick={() => handleDelete(item.id)}
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="ghost" size="sm" className="text-blue-600">
+            <Settings2 className="h-4 w-4" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Modifier le statut de la filiale</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sélectionnez le nouveau statut pour la filiale "{item.name}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Select
+            onValueChange={(value: EntityStatus) => handleUpdateStatus(item, value)}
+            defaultValue={item.status}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Choisir un statut" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={EntityStatus.ACTIVE}>Actif</SelectItem>
+              <SelectItem value={EntityStatus.INACTIVE}>Inactif</SelectItem>
+              <SelectItem value={EntityStatus.PENDING}>En attente</SelectItem>
+              <SelectItem value={EntityStatus.ARCHIVED}>Archivé</SelectItem>
+            </SelectContent>
+          </Select>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Fermer</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 
+  if (!enterpriseId) {
+    return (
+      <div className="p-4 text-center">
+        <p>Vous devez être associé à une entreprise pour gérer les filiales.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 max-w-6xl">
+      {loading && <div>Chargement...</div>}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <Card className="w-full sm:w-48 bg-card border-border">
@@ -356,7 +458,7 @@ export function SubsidiariesPage() {
               <Building2 className="h-4 w-4 text-etaxi-yellow" />
               <div className="text-left">
                 <p className="text-xs text-muted-foreground">Filiales</p>
-                <p className="text-lg font-bold">{subsidiaries.length}</p>
+                <p className="text-lg font-bold">{total}</p>
               </div>
             </CardContent>
           </Card>
@@ -366,7 +468,7 @@ export function SubsidiariesPage() {
               <div className="text-left">
                 <p className="text-xs text-muted-foreground">Employés</p>
                 <p className="text-lg font-bold">
-                  {subsidiaries.reduce((sum, s) => sum + s.employeesCount, 0)}
+                  {subsidiaries.reduce((sum, s) => sum + (s.employeesCount || s.employeeCount || 0), 0)}
                 </p>
               </div>
             </CardContent>
@@ -377,7 +479,7 @@ export function SubsidiariesPage() {
               <div className="text-left">
                 <p className="text-xs text-muted-foreground">Managers</p>
                 <p className="text-lg font-bold">
-                  {subsidiaries.reduce((sum, s) => sum + (s.managerIds?.length || 0), 0)}
+                  {subsidiaries.reduce((sum, s) => sum + (s.managerIds?.length || s.adminIds?.length || 0), 0)}
                 </p>
               </div>
             </CardContent>
@@ -388,13 +490,13 @@ export function SubsidiariesPage() {
               <div className="text-left">
                 <p className="text-xs text-muted-foreground">Villes</p>
                 <p className="text-lg font-bold">
-                  {new Set(subsidiaries.map(s => s.address.city)).size}
+                  {new Set(subsidiaries.map((s) => s.address?.city?.name || s.address?.city || 'N/A')).size}
                 </p>
               </div>
             </CardContent>
           </Card>
         </div>
-        
+
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="bg-etaxi-yellow hover:bg-yellow-500 text-black h-8 text-sm w-full sm:w-auto">
@@ -418,14 +520,14 @@ export function SubsidiariesPage() {
                   className="h-9 text-sm bg-background border-border"
                 />
               </div>
-              
+
               <AddressInput
-                label="Adresse *"
-                value={formData.address}
+                label="Adresse"
+                value={formData.address as Address}
                 onChange={(address) => setFormData({ ...formData, address })}
                 savedAddresses={savedAddresses}
               />
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label>Téléphone</Label>
@@ -447,7 +549,7 @@ export function SubsidiariesPage() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <Label>Managers (sélection multiple)</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto border rounded p-3">
@@ -467,12 +569,14 @@ export function SubsidiariesPage() {
                 {formData.selectedManagerIds.length > 0 && (
                   <div className="mt-2">
                     <Badge variant="outline" className="text-xs">
-                      {formData.selectedManagerIds.length} manager{formData.selectedManagerIds.length > 1 ? 's' : ''} sélectionné{formData.selectedManagerIds.length > 1 ? 's' : ''}
+                      {formData.selectedManagerIds.length} manager
+                      {formData.selectedManagerIds.length > 1 ? 's' : ''} sélectionné
+                      {formData.selectedManagerIds.length > 1 ? 's' : ''}
                     </Badge>
                   </div>
                 )}
               </div>
-              
+
               <div>
                 <Label>Site web</Label>
                 <Input
@@ -482,7 +586,7 @@ export function SubsidiariesPage() {
                   className="h-9 text-sm bg-background border-border"
                 />
               </div>
-              
+
               <div>
                 <Label>Description</Label>
                 <Input
@@ -492,7 +596,7 @@ export function SubsidiariesPage() {
                   className="h-9 text-sm bg-background border-border"
                 />
               </div>
-              
+
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
                 <Button variant="outline" onClick={resetForm} className="h-9 text-sm">
                   Annuler
@@ -508,14 +612,18 @@ export function SubsidiariesPage() {
           </DialogContent>
         </Dialog>
       </div>
-      
+
       <div className="bg-card border-border rounded-lg">
         <TableWithPagination
           data={subsidiaries}
           columns={columns}
           searchPlaceholder="Rechercher une filiale..."
           actions={actions}
-          filterOptions={filterOptions}
+          filterOptions={filterOptions as Array<{ label: string; value: string; field: keyof Subsidiary }>}
+          total={total}
+          skip={skip}
+          take={take}
+          onPageChange={handlePageChange}
         />
       </div>
     </div>

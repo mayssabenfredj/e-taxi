@@ -10,8 +10,6 @@ interface AuthContextType {
   register: (data: any) => Promise<boolean>;
   logout: () => Promise<void>;
   verifyEmail: (token: string) => Promise<boolean>;
-  resetPassword: (email: string) => Promise<boolean>;
-  updatePassword: (token: string, password: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -104,33 +102,9 @@ console.log("user in the context", userData);
     }
   };
 
-  const resetPassword = async (email: string): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setIsLoading(false);
-      return true;
-    } catch (error: any) {
-      setIsLoading(false);
-      setError(error.message || 'Erreur lors de la réinitialisation du mot de passe');
-      return false;
-    }
-  };
+  
 
-  const updatePassword = async (token: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setIsLoading(false);
-      return true;
-    } catch (error: any) {
-      setIsLoading(false);
-      setError(error.message || 'Erreur lors de la mise à jour du mot de passe');
-      return false;
-    }
-  };
+ 
 
   return (
     <AuthContext.Provider
@@ -142,8 +116,6 @@ console.log("user in the context", userData);
         register,
         logout,
         verifyEmail,
-        resetPassword,
-        updatePassword,
       }}
     >
       {children}

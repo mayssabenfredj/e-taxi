@@ -1,277 +1,156 @@
-import React, { useState } from 'react';
-import { Input } from '@/components/ui/input';
+import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
-
-interface Column<T> {
-  header: string;
-  accessor: keyof T | string;
-  render?: (item: T) => React.ReactNode;
-  sortable?: boolean;
-  filterable?: boolean;
-}
 
 interface TableWithPaginationProps<T> {
   data: T[];
-  columns: Column<T>[];
-  title?: string;
+  columns: Array<{
+    header: string;
+    accessor: string;
+    sortable?: boolean;
+    filterable?: boolean;
+    render?: (item: T) => React.ReactNode;
+  }>;
   searchPlaceholder?: string;
-  onRowClick?: (item: T) => void;
   actions?: (item: T) => React.ReactNode;
-  filterOptions?: { label: string; value: string; field: keyof T }[];
-  itemsPerPage?: number; // Add itemsPerPage
-  emptyMessage?: string;
-  getRowKey?: (item: T, index: number) => string | number; // Add getRowKey prop
+  filterOptions?: Array<{ label: string; value: string; field: keyof T }>;
+  total: number;
+  skip: number;
+  take: number;
+  onPageChange: (skip: number, take: number) => void;
 }
 
-export function TableWithPagination<T extends Record<string, any>>({
- data,
+export function TableWithPagination<T>({
+  data,
   columns,
-  title,
-  searchPlaceholder = "Rechercher...",
-  onRowClick,
+  searchPlaceholder,
   actions,
-  filterOptions = [],
-  itemsPerPage: initialItemsPerPage = 10, // Default to 10 if not provided
-  emptyMessage = "Aucun résultat trouvé", // Default empty message
-  getRowKey, // Add getRowKey to props
+  filterOptions,
+  total,
+  skip,
+  take,
+  onPageChange,
 }: TableWithPaginationProps<T>) {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(initialItemsPerPage);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortColumn, setSortColumn] = useState<string>('');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [search, setSearch] = React.useState('');
+  const [filter, setFilter] = React.useState<string>('all');
 
-  // Helper function to get nested values
-  const getValue = (obj: any, path: string | keyof T): any => {
-    if (typeof path === 'string' && path.includes('.')) {
-      return path.split('.').reduce((o, p) => o?.[p], obj);
+  const filteredData = data.filter((item) => {
+    if (filter !== 'all' && filterOptions) {
+      const filterOption = filterOptions.find((opt) => opt.value === filter);
+      if (filterOption) {
+        return (item[filterOption.field] as any) === filter;
+      }
     }
-    return obj[path];
-  };
-
-  // Helper function to generate a stable key for each row
-  const generateRowKey = (item: T, index: number): string | number => {
-    if (getRowKey) {
-      return getRowKey(item, index);
-    }
-    // Try to use common id fields, fallback to index if none exist
-    if (item.id !== undefined) return item.id;
-    if (item._id !== undefined) return item._id;
-    if (item.uuid !== undefined) return item.uuid;
-    // As a last resort, create a stable key from the item's content
-    return `${JSON.stringify(item)}-${index}`;
-  };
-
-  // Filter and search logic
-  const filteredData = data.filter(item => {
-    const matchesSearch = columns.some(column => {
-      const value = String(getValue(item, column.accessor)).toLowerCase();
-      return value.includes(searchTerm.toLowerCase());
-    });
-    
-    const matchesFilter = selectedFilter === 'all' || 
-      filterOptions.some(filter => 
-        filter.value === selectedFilter && 
-        String(item[filter.field]).toLowerCase().includes(selectedFilter.toLowerCase())
-      );
-    
-    return matchesSearch && matchesFilter;
+    return columns.some((col) =>
+      String((item as any)[col.accessor]).toLowerCase().includes(search.toLowerCase())
+    );
   });
 
-  // Sort logic
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortColumn) return 0;
-    
-    const aValue = getValue(a, sortColumn);
-    const bValue = getValue(b, sortColumn);
-    
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-    return 0;
-  });
+  const totalPages = Math.ceil(total / take);
+  const currentPage = Math.floor(skip / take) + 1;
 
-  // Pagination logic
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedData = sortedData.slice(startIndex, startIndex + itemsPerPage);
-
-  const handleSort = (column: string) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
+  const handlePrevious = () => {
+    if (skip > 0) {
+      onPageChange(skip - take, take);
     }
+  };
+
+  const handleNext = () => {
+    if (skip + take < total) {
+      onPageChange(skip + take, take);
+    }
+  };
+
+  const handleTakeChange = (value: string) => {
+    const newTake = parseInt(value, 10);
+    onPageChange(0, newTake); // Reset to first page when changing items per page
   };
 
   return (
-    <Card>
-      {title && (
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-      )}
-      <CardContent>
-        {/* Search and Filter Controls */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6 mt-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              placeholder={searchPlaceholder}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          {filterOptions.length > 0 && (
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedFilter} onValueChange={setSelectedFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filtrer par..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous</SelectItem>
-                  {filterOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          
-          <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
-            <SelectTrigger className="w-[120px]">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Input
+          placeholder={searchPlaceholder}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-9 text-sm"
+        />
+        {filterOptions && (
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue placeholder="Filtrer" />
+            </SelectTrigger>
+            <SelectContent>
+              {filterOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+      <table className="w-full border-collapse">
+        <thead>
+          <tr>
+            {columns.map((col) => (
+              <th key={col.accessor} className="p-2 text-left text-sm font-medium">
+                {col.header}
+              </th>
+            ))}
+            {actions && <th className="p-2 text-left text-sm font-medium">Actions</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {filteredData.map((item, index) => (
+            <tr key={index} className="border-t">
+              {columns.map((col) => (
+                <td key={col.accessor} className="p-2">
+                  {col.render ? col.render(item) : (item as any)[col.accessor]}
+                </td>
+              ))}
+              {actions && <td className="p-2">{actions(item)}</td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm">Éléments par page :</span>
+          <Select value={take.toString()} onValueChange={handleTakeChange}>
+            <SelectTrigger className="w-20">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="5">5 par page</SelectItem>
-              <SelectItem value="10">10 par page</SelectItem>
-              <SelectItem value="20">20 par page</SelectItem>
-              <SelectItem value="50">50 par page</SelectItem>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="20">20</SelectItem>
+              <SelectItem value="50">50</SelectItem>
             </SelectContent>
           </Select>
         </div>
-
-        {/* Table */}
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {columns.map((column, index) => (
-                  <TableHead 
-                    key={index}
-                    className={column.sortable ? "cursor-pointer hover:bg-muted/50" : ""}
-                    onClick={() => column.sortable && handleSort(String(column.accessor))}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <span>{column.header}</span>
-                      {column.sortable && sortColumn === column.accessor && (
-                        <span className="text-xs">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </div>
-                  </TableHead>
-                ))}
-                {actions && <TableHead>Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-           <TableBody>
-    {paginatedData.length === 0 ? (
-      <TableRow>
-        <TableCell colSpan={columns.length + (actions ? 1 : 0)} className="text-center">
-          {emptyMessage}
-        </TableCell>
-      </TableRow>
-    ) : (
-      paginatedData.map((item, index) => (
-        <TableRow
-          key={generateRowKey(item, index)}
-          className={onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
-          onClick={() => onRowClick?.(item)}
-        >
-          {columns.map((column, colIndex) => (
-            <TableCell key={colIndex}>
-              {column.render ? column.render(item) : String(getValue(item, column.accessor))}
-            </TableCell>
-          ))}
-          {actions && (
-            <TableCell onClick={(e) => e.stopPropagation()}>
-              {actions(item)}
-            </TableCell>
-          )}
-        </TableRow>
-      ))
-    )}
-  </TableBody>
-          </Table>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrevious}
+            disabled={skip === 0}
+          >
+            Précédent
+          </Button>
+          <span className="text-sm">
+            Page {currentPage} sur {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNext}
+            disabled={skip + take >= total}
+          >
+            Suivant
+          </Button>
         </div>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-between space-x-2 py-4">
-          <div className="text-sm text-muted-foreground">
-            Affichage {startIndex + 1}-{Math.min(startIndex + itemsPerPage, sortedData.length)} sur {sortedData.length} résultats
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Précédent
-            </Button>
-            
-            <div className="flex items-center space-x-1">
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                let pageNumber;
-                if (totalPages <= 5) {
-                  pageNumber = i + 1;
-                } else if (currentPage <= 3) {
-                  pageNumber = i + 1;
-                } else if (currentPage >= totalPages - 2) {
-                  pageNumber = totalPages - 4 + i;
-                } else {
-                  pageNumber = currentPage - 2 + i;
-                }
-                
-                return (
-                  <Button
-                    key={pageNumber}
-                    variant={currentPage === pageNumber ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setCurrentPage(pageNumber)}
-                    className="w-8 h-8 p-0"
-                  >
-                    {pageNumber}
-                  </Button>
-                );
-              })}
-            </div>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-            >
-              Suivant
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

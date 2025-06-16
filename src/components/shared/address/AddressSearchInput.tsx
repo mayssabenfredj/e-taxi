@@ -3,26 +3,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, MapPin } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface Address {
-  id: string;
-  label: string;
-  street: string;
-  buildingNumber?: string;
-  city: string;
-  postalCode: string;
-  region?: string;
-  country: string;
-  latitude?: number;
-  longitude?: number;
-  placeId?: string;
-  formattedAddress?: string;
-  isVerified?: boolean;
-  manuallyEntered?: boolean;
-}
+import { Address, AddressType } from '@/types/addresse';
 
 interface GooglePlacesResult {
-  place_id: string;
+  place_id?: string; // Made optional to match PlaceResult
   formatted_address: string;
   geometry: {
     location: {
@@ -50,10 +34,7 @@ export function AddressSearchInput({ onSelect }: AddressSearchInputProps) {
     const components = result.address_components;
     let street = '';
     let buildingNumber = '';
-    let city = '';
     let postalCode = '';
-    let region = '';
-    let country = '';
 
     components.forEach((component) => {
       const types = component.types;
@@ -61,48 +42,54 @@ export function AddressSearchInput({ onSelect }: AddressSearchInputProps) {
         buildingNumber = component.long_name;
       } else if (types.includes('route')) {
         street = component.long_name;
-      } else if (types.includes('locality')) {
-        city = component.long_name;
       } else if (types.includes('postal_code')) {
         postalCode = component.long_name;
-      } else if (types.includes('administrative_area_level_1')) {
-        region = component.long_name;
-      } else if (types.includes('country')) {
-        country = component.long_name;
       }
     });
 
     return {
       id: `google-${Date.now()}`,
       label: result.formatted_address,
-      street: buildingNumber ? `${buildingNumber} ${street}` : street,
-      buildingNumber,
-      city,
-      postalCode,
-      region,
-      country,
+      street: buildingNumber ? `${buildingNumber} ${street}`.trim() : street || null,
+      buildingNumber: buildingNumber || null,
+      complement: null,
+      postalCode: postalCode || null,
+      cityId: null,
+      regionId: null,
+      countryId: null,
       latitude: result.geometry.location.lat,
       longitude: result.geometry.location.lng,
-      placeId: result.place_id,
+      placeId: result.place_id || null,
       formattedAddress: result.formatted_address,
       isVerified: true,
-      manuallyEntered: false
+      isExact: false,
+      manuallyEntered: false,
+      addressType: AddressType.CUSTOM,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+      city: null,
+      region: null,
+      country: null,
     };
   };
 
   const searchPlaces = async (query: string) => {
-    if (!query.trim()) return;
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
 
     setIsSearching(true);
-    
+
     try {
       if (!window.google) {
-        // Load Google Maps script if not already loaded
         await loadGoogleMapsScript();
       }
 
       const service = new google.maps.places.PlacesService(document.createElement('div'));
-      
+
       const request = {
         query,
         fields: ['place_id', 'formatted_address', 'geometry', 'address_components'],
@@ -111,7 +98,17 @@ export function AddressSearchInput({ onSelect }: AddressSearchInputProps) {
       service.textSearch(request, (results, status) => {
         setIsSearching(false);
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          setSearchResults(results.slice(0, 5));
+          setSearchResults(results.slice(0, 5).map(result => ({
+            place_id: result.place_id,
+            formatted_address: result.formatted_address,
+            geometry: {
+              location: {
+                lat: result.geometry.location.lat(),
+                lng: result.geometry.location.lng()
+              }
+            },
+            address_components: result.address_components
+          })));
         } else {
           setSearchResults([]);
           toast.error('Aucun résultat trouvé');
@@ -135,7 +132,7 @@ export function AddressSearchInput({ onSelect }: AddressSearchInputProps) {
       script.async = true;
       script.defer = true;
       script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Failed to load Google Maps'));
+      script.onerror = () => reject(new Error('Échec du chargement de Google Maps'));
       document.head.appendChild(script);
     });
   };
@@ -155,34 +152,35 @@ export function AddressSearchInput({ onSelect }: AddressSearchInputProps) {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && searchPlaces(searchQuery)}
-          className="flex-1"
+          className="flex-1 text-xs h-8"
         />
-        <Button 
+        <Button
           onClick={() => searchPlaces(searchQuery)}
           disabled={isSearching}
           size="sm"
+          className="h-8"
         >
-          <Search className="h-4 w-4" />
+          <Search className="h-3 w-3" />
         </Button>
       </div>
-      
+
       {isSearching && (
         <div className="text-center py-4">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-etaxi-yellow mx-auto"></div>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-etaxi-yellow mx-auto"></div>
         </div>
       )}
-      
+
       {searchResults.length > 0 && (
-        <div className="space-y-1 max-h-48 overflow-y-auto">
+        <div className="space-y-1 max-h-32 overflow-y-auto bg-white border border-gray-200 rounded-md">
           {searchResults.map((result) => (
             <div
-              key={result.place_id}
+              key={result.place_id || result.formatted_address} // Fallback key
               onClick={() => handleSearchSelect(result)}
               className="p-2 hover:bg-muted rounded cursor-pointer"
             >
               <div className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4 text-etaxi-yellow flex-shrink-0" />
-                <span className="text-sm truncate">{result.formatted_address}</span>
+                <MapPin className="h-3 w-3 text-etaxi-yellow flex-shrink-0" />
+                <span className="text-xs truncate">{result.formatted_address}</span>
               </div>
             </div>
           ))}

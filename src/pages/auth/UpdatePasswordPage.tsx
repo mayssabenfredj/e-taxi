@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Lock, Eye, EyeOff } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom'; // Replace useSearchParams with useParams
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Logo } from '@/components/Logo';
+import { authService } from '@/services/auth.service';
 
 export function UpdatePasswordPage() {
   const [password, setPassword] = useState('');
@@ -16,14 +17,13 @@ export function UpdatePasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { updatePassword } = useAuth();
+  const { token } = useParams<{ token: string }>(); // Extract token from path parameter
 
-  const token = searchParams.get('token');
+  console.log('Token:', token); // Debug: Should log the UUID from the URL
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!password || !confirmPassword) {
       toast.error('Veuillez remplir tous les champs');
       return;
@@ -40,22 +40,22 @@ export function UpdatePasswordPage() {
     }
 
     if (!token) {
-      toast.error('Token invalide');
+      toast.error('Lien de réinitialisation invalide');
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-      const success = await updatePassword(token, password);
-      if (success) {
-        toast.success('Mot de passe mis à jour avec succès');
-        navigate('/auth');
-      } else {
-        toast.error('Erreur lors de la mise à jour du mot de passe');
-      }
-    } catch (error) {
-      toast.error('Une erreur est survenue');
+      const response = await authService.resetPassword(token, password);
+      console.log('Reset Password Response:', response);
+      
+         toast.success('Mot de passe mis à jour avec succès');
+      navigate('/auth');
+     
+    } catch (error: any) {
+      console.error('Reset Password Error:', error);
+      toast.error(error.message || 'Une erreur est survenue lors de la mise à jour du mot de passe');
     } finally {
       setIsLoading(false);
     }
@@ -63,15 +63,9 @@ export function UpdatePasswordPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-xl">
         <div className="text-center mb-8">
           <Logo className="mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900">
-            Nouveau mot de passe
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Choisissez un nouveau mot de passe sécurisé
-          </p>
         </div>
 
         <Card>
@@ -82,7 +76,7 @@ export function UpdatePasswordPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
+              <div className="space-y-2 text-start">
                 <Label htmlFor="password">Nouveau mot de passe</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -111,7 +105,7 @@ export function UpdatePasswordPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 text-start">
                 <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />

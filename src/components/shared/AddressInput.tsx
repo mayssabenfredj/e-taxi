@@ -27,30 +27,10 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { SavedAddressSelector } from './address/SavedAddressSelector';
 import { AddressSearchInput } from './address/AddressSearchInput';
-import { ManualAddressForm } from './address/ManualAddressForm';
 import { CoordinatesInput } from './address/CoordinatesInput';
 import { MapPicker } from '../shared/MapPicker';
-
-interface Address {
-  id: string;
-  label: string;
-  street: string;
-  buildingNumber?: string;
-  complement?: string;
-  postalCode: string;
-  city: string;
-  region?: string;
-  country: string;
-  latitude?: number;
-  longitude?: number;
-  placeId?: string;
-  formattedAddress?: string;
-  isVerified?: boolean;
-  isExact?: boolean;
-  manuallyEntered?: boolean;
-  addressType?: string;
-  notes?: string;
-}
+import { Address, AddressType } from '@/types/addresse';
+import { ManualAddressForm } from './address/ManualAddressForm';
 
 interface AddressInputProps {
   label: string;
@@ -61,13 +41,13 @@ interface AddressInputProps {
   showMapPicker?: boolean;
 }
 
-export function AddressInput({ 
-  label, 
-  value, 
-  onChange, 
-  savedAddresses = [], 
+export function AddressInput({
+  label,
+  value,
+  onChange,
+  savedAddresses = [],
   required = false,
-  showMapPicker = true
+  showMapPicker = true,
 }: AddressInputProps) {
   const [open, setOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
@@ -83,18 +63,27 @@ export function AddressInput({
     const address: Address = {
       id: `map-${Date.now()}`,
       label: mapData.address,
-      street: mapData.address.split(',')[0] || '',
-      postalCode: '',
-      city: mapData.address.split(',')[1]?.trim() || '',
-      country: 'France',
+      street: mapData.address.split(',')[0]?.trim() || '',
+      postalCode: '', // Will be set in ManualAddressForm if needed
+      cityId: null, // Set to null since MapPicker doesn't provide cityId
+      regionId: null,
+      countryId: null,
       latitude: mapData.coordinates.lat,
       longitude: mapData.coordinates.lng,
-      placeId: mapData.placeId,
+      placeId: mapData.placeId || null,
       formattedAddress: mapData.address,
       isVerified: false,
-      manuallyEntered: true
+      isExact: false,
+      manuallyEntered: true,
+      addressType: AddressType.CUSTOM,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+      city: null, // MapPicker doesn't provide City object
+      region: null,
+      country: null,
     };
-    
+
     onChange(address);
     setMapOpen(false);
     toast.success('Adresse sélectionnée depuis la carte');
@@ -106,7 +95,7 @@ export function AddressInput({
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
-      
+
       <div className="flex flex-col sm:flex-row gap-2">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
@@ -119,7 +108,7 @@ export function AddressInput({
               {value ? (
                 <div className="flex items-center truncate">
                   <MapPin className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">{value.label || value.formattedAddress}</span>
+                  <span className="truncate">{value.label || value.formattedAddress || 'Aucune adresse'}</span>
                 </div>
               ) : (
                 <span className="text-muted-foreground">Sélectionner une adresse...</span>
@@ -135,7 +124,7 @@ export function AddressInput({
                 <TabsTrigger value="manual" className="text-xs">Manuelle</TabsTrigger>
                 <TabsTrigger value="coords" className="text-xs">GPS</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="saved" className="p-2">
                 <SavedAddressSelector
                   savedAddresses={savedAddresses}
@@ -143,15 +132,15 @@ export function AddressInput({
                   onSelect={handleAddressSelect}
                 />
               </TabsContent>
-              
+
               <TabsContent value="search" className="p-2">
                 <AddressSearchInput onSelect={handleAddressSelect} />
               </TabsContent>
-              
+
               <TabsContent value="manual" className="p-2">
                 <ManualAddressForm onSubmit={handleAddressSelect} />
               </TabsContent>
-              
+
               <TabsContent value="coords" className="p-2">
                 <CoordinatesInput onSubmit={handleAddressSelect} />
               </TabsContent>

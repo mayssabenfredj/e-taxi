@@ -8,34 +8,34 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Logo } from '@/components/Logo';
+import { authService } from '@/services/auth.service'; // Import authService directly
 
 export function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const navigate = useNavigate();
-  const { resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       toast.error('Veuillez saisir votre adresse email');
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-      const success = await resetPassword(email);
-      if (success) {
+      const response = await authService.sendVerification(email);
+      if (response.success) {
         setEmailSent(true);
         toast.success('Email de réinitialisation envoyé');
       } else {
-        toast.error('Erreur lors de l\'envoi de l\'email');
+        toast.error(response.message || 'Erreur lors de l\'envoi de l\'email');
       }
-    } catch (error) {
-      toast.error('Une erreur est survenue');
+    } catch (error: any) {
+      toast.error(error.message || 'Une erreur est survenue');
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +107,7 @@ export function ForgotPasswordPage() {
                 </Button>
               </div>
             )}
-            
+
             <div className="mt-6 text-center">
               <Button
                 variant="link"

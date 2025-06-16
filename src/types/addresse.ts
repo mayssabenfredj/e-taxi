@@ -43,8 +43,8 @@ export interface Address {
   manuallyEntered?: boolean;
   addressType?: AddressType;
   notes?: string | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
   deletedAt?: string | null;
   city?: City | null;
   region?: Region | null;

@@ -8,7 +8,6 @@ import { GroupTransportPage } from '../../pages/dashboard/transport/GroupTranspo
 import { TaxiManagementPage } from '../../pages/dashboard/taxi/TaxiManagementPage';
 import { DispatchPage } from '../../pages/dashboard/DispatchPage';
 import { ProfilePage } from '../../pages/dashboard/ProfilePage';
-import { SubsidiariesPage } from '../../pages/dashboard/SubsidiariesPage';
 import { EmployeeDetails } from './EmployeeDetails';
 import { CreateTransportRequest } from './CreateTransportRequest';
 import { NotificationsPage } from '../../pages/dashboard/NotificationsPage';
@@ -22,6 +21,7 @@ import { CreateGroupTransportRequest } from './CreateGroupTransportRequest';
 import { GroupTransportDispatchPage } from '@/pages/dashboard/transport/GroupTransportDispatchPage';
 import { TransportRequestDetails } from './TransportRequestDetails';
 import { EditTransportRequest } from './EditTransportRequest';
+import { SubsidariesPage } from '@/pages/dashboard/SubsidiariesPage';
 
 export function Dashboard() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -52,7 +52,7 @@ export function Dashboard() {
         <Route path="/transport/create" element={<CreateTransportRequest />} />
         <Route path="/taxis" element={<TaxiManagementPage />} />
         <Route path="/dispatch" element={<DispatchPage />} />
-        <Route path="/subsidiaries" element={<SubsidiariesPage />} />
+        <Route path="/subsidiaries" element={<SubsidariesPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/claims" element={<ClaimsPage />} />

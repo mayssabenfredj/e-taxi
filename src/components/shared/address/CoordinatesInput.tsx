@@ -3,20 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Target } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface Address {
-  id: string;
-  label: string;
-  street: string;
-  city: string;
-  postalCode: string;
-  country: string;
-  latitude?: number;
-  longitude?: number;
-  formattedAddress?: string;
-  isVerified?: boolean;
-  manuallyEntered?: boolean;
-}
+import { Address, AddressType, City, Region, Country } from '@/types/addresse';
 
 interface CoordinatesInputProps {
   onSubmit: (address: Address) => void;
@@ -25,13 +12,13 @@ interface CoordinatesInputProps {
 export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
   const [coordinates, setCoordinates] = useState({
     latitude: '',
-    longitude: ''
+    longitude: '',
   });
 
   const handleSubmit = () => {
     const lat = parseFloat(coordinates.latitude);
     const lng = parseFloat(coordinates.longitude);
-    
+
     if (isNaN(lat) || isNaN(lng)) {
       toast.error('Coordonnées invalides');
       return;
@@ -45,15 +32,28 @@ export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
     const address: Address = {
       id: `coords-${Date.now()}`,
       label: `Coordonnées: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-      street: `Position: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-      city: 'Position GPS',
-      postalCode: '',
-      country: 'France',
+      street: null, // No specific street from coordinates
+      buildingNumber: null,
+      complement: null,
+      postalCode: null, // No postal code from coordinates
+      cityId: null, // No city ID available
+      regionId: null,
+      countryId: null, // No country ID available
       latitude: lat,
       longitude: lng,
+      placeId: null,
       formattedAddress: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
       isVerified: false,
-      manuallyEntered: true
+      isExact: true, // Coordinates are exact
+      manuallyEntered: true,
+      addressType: AddressType.CUSTOM,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+      city: null, // No City object available
+      region: null,
+      country: null, // No Country object available
     };
 
     onSubmit(address);
@@ -66,21 +66,21 @@ export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
       toast.error('Géolocalisation non supportée');
       return;
     }
-    
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
-        
+
         setCoordinates({
           latitude: lat.toString(),
-          longitude: lng.toString()
+          longitude: lng.toString(),
         });
-        
-        toast.success('Position actuelle obtenue!');
+
+        toast.success('Position actuelle obtenue !');
       },
       (error) => {
-        toast.error('Impossible d\'obtenir la position');
+        toast.error('Impossible d’obtenir la position');
       }
     );
   };
@@ -93,7 +93,7 @@ export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
           step="any"
           placeholder="Latitude"
           value={coordinates.latitude}
-          onChange={(e) => setCoordinates({...coordinates, latitude: e.target.value})}
+          onChange={(e) => setCoordinates({ ...coordinates, latitude: e.target.value })}
           className="text-sm"
         />
         <Input
@@ -101,22 +101,22 @@ export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
           step="any"
           placeholder="Longitude"
           value={coordinates.longitude}
-          onChange={(e) => setCoordinates({...coordinates, longitude: e.target.value})}
+          onChange={(e) => setCoordinates({ ...coordinates, longitude: e.target.value })}
           className="text-sm"
         />
       </div>
-      
-      <Button 
+
+      <Button
         onClick={getCurrentLocation}
-        variant="outline" 
+        variant="outline"
         className="w-full text-sm"
         size="sm"
       >
         <Target className="mr-2 h-4 w-4" />
         Ma position actuelle
       </Button>
-      
-      <Button 
+
+      <Button
         onClick={handleSubmit}
         className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-sm"
         size="sm"

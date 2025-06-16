@@ -36,7 +36,7 @@ export function SignInForm({ onToggleMode, onForgotPassword }: SignInFormProps) 
         toast.error(error || 'Une erreur est survenue lors de la connexion');
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Erreur lors de la connexion';
+      const errorMessage = error.response?.message || 'Erreur lors de la connexion';
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);

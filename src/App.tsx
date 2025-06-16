@@ -24,7 +24,7 @@ function App() {
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<AuthPage />} />
                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/update-password" element={<UpdatePasswordPage />} />
+              <Route path="/update-password/:token" element={<UpdatePasswordPage />} />
                 <Route path="/confirm-account/:token" element={<ConfirmAccount />} />
                 <Route path="/*" element={<Dashboard />} />
 

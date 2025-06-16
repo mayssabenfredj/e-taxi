@@ -1,159 +1,266 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
-
-interface Address {
-  id: string;
-  label: string;
-  street: string;
-  buildingNumber?: string;
-  complement?: string;
-  postalCode: string;
-  city: string;
-  region?: string;
-  country: string;
-  formattedAddress?: string;
-  isVerified?: boolean;
-  manuallyEntered?: boolean;
-}
+import { addressService } from '@/services/address.service';
+import { Address, AddressType, City, Region, Country } from '@/types/addresse';
 
 interface ManualAddressFormProps {
   onSubmit: (address: Address) => void;
 }
 
 export function ManualAddressForm({ onSubmit }: ManualAddressFormProps) {
-  const [addressLabel, setAddressLabel] = useState('');
-  const [manualAddress, setManualAddress] = useState({
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const [formData, setFormData] = useState({
+    label: '',
     street: '',
     buildingNumber: '',
     complement: '',
     postalCode: '',
-    city: '',
-    region: '',
-    country: 'France'
+    countryId: '',
+    regionId: '',
+    cityId: '',
   });
 
-  const handleSubmit = () => {
-    if (!manualAddress.street || !manualAddress.city || !manualAddress.postalCode) {
-      toast.error('Veuillez remplir au moins la rue, la ville et le code postal');
+  // Fetch countries on mount
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        setLoading(true);
+        const data = await addressService.getCountries();
+        setCountries(data);
+      } catch (error) {
+        toast.error('Erreur lors du chargement des pays');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCountries();
+  }, []);
+
+  // Fetch regions when country changes
+  useEffect(() => {
+    if (!formData.countryId) {
+      setRegions([]);
+      setCities([]);
+      setFormData((prev) => ({ ...prev, regionId: '', cityId: '' }));
       return;
     }
 
+    const fetchRegions = async () => {
+      try {
+        setLoading(true);
+        const data = await addressService.getRegions();
+        const filteredRegions = data.filter((region) => region.countryId === formData.countryId);
+        setRegions(filteredRegions);
+      } catch (error) {
+        toast.error('Erreur lors du chargement des régions');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRegions();
+  }, [formData.countryId]);
+
+  // Fetch cities when region changes
+  useEffect(() => {
+    if (!formData.regionId) {
+      setCities([]);
+      setFormData((prev) => ({ ...prev, cityId: '' }));
+      return;
+    }
+
+    const fetchCities = async () => {
+      try {
+        setLoading(true);
+        const data = await addressService.getCities();
+        const filteredCities = data.filter((city) => city.regionId === formData.regionId);
+        setCities(filteredCities);
+      } catch (error) {
+        toast.error('Erreur lors du chargement des villes');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCities();
+  }, [formData.regionId]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.street || !formData.postalCode || !formData.cityId) {
+      toast.error('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    const selectedCity = cities.find((city) => city.id === formData.cityId);
+    const selectedRegion = regions.find((region) => region.id === formData.regionId);
+    const selectedCountry = countries.find((country) => country.id === formData.countryId);
+
     const address: Address = {
       id: `manual-${Date.now()}`,
-      label: addressLabel || `${manualAddress.street}, ${manualAddress.city}`,
-      street: manualAddress.buildingNumber ? 
-        `${manualAddress.buildingNumber} ${manualAddress.street}` : 
-        manualAddress.street,
-      buildingNumber: manualAddress.buildingNumber,
-      complement: manualAddress.complement,
-      city: manualAddress.city,
-      postalCode: manualAddress.postalCode,
-      region: manualAddress.region,
-      country: manualAddress.country,
-      formattedAddress: `${manualAddress.street}, ${manualAddress.postalCode} ${manualAddress.city}, ${manualAddress.country}`,
+      label: formData.label || null,
+      street: formData.street,
+      buildingNumber: formData.buildingNumber || null,
+      complement: formData.complement || null,
+      postalCode: formData.postalCode,
+      cityId: formData.cityId,
+      regionId: formData.regionId || null,
+      countryId: formData.countryId,
+      latitude: null,
+      longitude: null,
+      placeId: null,
+      formattedAddress: [
+        formData.street,
+        formData.buildingNumber,
+        formData.complement,
+        formData.postalCode,
+        selectedCity?.name,
+        selectedCountry?.name,
+      ]
+        .filter(Boolean)
+        .join(', '),
       isVerified: false,
-      manuallyEntered: true
+      isExact: false,
+      manuallyEntered: true,
+      addressType: AddressType.CUSTOM,
+      notes: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      deletedAt: null,
+      city: selectedCity || null,
+      region: selectedRegion || null,
+      country: selectedCountry || null,
     };
 
     onSubmit(address);
-    
-    // Reset form
-    setAddressLabel('');
-    setManualAddress({
-      street: '',
-      buildingNumber: '',
-      complement: '',
-      postalCode: '',
-      city: '',
-      region: '',
-      country: 'France'
-    });
-    
-    toast.success('Adresse manuelle ajoutée');
+    toast.success('Adresse enregistrée');
   };
 
   return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <Label>Libellé de l'adresse</Label>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label>Label</Label>
         <Input
-          value={addressLabel}
-          onChange={(e) => setAddressLabel(e.target.value)}
-          placeholder="Ex: Domicile, Travail, etc."
+          value={formData.label}
+          onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+          placeholder="Nom de l'adresse"
         />
       </div>
-      
-      <div className="grid grid-cols-2 gap-2">
+
+      <div>
+        <Label>Rue *</Label>
         <Input
-          placeholder="N° bâtiment"
-          value={manualAddress.buildingNumber}
-          onChange={(e) => setManualAddress({...manualAddress, buildingNumber: e.target.value})}
-          className="text-sm"
-        />
-        <Input
-          placeholder="Rue *"
-          value={manualAddress.street}
-          onChange={(e) => setManualAddress({...manualAddress, street: e.target.value})}
-          className="text-sm"
+          value={formData.street}
+          onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+          placeholder="Nom de la rue"
+          required
         />
       </div>
-      
-      <Input
-        placeholder="Complément d'adresse"
-        value={manualAddress.complement}
-        onChange={(e) => setManualAddress({...manualAddress, complement: e.target.value})}
-        className="text-sm"
-      />
-      
+
       <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label>N° bâtiment</Label>
+          <Input
+            value={formData.buildingNumber}
+            onChange={(e) => setFormData({ ...formData, buildingNumber: e.target.value })}
+            placeholder="N°"
+          />
+        </div>
+        <div>
+          <Label>Complément</Label>
+          <Input
+            value={formData.complement}
+            onChange={(e) => setFormData({ ...formData, complement: e.target.value })}
+            placeholder="Apt, étage, etc."
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label>Code postal *</Label>
         <Input
-          placeholder="Code postal *"
-          value={manualAddress.postalCode}
-          onChange={(e) => setManualAddress({...manualAddress, postalCode: e.target.value})}
-          className="text-sm"
-        />
-        <Input
-          placeholder="Ville *"
-          value={manualAddress.city}
-          onChange={(e) => setManualAddress({...manualAddress, city: e.target.value})}
-          className="text-sm"
+          value={formData.postalCode}
+          onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+          placeholder="Code postal"
+          required
         />
       </div>
-      
-      <div className="grid grid-cols-2 gap-2">
-        <Input
-          placeholder="Région"
-          value={manualAddress.region}
-          onChange={(e) => setManualAddress({...manualAddress, region: e.target.value})}
-          className="text-sm"
-        />
-        <Select 
-          value={manualAddress.country} 
-          onValueChange={(value) => setManualAddress({...manualAddress, country: value})}
+
+      <div>
+        <Label>Pays *</Label>
+        <Select
+          value={formData.countryId}
+          onValueChange={(value) => setFormData({ ...formData, countryId: value })}
         >
-          <SelectTrigger className="text-sm">
-            <SelectValue />
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner un pays" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="France">France</SelectItem>
-            <SelectItem value="Belgique">Belgique</SelectItem>
-            <SelectItem value="Suisse">Suisse</SelectItem>
-            <SelectItem value="Canada">Canada</SelectItem>
+            {countries.map((country) => (
+              <SelectItem key={country.id} value={country.id}>
+                {country.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
-      
-      <Button 
-        onClick={handleSubmit}
-        className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-sm"
-        size="sm"
-      >
-        Ajouter l'adresse
+
+      <div>
+        <Label>Région</Label>
+        <Select
+          value={formData.regionId}
+          onValueChange={(value) => setFormData({ ...formData, regionId: value })}
+          disabled={!formData.countryId}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner une région" />
+          </SelectTrigger>
+          <SelectContent>
+            {regions.map((region) => (
+              <SelectItem key={region.id} value={region.id}>
+                {region.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label>Ville *</Label>
+        <Select
+          value={formData.cityId}
+          onValueChange={(value) => setFormData({ ...formData, cityId: value })}
+          disabled={!formData.regionId}
+          required
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner une ville" />
+          </SelectTrigger>
+          <SelectContent>
+            {cities.map((city) => (
+              <SelectItem key={city.id} value={city.id}>
+                {city.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Button type="submit" className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black">
+        Utiliser cette adresse
       </Button>
-    </div>
+    </form>
   );
 }

@@ -8,15 +8,7 @@ import {
 } from '@/components/ui/command';
 import { Check, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface Address {
-  id: string;
-  label: string;
-  street: string;
-  city: string;
-  postalCode: string;
-  country: string;
-}
+import { Address, AddressType, City, Region, Country } from '@/types/addresse';
 
 interface SavedAddressSelectorProps {
   savedAddresses: Address[];
@@ -24,10 +16,10 @@ interface SavedAddressSelectorProps {
   onSelect: (address: Address) => void;
 }
 
-export function SavedAddressSelector({ 
-  savedAddresses, 
-  selectedAddress, 
-  onSelect 
+export function SavedAddressSelector({
+  savedAddresses,
+  selectedAddress,
+  onSelect,
 }: SavedAddressSelectorProps) {
   return (
     <Command>
@@ -38,20 +30,20 @@ export function SavedAddressSelector({
           {savedAddresses.map((address) => (
             <CommandItem
               key={address.id}
-              value={address.label}
+              value={address.label || address.formattedAddress || address.id} // Fallback to id if label/formattedAddress is null
               onSelect={() => onSelect(address)}
               className="cursor-pointer"
             >
               <Check
                 className={cn(
-                  "mr-2 h-4 w-4",
-                  selectedAddress?.id === address.id ? "opacity-100" : "opacity-0"
+                  'mr-2 h-4 w-4',
+                  selectedAddress?.id === address.id ? 'opacity-100' : 'opacity-0'
                 )}
               />
               <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{address.label}</div>
+                <div className="font-medium truncate">{address.label || address.formattedAddress || 'Adresse sans nom'}</div>
                 <div className="text-sm text-muted-foreground truncate">
-                  {address.street}, {address.city}
+                  {address.street || 'N/A'}, {address.city?.name || 'Ville inconnue'}
                 </div>
               </div>
             </CommandItem>
