@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,6 +19,7 @@ interface TableWithPaginationProps<T> {
   skip: number;
   take: number;
   onPageChange: (skip: number, take: number) => void;
+  onFilterChange?: (filters: Record<string, string>) => void; // Added to support multiple filters
 }
 
 export function TableWithPagination<T>({
@@ -31,20 +32,44 @@ export function TableWithPagination<T>({
   skip,
   take,
   onPageChange,
+  onFilterChange,
 }: TableWithPaginationProps<T>) {
-  const [search, setSearch] = React.useState('');
-  const [filter, setFilter] = React.useState<string>('all');
+  const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState<Record<string, string>>({});
+
+  // Group filter options by field to support multiple filter dropdowns
+  const filterGroups = filterOptions
+    ? Array.from(new Set(filterOptions.map((opt) => opt.field))).map((field) => ({
+        field,
+        options: filterOptions.filter((opt) => opt.field === field),
+      }))
+    : [];
+
+  const handleFilterChange = (field: string, value: string) => {
+    const newFilters = { ...filters, [field]: value };
+    if (value === 'all') {
+      delete newFilters[field]; // Remove filter if 'all' is selected
+    }
+    setFilters(newFilters);
+    onFilterChange?.(newFilters); // Notify parent component of filter changes
+  };
 
   const filteredData = data.filter((item) => {
-    if (filter !== 'all' && filterOptions) {
-      const filterOption = filterOptions.find((opt) => opt.value === filter);
-      if (filterOption) {
-        return (item[filterOption.field] as any) === filter;
-      }
-    }
-    return columns.some((col) =>
-      String((item as any)[col.accessor]).toLowerCase().includes(search.toLowerCase())
-    );
+    // Apply all active filters
+    const passesFilters = Object.entries(filters).every(([field, value]) => {
+      if (value === 'all') return true;
+      const filterOption = filterOptions?.find((opt) => opt.field === field && opt.value === value);
+      return filterOption ? (item[field] as any) === value : true;
+    });
+
+    // Apply search
+    const passesSearch = search
+      ? columns.some((col) =>
+          String((item as any)[col.accessor]).toLowerCase().includes(search.toLowerCase())
+        )
+      : true;
+
+    return passesFilters && passesSearch;
   });
 
   const totalPages = Math.ceil(total / take);
@@ -76,20 +101,25 @@ export function TableWithPagination<T>({
           onChange={(e) => setSearch(e.target.value)}
           className="h-9 text-sm"
         />
-        {filterOptions && (
-          <Select value={filter} onValueChange={setFilter}>
+        {filterGroups.map((group) => (
+          <Select
+            key={String(group.field)}
+            value={filters[String(group.field)] || 'all'}
+            onValueChange={(value) => handleFilterChange(String(group.field), value)}
+          >
             <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="Filtrer" />
+              <SelectValue placeholder={`Filtrer par ${String(group.field)}`} />
             </SelectTrigger>
             <SelectContent>
-              {filterOptions.map((option) => (
+              <SelectItem value="all">Tous</SelectItem>
+              {group.options.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
+        ))}
       </div>
       <table className="w-full border-collapse">
         <thead>

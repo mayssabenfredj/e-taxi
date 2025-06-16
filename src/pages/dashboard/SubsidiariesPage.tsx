@@ -37,7 +37,7 @@ export function SubsidariesPage() {
   const [editingSubsidiary, setEditingSubsidiary] = useState<Subsidiary | null>(null);
   const [loading, setLoading] = useState(true);
   const [skip, setSkip] = useState(0);
-  const [take, setTake] = useState(1);
+  const [take, setTake] = useState(10); // Adjusted to a more reasonable default
   const [total, setTotal] = useState(0);
   const [nameFilter, setNameFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<EntityStatus | 'all'>('all');
@@ -64,7 +64,7 @@ export function SubsidariesPage() {
     { id: '6', name: 'Thomas Dubois' },
   ];
 
-  // Fetch subsidiaries with pagination
+  // Fetch subsidiaries with pagination and filters
   useEffect(() => {
     const fetchSubsidiaries = async () => {
       if (!enterpriseId) {
@@ -113,11 +113,21 @@ export function SubsidariesPage() {
       }
     };
     fetchSubsidiaries();
-  }, [enterpriseId, skip, take]);
+  }, [enterpriseId, skip, take, nameFilter, statusFilter]); // Added nameFilter and statusFilter to dependencies
 
   const handlePageChange = (newSkip: number, newTake: number) => {
     setSkip(newSkip);
     setTake(newTake);
+  };
+
+  const handleFilterChange = (field: string, value: string) => {
+    if (field === 'status') {
+      setStatusFilter(value as EntityStatus | 'all');
+      setSkip(0); // Reset to first page when filter changes
+    } else if (field === 'name') {
+      setNameFilter(value);
+      setSkip(0); // Reset to first page when filter changes
+    }
   };
 
   const handleSubmit = async () => {
@@ -309,8 +319,8 @@ export function SubsidariesPage() {
                   <span>{name}</span>
                 </div>
               ))}
-              <Badge variant="outline" className="text-xs">
-                {item.managerNames.length} manager{item.managerNames.length > 1 ? 's' : ''}
+              <Badge variant="outline"className="text-xs">
+                {item.managerNames.length} manager{item.managerNames.length > 1 ? 's50' : ''}
               </Badge>
             </div>
           ) : (
@@ -615,16 +625,19 @@ export function SubsidariesPage() {
 
       <div className="bg-card border-border rounded-lg">
         <TableWithPagination
-          data={subsidiaries}
-          columns={columns}
-          searchPlaceholder="Rechercher une filiale..."
-          actions={actions}
-          filterOptions={filterOptions as Array<{ label: string; value: string; field: keyof Subsidiary }>}
-          total={total}
-          skip={skip}
-          take={take}
-          onPageChange={handlePageChange}
-        />
+  data={subsidiaries}
+  columns={columns}
+  searchPlaceholder="Rechercher une filiale..."
+  actions={actions}
+  filterOptions={filterOptions as Array<{ label: string; value: string; field: keyof Subsidiary }>}
+  total={total}
+  skip={skip}
+  take={take}
+  onPageChange={handlePageChange}
+  onFilterChange={(filters) => {
+    Object.entries(filters).forEach(([field, value]) => handleFilterChange(field, value));
+  }}
+/>
       </div>
     </div>
   );

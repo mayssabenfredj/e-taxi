@@ -39,7 +39,7 @@ export class SubsidiaryService {
           enterpriseId: query.enterpriseId,
           subsidiaryId: query.subsidiaryId,
           name: query.name,
-          status: query.status || EntityStatus.ACTIVE, // Default to ACTIVE
+          status: query.status, // Default to ACTIVE
           include: query.include,
           skip: query.skip ?? 0,
           take: query.take ?? 10,
