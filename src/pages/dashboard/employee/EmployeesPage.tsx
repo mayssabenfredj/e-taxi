@@ -1,159 +1,134 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { TableWithPagination } from '@/components/ui/table-with-pagination';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Eye, Edit, Trash, UserCheck, UserX, Upload, Filter, Users, Building2, Shield } from 'lucide-react';
+import { Plus, Eye, Trash, UserCheck, UserX, Upload, Filter, Users, Building2, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AddEmployeeForm } from '@/components/dashboard/AddEmployeeForm';
-import { AddEmployeeFromCSV } from '@/components/dashboard/AddEmployeeFromCSV';
+import { AddEmployeeForm } from '@/components/employee/AddEmployeeForm';
+import { AddEmployeeFromCSV } from '@/components/employee/AddEmployeeFromCSV';
 import { toast } from 'sonner';
-
-interface Employee {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  position: string;
-  department: string;
-  subsidiary: string;
-  role: 'employee' | 'manager' | 'admin';
-  status: 'active' | 'inactive' | 'pending';
-  isManager: boolean;
-  createdAt: string;
-  lastActive: string;
-}
+import EmployeeService from '@/services/employee.service';
+import { Employee, GetEmployeesPagination, CreateEmployee } from '@/types/employee';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function EmployeesPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [total, setTotal] = useState(0);
+  const [skip, setSkip] = useState(0);
+  const [take, setTake] = useState(10);
+  const [loading, setLoading] = useState(true);
+
   // Dialog state management
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
-  const handleEmployeeAdded = (employeeData: any) => {
-    const newEmployee: Employee = {
-      id: Date.now().toString(),
-      name: employeeData.fullName,
-      email: employeeData.email,
-      phone: employeeData.phone,
-      position: 'Nouveau poste',
-      department: 'À définir',
-      subsidiary: 'TechCorp Paris',
-      role: employeeData.role || 'employee',
-      status: 'pending',
-      isManager: employeeData.isManager || false,
-      createdAt: new Date().toISOString().split('T')[0],
-      lastActive: new Date().toISOString()
+  const enterpriseId = user?.enterpriseId;
+
+  // Fetch employees
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      if (!enterpriseId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const query: GetEmployeesPagination = {
+          enterpriseId,
+          subsidiaryId: subsidiaryFilter !== 'all' ? subsidiaryFilter : undefined,
+          roleName: roleFilter !== 'all' ? roleFilter : undefined,
+          skip,
+          take,
+          includeAllData: true,
+        };
+        const { data, total } = await EmployeeService.getAllEmployees(query);
+        setEmployees(data);
+        setTotal(total);
+        toast.success('Employés chargés avec succès!');
+      } catch (error: any) {
+        toast.error(`Erreur lors du chargement des employés: ${error.message || 'Une erreur est survenue.'}`);
+      } finally {
+        setLoading(false);
+      }
     };
-    setEmployees(prev => [...prev, newEmployee]);
-  };
+    fetchEmployees();
+  }, [enterpriseId, skip, take, roleFilter, subsidiaryFilter, statusFilter]);
 
-  const [employees, setEmployees] = useState<Employee[]>([
-    {
-      id: '1',
-      name: 'Jean Dupont',
-      email: 'jean.dupont@techcorp.fr',
-      phone: '+33 6 12 34 56 78',
-      position: 'Développeur Senior',
-      department: 'Informatique',
-      subsidiary: 'TechCorp Paris',
-      role: 'employee',
-      status: 'active',
-      isManager: false,
-      createdAt: '2024-01-15',
-      lastActive: '2024-01-18 10:30'
-    },
-    {
-      id: '2',
-      name: 'Marie Martin',
-      email: 'marie.martin@techcorp.fr',
-      phone: '+33 6 98 76 54 32',
-      position: 'Chef de projet',
-      department: 'Marketing',
-      subsidiary: 'TechCorp Lyon',
-      role: 'manager',
-      status: 'active',
-      isManager: true,
-      createdAt: '2024-01-10',
-      lastActive: '2024-01-18 09:15'
-    },
-    {
-      id: '3',
-      name: 'Pierre Durand',
-      email: 'pierre.durand@techcorp.fr',
-      phone: '+33 7 11 22 33 44',
-      position: 'Analyste',
-      department: 'Finance',
-      subsidiary: 'TechCorp Paris',
-      role: 'employee',
-      status: 'inactive',
-      isManager: false,
-      createdAt: '2024-01-17',
-      lastActive: '2024-01-17 16:45'
-    }
-  ]);
+  const handleEmployeeAdded = async (employeeData: any) => {
+    try {
+      const createData: CreateEmployee = {
+        email: employeeData.email,
+        password: employeeData.password,
+        fullName: employeeData.fullName,
+        firstName: employeeData.firstName || undefined,
+        lastName: employeeData.lastName || undefined,
+        phone: employeeData.phone,
+        alternativePhone: employeeData.alternativePhone || undefined,
+        enterpriseId: enterpriseId,
+        subsidiaryId: employeeData.subsidiaryId || undefined,
+        managerId: employeeData.managerId || undefined,
+        roleIds: employeeData.roleIds || [],
+        address: employeeData.address || undefined,
+      };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      // Validate required fields
+      if (!createData.email || !createData.password || !createData.fullName || !createData.phone || !createData.roleIds.length) {
+        throw new Error('Veuillez remplir tous les champs obligatoires (email, mot de passe, nom complet, téléphone, rôles).');
+      }
+
+      const newEmployee = await EmployeeService.createEmployee(createData);
+      setEmployees((prev) => [newEmployee, ...prev]);
+      setTotal((prev) => prev + 1);
+      toast.success('Employé ajouté avec succès!');
+      setAddEmployeeOpen(false);
+    } catch (error: any) {
+      toast.error(`Erreur lors de l'ajout de l'employé: ${error.message || 'Une erreur est survenue.'}`);
     }
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-red-100 text-red-800';
-      case 'manager':
-        return 'bg-blue-100 text-blue-800';
-      case 'employee':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const handleDeleteEmployee = () => {
+  const handleDeleteEmployee = async () => {
     if (selectedEmployee) {
-      setEmployees(prev => prev.filter(emp => emp.id !== selectedEmployee.id));
-      toast.success('Employé supprimé avec succès');
-      setDeleteDialogOpen(false);
-      setSelectedEmployee(null);
+      try {
+        await EmployeeService.deleteEmployee(selectedEmployee.id);
+        setEmployees((prev) => prev.filter((emp) => emp.id !== selectedEmployee.id));
+        setTotal((prev) => prev - 1);
+        toast.success('Employé supprimé avec succès!');
+        setDeleteDialogOpen(false);
+        setSelectedEmployee(null);
+      } catch (error: any) {
+        toast.error(`Erreur lors de la suppression de l'employé: ${error.message || 'Une erreur est survenue.'}`);
+      }
     }
   };
 
-  const handleToggleEmployeeStatus = () => {
+  const handleToggleEmployeeStatus = async () => {
     if (selectedEmployee) {
-      setEmployees(prev => 
-        prev.map(emp => 
-          emp.id === selectedEmployee.id 
-            ? { 
-                ...emp, 
-                status: emp.status === 'active' ? 'inactive' : 'active' 
-              }
-            : emp
-        )
-      );
-      
-      const newStatus = selectedEmployee.status === 'active' ? 'désactivé' : 'activé';
-      toast.success(`Employé ${newStatus} avec succès`);
-      setStatusDialogOpen(false);
-      setSelectedEmployee(null);
+      try {
+        const enabled = selectedEmployee.status !== 'ENABLED';
+        const updatedEmployee = await EmployeeService.updateEmployeeStatus(selectedEmployee.id, enabled);
+        setEmployees((prev) =>
+          prev.map((emp) =>
+            emp.id === selectedEmployee.id ? updatedEmployee : emp
+          )
+        );
+        toast.success(`Employé ${enabled ? 'activé' : 'désactivé'} avec succès!`);
+        setStatusDialogOpen(false);
+        setSelectedEmployee(null);
+      } catch (error: any) {
+        toast.error(`Erreur lors du changement de statut: ${error.message || 'Une erreur est survenue.'}`);
+      }
     }
   };
 
@@ -167,86 +142,91 @@ export function EmployeesPage() {
     setStatusDialogOpen(true);
   };
 
-  const getStatusText = (status: string) => {
+  const getStatusText = (status?: string) => {
     switch (status) {
-      case 'active':
+      case 'ENABLED':
         return 'Actif';
-      case 'inactive':
+      case 'DISABLED':
         return 'Inactif';
-      case 'pending':
-        return 'En attente';
       default:
-        return status;
+        return 'Inconnu';
     }
   };
 
-  const getRoleText = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'Administrateur';
-      case 'manager':
-        return 'Manager';
-      case 'employee':
-        return 'Employé';
-      default:
-        return role;
-    }
+  const getRoleText = (roles?: Employee['roles']) => {
+    if (!roles || roles.length === 0) return 'Aucun rôle';
+    return roles.map((role) => role.name).join(', ');
   };
 
   // Get unique values for filters
-  const subsidiaries = Array.from(new Set(employees.map(emp => emp.subsidiary)));
-  const roles = Array.from(new Set(employees.map(emp => emp.role)));
-  const statuses = Array.from(new Set(employees.map(emp => emp.status)));
+  const subsidiaries = Array.from(new Set(employees.map((emp) => emp.subsidiaryId).filter(Boolean)));
+  const roles = Array.from(
+    new Set(employees.flatMap((emp) => emp.roles?.map((role) => role.name) || []).filter(Boolean))
+  );
+  const statuses = Array.from(new Set(employees.map((emp) => emp.status).filter(Boolean)));
 
-  // Apply filters
-  const filteredEmployees = employees.filter(employee => {
-    const matchesRole = roleFilter === 'all' || employee.role === roleFilter;
-    const matchesSubsidiary = subsidiaryFilter === 'all' || employee.subsidiary === subsidiaryFilter;
+  // Apply client-side filters for status (since API doesn't support status filter directly)
+  const filteredEmployees = employees.filter((employee) => {
     const matchesStatus = statusFilter === 'all' || employee.status === statusFilter;
-    
-    return matchesRole && matchesSubsidiary && matchesStatus;
+    return matchesStatus;
   });
+
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'ENABLED':
+        return 'bg-green-100 text-green-800';
+      case 'DISABLED':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-yellow-100 text-yellow-800';
+    }
+  };
+
+  const getRoleColor = (roles?: Employee['roles']) => {
+    if (!roles || roles.length === 0) return 'bg-gray-100 text-gray-800';
+    const primaryRole = roles[0]?.name.toLowerCase();
+    switch (primaryRole) {
+      case 'admin':
+        return 'bg-red-100 text-red-800';
+      case 'manager':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   const columns = [
     {
       header: 'Employé',
-      accessor: 'name' as keyof Employee,
+      accessor: 'fullName' as keyof Employee,
       render: (employee: Employee) => (
         <div>
-          <div className="font-medium">{employee.name}</div>
+          <div className="font-medium">{employee.fullName || `${employee.firstName || ''} ${employee.lastName || ''}`}</div>
           <div className="text-sm text-muted-foreground">{employee.email}</div>
         </div>
       ),
     },
     {
-      header: 'Poste',
-      accessor: 'position' as keyof Employee,
-    },
-    {
-      header: 'Département',
-      accessor: 'department' as keyof Employee,
+      header: 'Téléphone',
+      accessor: 'phone' as keyof Employee,
+      render: (employee: Employee) => employee.phone || 'N/A',
     },
     {
       header: 'Rôle',
-      accessor: 'role' as keyof Employee,
+      accessor: 'roles' as keyof Employee,
       render: (employee: Employee) => (
         <div className="space-y-1">
-          <Badge className={getRoleColor(employee.role)}>
-            {getRoleText(employee.role)}
+          <Badge className={getRoleColor(employee.roles)}>
+            {getRoleText(employee.roles)}
           </Badge>
-          {employee.isManager && (
-            <Badge variant="outline" className="text-xs">
-              Manager
-            </Badge>
-          )}
         </div>
       ),
     },
     {
       header: 'Filiale',
-      accessor: 'subsidiary' as keyof Employee,
+      accessor: 'subsidiaryId' as keyof Employee,
       render: (employee: Employee) => (
-        <Badge variant="outline">{employee.subsidiary}</Badge>
+        <Badge variant="outline">{employee.subsidiaryId || 'Aucune'}</Badge>
       ),
     },
     {
@@ -262,7 +242,13 @@ export function EmployeesPage() {
       header: 'Créé le',
       accessor: 'createdAt' as keyof Employee,
       render: (employee: Employee) => new Date(employee.createdAt).toLocaleDateString('fr-FR'),
-    }
+    },
+  ];
+
+  const filterOptions = [
+    { label: 'Tous', value: 'all', field: 'status' as keyof Employee },
+    { label: 'Actif', value: 'ENABLED', field: 'status' as keyof Employee },
+    { label: 'Inactif', value: 'DISABLED', field: 'status' as keyof Employee },
   ];
 
   const getActions = (employee: Employee) => (
@@ -278,7 +264,6 @@ export function EmployeesPage() {
       >
         <Eye className="h-4 w-4" />
       </Button>
-      
       <Button
         size="sm"
         variant="ghost"
@@ -286,16 +271,15 @@ export function EmployeesPage() {
           e.stopPropagation();
           openStatusDialog(employee);
         }}
-        title={employee.status === 'active' ? 'Désactiver' : 'Activer'}
-        className={employee.status === 'active' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
+        title={employee.status === 'ENABLED' ? 'Désactiver' : 'Activer'}
+        className={employee.status === 'ENABLED' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
       >
-        {employee.status === 'active' ? (
+        {employee.status === 'ENABLED' ? (
           <UserX className="h-4 w-4" />
         ) : (
           <UserCheck className="h-4 w-4" />
         )}
       </Button>
-
       <Button
         size="sm"
         variant="ghost"
@@ -315,19 +299,43 @@ export function EmployeesPage() {
     setRoleFilter('all');
     setSubsidiaryFilter('all');
     setStatusFilter('all');
+    setSkip(0);
   };
 
   const hasActiveFilters = roleFilter !== 'all' || subsidiaryFilter !== 'all' || statusFilter !== 'all';
 
+  const handlePageChange = (newSkip: number, newTake: number) => {
+    setSkip(newSkip);
+    setTake(newTake);
+  };
+
+  const handleFilterChange = (filters: Record<string, string>) => {
+    if (filters.status) {
+      setStatusFilter(filters.status);
+    } else {
+      setStatusFilter('all');
+    }
+    setSkip(0);
+  };
+
+  if (!enterpriseId) {
+    return (
+      <div className="p-4 text-center">
+        <p>Vous devez être associé à une entreprise pour gérer les employés.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {loading && <div>Chargement...</div>}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Users className="h-6 w-6 text-etaxi-yellow" />
           <h2 className="text-2xl font-bold">Gestion des employés</h2>
         </div>
         <div className="flex space-x-2">
-          <Button 
+          <Button
             variant="outline"
             className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
             onClick={() => setCsvImportOpen(true)}
@@ -335,7 +343,7 @@ export function EmployeesPage() {
             <Upload className="mr-2 h-4 w-4" />
             Importer CSV
           </Button>
-          <Button 
+          <Button
             className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
             onClick={() => setAddEmployeeOpen(true)}
           >
@@ -353,12 +361,11 @@ export function EmployeesPage() {
               <Users className="h-5 w-5 text-blue-500" />
               <div>
                 <p className="text-sm text-muted-foreground">Total employés</p>
-                <p className="text-2xl font-bold">{employees.length}</p>
+                <p className="text-2xl font-bold">{total}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -366,13 +373,12 @@ export function EmployeesPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Actifs</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {employees.filter(emp => emp.status === 'active').length}
+                  {employees.filter((emp) => emp.status === 'ENABLED').length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -380,22 +386,19 @@ export function EmployeesPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Managers</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {employees.filter(emp => emp.isManager).length}
+                  {employees.filter((emp) => emp.roles?.some((role) => role.name.toLowerCase() === 'manager')).length}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Building2 className="h-5 w-5 text-orange-500" />
               <div>
                 <p className="text-sm text-muted-foreground">Filiales</p>
-                <p className="text-2xl font-bold text-orange-600">
-                  {subsidiaries.length}
-                </p>
+                <p className="text-2xl font-bold text-orange-600">{subsidiaries.length}</p>
               </div>
             </div>
           </CardContent>
@@ -427,15 +430,14 @@ export function EmployeesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les rôles</SelectItem>
-                  {roles.map(role => (
+                  {roles.map((role) => (
                     <SelectItem key={role} value={role}>
-                      {getRoleText(role)}
+                      {role}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium">Filiale</label>
               <Select value={subsidiaryFilter} onValueChange={setSubsidiaryFilter}>
@@ -444,7 +446,7 @@ export function EmployeesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Toutes les filiales</SelectItem>
-                  {subsidiaries.map(subsidiary => (
+                  {subsidiaries.map((subsidiary) => (
                     <SelectItem key={subsidiary} value={subsidiary}>
                       {subsidiary}
                     </SelectItem>
@@ -452,7 +454,6 @@ export function EmployeesPage() {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="space-y-2">
               <label className="text-sm font-medium">Statut</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -461,7 +462,7 @@ export function EmployeesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les statuts</SelectItem>
-                  {statuses.map(status => (
+                  {statuses.map((status) => (
                     <SelectItem key={status} value={status}>
                       {getStatusText(status)}
                     </SelectItem>
@@ -477,12 +478,18 @@ export function EmployeesPage() {
         data={filteredEmployees}
         columns={columns}
         searchPlaceholder="Rechercher un employé..."
-        itemsPerPage={10}
+        itemsPerPage={take}
+        filterOptions={filterOptions}
+        total={total}
+        skip={skip}
+        take={take}
+        onPageChange={handlePageChange}
+        onFilterChange={handleFilterChange}
         onRowClick={(employee) => navigate(`/employees/${employee.id}`)}
         actions={getActions}
         emptyMessage="Aucun employé trouvé"
       />
-      
+
       <AddEmployeeForm
         open={addEmployeeOpen}
         onOpenChange={setAddEmployeeOpen}
@@ -492,9 +499,10 @@ export function EmployeesPage() {
       <AddEmployeeFromCSV
         open={csvImportOpen}
         onOpenChange={setCsvImportOpen}
-        onEmployeesImported={(employees) => {
-          setEmployees(prev => [...prev, ...employees]);
-          toast.success(`${employees.length} employé(s) importé(s) avec succès`);
+        onEmployeesImported={(importedEmployees) => {
+          setEmployees((prev) => [...importedEmployees, ...prev]);
+          setTotal((prev) => prev + importedEmployees.length);
+          toast.success(`${importedEmployees.length} employé(s) importé(s) avec succès`);
         }}
       />
 
@@ -503,20 +511,21 @@ export function EmployeesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {selectedEmployee?.status === 'active' ? 'Désactiver' : 'Activer'} l'employé
+              {selectedEmployee?.status === 'ENABLED' ? 'Désactiver' : 'Activer'} l'employé
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir {selectedEmployee?.status === 'active' ? 'désactiver' : 'activer'} l'employé <strong>{selectedEmployee?.name}</strong> ?
-              {selectedEmployee?.status === 'active' && ' Cet employé ne pourra plus accéder au système.'}
+              Êtes-vous sûr de vouloir {selectedEmployee?.status === 'ENABLED' ? 'désactiver' : 'activer'} l'employé{' '}
+              <strong>{selectedEmployee?.fullName || `${selectedEmployee?.firstName || ''} ${selectedEmployee?.lastName || ''}`}</strong> ?{' '}
+              {selectedEmployee?.status === 'ENABLED' && ' Cet employé ne pourra plus accéder au système.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleToggleEmployeeStatus}
-              className={selectedEmployee?.status === 'active' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
+              className={selectedEmployee?.status === 'ENABLED' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
             >
-              {selectedEmployee?.status === 'active' ? 'Désactiver' : 'Activer'}
+              {selectedEmployee?.status === 'ENABLED' ? 'Désactiver' : 'Activer'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -528,8 +537,8 @@ export function EmployeesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer l'employé</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer l'employé <strong>{selectedEmployee?.name}</strong> ? 
-              Cette action est irréversible et supprimera toutes les données associées.
+              Êtes-vous sûr de vouloir supprimer l'employé{' '}
+              <strong>{selectedEmployee?.fullName || `${selectedEmployee?.firstName || ''} ${selectedEmployee?.lastName || ''}`}</strong> ? Cette action est irréversible et supprimera toutes les données associées.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

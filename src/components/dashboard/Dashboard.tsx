@@ -1,27 +1,27 @@
 import React, { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { DashboardHome } from './DashboardHome';
-import { CompanyPage } from '../../pages/dashboard/CompanyPage';
-import { EmployeesPage } from '../../pages/dashboard/EmployeesPage';
+import { CompanyPage } from '../../pages/dashboard/company/CompanyPage';
+import { EmployeesPage } from '../../pages/dashboard/employee/EmployeesPage';
 import { IndividualTransportPage } from '../../pages/dashboard/transport/IndividualTransportPage';
 import { GroupTransportPage } from '../../pages/dashboard/transport/GroupTransportPage';
 import { TaxiManagementPage } from '../../pages/dashboard/taxi/TaxiManagementPage';
 import { DispatchPage } from '../../pages/dashboard/DispatchPage';
 import { ProfilePage } from '../../pages/dashboard/ProfilePage';
-import { EmployeeDetails } from './EmployeeDetails';
+import { EmployeeDetails } from '../employee/EmployeeDetails';
 import { CreateTransportRequest } from './CreateTransportRequest';
 import { NotificationsPage } from '../../pages/dashboard/NotificationsPage';
 import { ClaimsPage } from '../../pages/dashboard/ClaimsPage';
 import { TaxiAssignmentPage } from '../../pages/dashboard/taxi/TaxiAssignmentPage';
 import { DashboardLayout } from '@/layout/DashboardLayout';
-import { EmployeeRequestsPage } from '@/pages/dashboard/EmployeeRequestsPage';
+import { EmployeeRequestsPage } from '@/pages/dashboard/employee/EmployeeRequestsPage';
 import { EmployeesLayout } from '@/layout/EmployeesLayout';
 import { DraftRequestsPage } from '@/pages/dashboard/transport/DraftRequestsPage';
 import { CreateGroupTransportRequest } from './CreateGroupTransportRequest';
 import { GroupTransportDispatchPage } from '@/pages/dashboard/transport/GroupTransportDispatchPage';
 import { TransportRequestDetails } from './TransportRequestDetails';
 import { EditTransportRequest } from './EditTransportRequest';
-import { SubsidariesPage } from '@/pages/dashboard/SubsidiariesPage';
+import { SubsidariesPage } from '@/pages/dashboard/company/SubsidiariesPage';
 
 export function Dashboard() {
   const [currentPage, setCurrentPage] = useState('dashboard');

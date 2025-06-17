@@ -14,6 +14,7 @@ export class SubsidiaryService {
   static async createSubsidiary(data: CreateSubsidiary): Promise<Subsidiary> {
     try {
       const response = await apiClient.post<Subsidiary>("/subsidiary", data);
+      console.log("Subsidiary created:", response); // Debugging log
       return response.data;
     } catch (error) {
       throw new Error(

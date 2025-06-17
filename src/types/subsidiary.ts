@@ -16,6 +16,10 @@ export interface SubsidiaryQueryParams {
   skip?: number;
   take?: number;
 }
+export interface Admin {
+  id: string;
+  name?: string; // Optional, as API response may not include name
+}
 
 export interface Subsidiary {
   id: string;
@@ -33,6 +37,7 @@ export interface Subsidiary {
   employeeCount?: number; // Made optional and kept both for compatibility
   employeesCount?: number; // Made optional
   adminIds?: string[];
+  admins?: Admin[]; // Added to match API response
   managerIds?: string[]; // Added as optional for component compatibility
   managerNames?: string[]; // Added as optional for component compatibility
 }
@@ -82,4 +87,20 @@ export interface UpdateSubsidiary {
 
 export interface UpdateStatus {
   status: EntityStatus;
+}
+
+export interface Manager {
+  id: string;
+  name: string;
+}
+
+export interface FormData {
+  name: string;
+  phone: string;
+  email: string;
+  website: string;
+  description: string;
+  selectedManagerIds: string[];
+  address: Address | null;
+  enterpriseId: string;
 }
