@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AddressInput } from '@/components/shared/AddressInput';
 import { Address, AddressType } from '@/types/addresse';
 import { FormData, Manager, Subsidiary } from '@/types/subsidiary';
+import { SelectMultiple } from '@/components/ui/select-multiple';
+import EmployeeService from '@/services/employee.service';
+import { toast } from 'sonner';
 
 interface SubsidiaryFormProps {
   editingSubsidiary: Subsidiary | null;
@@ -23,19 +25,38 @@ const SubsidiaryForm: React.FC<SubsidiaryFormProps> = ({
   editingSubsidiary,
   formData,
   setFormData,
-  managers,
   savedAddresses,
   onSubmit,
   onCancel,
 }) => {
-  const handleManagerToggle = (managerId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      selectedManagerIds: prev.selectedManagerIds.includes(managerId)
-        ? prev.selectedManagerIds.filter((id) => id !== managerId)
-        : [...prev.selectedManagerIds, managerId],
-    }));
-  };
+  const [managers, setManagers] = useState<Manager[]>([]);
+  const [loadingManagers, setLoadingManagers] = useState(false);
+
+  // Fetch managers with role ADMIN_FILIAL, include=false, status=ENABLED
+  useEffect(() => {
+    const fetchManagers = async () => {
+      setLoadingManagers(true);
+      try {
+        const query = {
+          roleName: 'ADMIN_FILIAL',
+          include: false,
+        };
+        const { data } = await EmployeeService.getAllEmployees(query);
+        console.log('Fetched managers:', data);
+        const mappedManagers: Manager[] = data.map((employee) => ({
+          id: employee.id,
+          name: employee.fullName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Sans nom',
+        }));
+        setManagers(mappedManagers);
+      } catch (error) {
+        toast.error('Erreur lors du chargement des managers');
+        console.error(error);
+      } finally {
+        setLoadingManagers(false);
+      }
+    };
+    fetchManagers();
+  }, []);
 
   return (
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto my-4 mx-4">
@@ -86,20 +107,16 @@ const SubsidiaryForm: React.FC<SubsidiaryFormProps> = ({
 
         <div>
           <Label>Managers (sélection multiple)</Label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto border rounded p-3">
-            {managers.map((manager) => (
-              <div key={manager.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={manager.id}
-                  checked={formData.selectedManagerIds.includes(manager.id)}
-                  onCheckedChange={() => handleManagerToggle(manager.id)}
-                />
-                <Label htmlFor={manager.id} className="text-sm cursor-pointer">
-                  {manager.name}
-                </Label>
-              </div>
-            ))}
-          </div>
+          <SelectMultiple
+            options={managers.map((manager) => ({
+              value: manager.id,
+              label: manager.name,
+            }))}
+            value={formData.selectedManagerIds}
+            onChange={(values) => setFormData({ ...formData, selectedManagerIds: values })}
+            placeholder={loadingManagers ? 'Chargement...' : 'Sélectionner les managers'}
+            className="mt-2"
+          />
           {formData.selectedManagerIds.length > 0 && (
             <div className="mt-2">
               <Badge variant="outline" className="text-xs">

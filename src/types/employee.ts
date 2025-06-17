@@ -1,8 +1,32 @@
-import { Address } from "./addresse";
 
 export enum UserStatus {
   ENABLED = "ENABLED",
   DISABLED = "DISABLED",
+}
+
+export interface AddressDto {
+  street?: string;
+  buildingNumber?: string;
+  complement?: string;
+  postalCode?: string;
+  cityId?: string;
+  regionId?: string;
+  countryId?: string;
+  latitude?: number;
+  longitude?: number;
+  placeId?: string;
+  formattedAddress?: string;
+  isVerified?: boolean;
+  isExact?: boolean;
+  manuallyEntered?: boolean;
+  addressType?: string;
+  notes?: string;
+}
+
+export interface UserAddressDto {
+  address: AddressDto;
+  isDefault?: boolean;
+  label?: string;
 }
 
 export interface Employee {
@@ -16,15 +40,15 @@ export interface Employee {
   enterpriseId?: string;
   subsidiaryId?: string | null;
   managerId?: string | null;
-  roles?: string[]; // Changed from Role[] to string[]
+  roles?: string[];
   roleIds?: string[];
-  address?: Address | null;
-  addresses?: Address[]; // Added to match response
-  status?: UserStatus; // Still used for frontend consistency
+  addresses?: UserAddressDto[];
+  status?: UserStatus;
   emailVerified?: boolean;
   phoneVerified?: boolean;
   accountVerified?: boolean;
-  enabled?: boolean; // Added to match response
+  enabled?: boolean;
+  subsidiary: any;
   createdAt: string;
   updatedAt?: string;
   lastLoginAt?: string;
@@ -43,25 +67,36 @@ export interface CreateEmployee {
   subsidiaryId?: string;
   managerId?: string;
   roleIds: string[];
-  address?: Omit<
-    Address,
-    | "id"
-    | "createdAt"
-    | "updatedAt"
-    | "deletedAt"
-    | "city"
-    | "region"
-    | "country"
-  >;
+  addressId?: string;
+  addresses?: UserAddressDto[];
+}
+export interface Transport {
+  id: string;
+  date: string;
+  time: string;
+  status: string;
+  departureAddress: AddressDto;
+  arrivalAddress: AddressDto;
+  requestId: string;
+}
+
+export interface Claim {
+  id: string;
+  type: "complaint" | "suggestion" | "technical";
+  subject: string;
+  description: string;
+  status: "pending" | "resolved" | "closed";
+  createdAt: string;
+  response?: string;
 }
 
 export interface UpdateEmployee {
   firstName?: string;
   lastName?: string;
-  phoneNumber?: string;
+  phone?: string; // Changed from phoneNumber to match CreateUserDto
   enterpriseId?: string;
   subsidiaryId?: string;
-  roles?: string[]; // Maps to role names in UpdateUserDto
+  roleIds?: string[]; // Changed from roles to roleIds to match CreateUserDto
 }
 
 export interface GetEmployeesQuery {

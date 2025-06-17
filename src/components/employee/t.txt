@@ -21,17 +21,9 @@ import { AddressInput } from '../shared/AddressInput';
 import { ArrowLeft, Mail, Phone, MapPin, Calendar, Clock, FilePlus, FileMinus, MessageSquare, ChevronDown, Building2, Search, Filter, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-
-interface Address {
-  id: string;
-  label: string;
-  street: string;
-  city: string;
-  postalCode: string;
-  country: string;
-  latitude?: number;
-  longitude?: number;
-}
+import { useEmployeeDetails } from '@/hooks/useEmployeeDetails';
+import { useAuth } from '@/contexts/AuthContext';
+import { Employee, Address } from '@/types/employee';
 
 interface Transport {
   id: string;
@@ -53,58 +45,28 @@ interface Claim {
   response?: string;
 }
 
-interface Employee {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: 'employee' | 'manager' | 'admin';
-  isManager: boolean;
-  status: 'active' | 'inactive';
-  subsidiary: string;
-  addresses: Address[];
-  defaultAddressId?: string;
-}
-
 export function EmployeeDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const enterpriseId = user?.enterpriseId;
 
-  const [employee, setEmployee] = useState<Employee>({
-    id: id || '1',
-    name: 'Jean Dupont',
-    email: 'jean.dupont@email.com',
-    phone: '+33 6 12 34 56 78',
-    role: 'employee',
-    isManager: false,
-    status: 'active',
-    subsidiary: 'TechCorp Paris',
-    addresses: [
-      {
-        id: 'addr1',
-        label: 'Domicile',
-        street: '15 Rue du Louvre',
-        city: 'Paris',
-        postalCode: '75001',
-        country: 'France',
-        latitude: 48.8624,
-        longitude: 2.3388
-      },
-      {
-        id: 'addr2',
-        label: 'Travail',
-        street: '101 Avenue des Champs-Élysées',
-        city: 'Paris',
-        postalCode: '75008',
-        country: 'France',
-        latitude: 48.8698,
-        longitude: 2.3075
-      }
-    ],
-    defaultAddressId: 'addr1'
-  });
+  const { employee, loading, updateEmployee } = useEmployeeDetails({ id: id || '', enterpriseId });
 
-  const [transportHistory] = useState<Transport[]>([
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedEmployee, setEditedEmployee] = useState<Employee | null>(null);
+  const [newAddress, setNewAddress] = useState<Address | null>(null);
+  const [newAddressLabel, setNewAddressLabel] = useState('');
+
+  // Claims pagination and filtering
+  const [currentClaimsPage, setCurrentClaimsPage] = useState(1);
+  const [claimsPerPage] = useState(3);
+  const [claimsSearchTerm, setClaimsSearchTerm] = useState('');
+  const [claimsTypeFilter, setClaimsTypeFilter] = useState<string>('all');
+  const [claimsStatusFilter, setClaimsStatusFilter] = useState<string>('all');
+
+  // Données statiques pour transportHistory et claimsHistory (à remplacer par des API)
+ const [transportHistory] = useState<Transport[]>([
     {
       id: 'tr1',
       date: '2025-05-28',
@@ -180,28 +142,48 @@ export function EmployeeDetails() {
     }
   ]);
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedEmployee, setEditedEmployee] = useState<Employee>({...employee});
-  const [newAddress, setNewAddress] = useState<Address | null>(null);
-  const [newAddressLabel, setNewAddressLabel] = useState('');
-  
-  // Claims pagination and filtering
-  const [currentClaimsPage, setCurrentClaimsPage] = useState(1);
-  const [claimsPerPage] = useState(3);
-  const [claimsSearchTerm, setClaimsSearchTerm] = useState('');
-  const [claimsTypeFilter, setClaimsTypeFilter] = useState<string>('all');
-  const [claimsStatusFilter, setClaimsStatusFilter] = useState<string>('all');
-
   const subsidiaries = [
     { id: '1', name: 'TechCorp Paris' },
     { id: '2', name: 'TechCorp Lyon' },
-    { id: '3', name: 'TechCorp Marseille' }
+    { id: '3', name: 'TechCorp Marseille' },
   ];
 
-  const handleSave = () => {
-    setEmployee(editedEmployee);
-    setIsEditing(false);
-    toast.success('Informations de l\'employé mises à jour');
+  const roleMapping: Record<string, string> = {
+    EMPLOYEE_ROLE_ID: 'employee',
+    MANAGER_ROLE_ID: 'manager',
+    ADMIN_ROLE_ID: 'admin',
+  };
+
+  const reverseRoleMapping: Record<string, string> = {
+    employee: 'EMPLOYEE_ROLE_ID',
+    manager: 'MANAGER_ROLE_ID',
+    admin: 'ADMIN_ROLE_ID',
+  };
+
+  useEffect(() => {
+    if (employee) {
+      setEditedEmployee({ ...employee });
+    }
+  }, [employee]);
+
+  const handleSave = async () => {
+    if (!editedEmployee) return;
+
+    try {
+      await updateEmployee({
+        fullName: editedEmployee.fullName,
+        email: editedEmployee.email,
+        phone: editedEmployee.phone,
+        roleIds: [reverseRoleMapping[editedEmployee.roleIds[0]] || editedEmployee.roleIds[0]],
+        isManager: editedEmployee.isManager,
+        subsidiaryId: subsidiaries.find(s => s.name === editedEmployee.subsidiary?.name)?.id,
+        addresses: editedEmployee.addresses,
+        defaultAddressId: editedEmployee.defaultAddressId,
+      });
+      setIsEditing(false);
+    } catch (error) {
+      // Erreur gérée par useEmployeeDetails
+    }
   };
 
   const handleAddAddress = () => {
@@ -209,17 +191,16 @@ export function EmployeeDetails() {
       toast.error('Veuillez remplir le libellé et l\'adresse');
       return;
     }
-    
+
     const addressWithLabel = {
       ...newAddress,
       id: `new-${Date.now()}`,
-      label: newAddressLabel
+      label: newAddressLabel,
     };
-    
-    const updatedAddresses = [...editedEmployee.addresses, addressWithLabel];
+
     setEditedEmployee({
-      ...editedEmployee,
-      addresses: updatedAddresses
+      ...editedEmployee!,
+      addresses: [...editedEmployee!.addresses, addressWithLabel],
     });
     setNewAddress(null);
     setNewAddressLabel('');
@@ -227,26 +208,29 @@ export function EmployeeDetails() {
   };
 
   const handleRemoveAddress = (addressId: string) => {
+    if (!editedEmployee) return;
+
     const updatedAddresses = editedEmployee.addresses.filter(addr => addr.id !== addressId);
-    
     let updatedDefaultAddressId = editedEmployee.defaultAddressId;
     if (editedEmployee.defaultAddressId === addressId) {
       updatedDefaultAddressId = updatedAddresses.length > 0 ? updatedAddresses[0].id : undefined;
     }
-    
+
     setEditedEmployee({
       ...editedEmployee,
       addresses: updatedAddresses,
-      defaultAddressId: updatedDefaultAddressId
+      defaultAddressId: updatedDefaultAddressId,
     });
-    
+
     toast.success('Adresse supprimée');
   };
 
   const setDefaultAddress = (addressId: string) => {
+    if (!editedEmployee) return;
+
     setEditedEmployee({
       ...editedEmployee,
-      defaultAddressId: addressId
+      defaultAddressId: addressId,
     });
     toast.success('Adresse par défaut mise à jour');
   };
@@ -273,7 +257,8 @@ export function EmployeeDetails() {
     }
   };
 
-  const getRoleText = (role: string) => {
+  const getRoleText = (roleIds: string[]) => {
+    const role = roleMapping[roleIds[0]] || 'employee';
     switch (role) {
       case 'admin': return 'Administrateur';
       case 'manager': return 'Manager';
@@ -284,11 +269,11 @@ export function EmployeeDetails() {
 
   // Filter claims
   const filteredClaims = claimsHistory.filter(claim => {
-    const matchesSearch = claim.subject.toLowerCase().includes(claimsSearchTerm.toLowerCase()) || 
-                         claim.description.toLowerCase().includes(claimsSearchTerm.toLowerCase());
+    const matchesSearch = claim.subject.toLowerCase().includes(claimsSearchTerm.toLowerCase()) ||
+      claim.description.toLowerCase().includes(claimsSearchTerm.toLowerCase());
     const matchesType = claimsTypeFilter === 'all' || claim.type === claimsTypeFilter;
     const matchesStatus = claimsStatusFilter === 'all' || claim.status === claimsStatusFilter;
-    
+
     return matchesSearch && matchesType && matchesStatus;
   });
 
@@ -297,6 +282,14 @@ export function EmployeeDetails() {
   const indexOfFirstClaim = indexOfLastClaim - claimsPerPage;
   const currentClaims = filteredClaims.slice(indexOfFirstClaim, indexOfLastClaim);
   const totalClaimsPages = Math.ceil(filteredClaims.length / claimsPerPage);
+
+  if (loading) {
+    return <div className="p-4 text-center">Chargement...</div>;
+  }
+
+  if (!employee || !editedEmployee) {
+    return <div className="p-4 text-center">Employé non trouvé</div>;
+  }
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -309,15 +302,15 @@ export function EmployeeDetails() {
           <ArrowLeft className="h-4 w-4 mr-1" />
           Retour
         </Button>
-        
-        <h2 className="text-2xl font-bold">{employee.name}</h2>
-        
-        <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
-          {employee.status === 'active' ? 'Actif' : 'Inactif'}
+
+        <h2 className="text-2xl font-bold">{employee.fullName}</h2>
+
+        <Badge variant={employee.status === 'ENABLED' ? 'default' : 'secondary'}>
+          {employee.status === 'ENABLED' ? 'Actif' : employee.status === 'PENDING' ? 'En attente' : 'Inactif'}
         </Badge>
-        
+
         {!isEditing ? (
-          <Button 
+          <Button
             className="ml-auto bg-etaxi-yellow hover:bg-yellow-500 text-black"
             onClick={() => setIsEditing(true)}
           >
@@ -328,7 +321,7 @@ export function EmployeeDetails() {
             <Button variant="outline" onClick={() => setIsEditing(false)}>
               Annuler
             </Button>
-            <Button 
+            <Button
               className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
               onClick={handleSave}
             >
@@ -345,7 +338,7 @@ export function EmployeeDetails() {
           <TabsTrigger value="history">Historique transport</TabsTrigger>
           <TabsTrigger value="claims">Réclamations</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="info" className="space-y-4 mt-4">
           <Card>
             <CardHeader>
@@ -356,32 +349,32 @@ export function EmployeeDetails() {
                 <div className="space-y-2">
                   <Label>Nom complet</Label>
                   <Input
-                    value={isEditing ? editedEmployee.name : employee.name}
-                    onChange={(e) => setEditedEmployee({...editedEmployee, name: e.target.value})}
+                    value={isEditing ? editedEmployee.fullName : employee.fullName}
+                    onChange={(e) => setEditedEmployee({ ...editedEmployee, fullName: e.target.value })}
                     disabled={!isEditing}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       value={isEditing ? editedEmployee.email : employee.email}
-                      onChange={(e) => setEditedEmployee({...editedEmployee, email: e.target.value})}
+                      onChange={(e) => setEditedEmployee({ ...editedEmployee, email: e.target.value })}
                       disabled={!isEditing}
                       className="pl-10"
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Téléphone</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       value={isEditing ? editedEmployee.phone : employee.phone}
-                      onChange={(e) => setEditedEmployee({...editedEmployee, phone: e.target.value})}
+                      onChange={(e) => setEditedEmployee({ ...editedEmployee, phone: e.target.value })}
                       disabled={!isEditing}
                       className="pl-10"
                     />
@@ -392,9 +385,9 @@ export function EmployeeDetails() {
                   <Label>Rôle</Label>
                   {isEditing ? (
                     <Select
-                      value={editedEmployee.role}
-                      onValueChange={(value: 'employee' | 'manager' | 'admin') => 
-                        setEditedEmployee({...editedEmployee, role: value})
+                      value={roleMapping[editedEmployee.roleIds[0]] || 'employee'}
+                      onValueChange={(value: 'employee' | 'manager' | 'admin') =>
+                        setEditedEmployee({ ...editedEmployee, roleIds: [reverseRoleMapping[value]] })
                       }
                     >
                       <SelectTrigger>
@@ -409,7 +402,7 @@ export function EmployeeDetails() {
                   ) : (
                     <div className="p-2 border rounded">
                       <Badge className="bg-blue-100 text-blue-800">
-                        {getRoleText(employee.role)}
+                        {getRoleText(employee.roleIds)}
                       </Badge>
                     </div>
                   )}
@@ -426,8 +419,8 @@ export function EmployeeDetails() {
                   </div>
                   <Switch
                     checked={editedEmployee.isManager}
-                    onCheckedChange={(checked) => 
-                      setEditedEmployee({...editedEmployee, isManager: checked})
+                    onCheckedChange={(checked) =>
+                      setEditedEmployee({ ...editedEmployee, isManager: checked })
                     }
                   />
                 </div>
@@ -445,9 +438,12 @@ export function EmployeeDetails() {
                 <Label>Filiale</Label>
                 {isEditing ? (
                   <Select
-                    value={editedEmployee.subsidiary}
-                    onValueChange={(value) => 
-                      setEditedEmployee({...editedEmployee, subsidiary: value})
+                    value={editedEmployee.subsidiary?.name}
+                    onValueChange={(value) =>
+                      setEditedEmployee({
+                        ...editedEmployee,
+                        subsidiary: { id: subsidiaries.find(s => s.name === value)?.id || '', name: value },
+                      })
                     }
                   >
                     <SelectTrigger>
@@ -464,13 +460,13 @@ export function EmployeeDetails() {
                 ) : (
                   <div className="flex items-center space-x-2 p-2 border rounded">
                     <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span>{employee.subsidiary}</span>
+                    <span>{employee.subsidiary?.name}</span>
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Adresses par défaut</CardTitle>
@@ -506,7 +502,7 @@ export function EmployeeDetails() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="addresses" className="space-y-4 mt-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -518,8 +514,8 @@ export function EmployeeDetails() {
                 <div>
                   {newAddress ? (
                     <div className="flex space-x-2">
-                      <Button 
-                        size="sm" 
+                      <Button
+                        size="sm"
                         variant="outline"
                         onClick={() => {
                           setNewAddress(null);
@@ -529,7 +525,7 @@ export function EmployeeDetails() {
                         <FileMinus className="h-4 w-4 mr-1" />
                         Annuler
                       </Button>
-                      <Button 
+                      <Button
                         size="sm"
                         onClick={handleAddAddress}
                         className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
@@ -539,16 +535,16 @@ export function EmployeeDetails() {
                       </Button>
                     </div>
                   ) : (
-                    <Button 
+                    <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setNewAddress({ 
+                      onClick={() => setNewAddress({
                         id: `new-${Date.now()}`,
                         label: '',
                         street: '',
                         city: '',
                         postalCode: '',
-                        country: 'France'
+                        country: 'France',
                       })}
                     >
                       <FilePlus className="h-4 w-4 mr-1" />
@@ -571,7 +567,7 @@ export function EmployeeDetails() {
                           placeholder="Ex: Domicile, Travail, etc."
                         />
                       </div>
-                      
+
                       <AddressInput
                         label="Adresse"
                         value={newAddress}
@@ -581,7 +577,7 @@ export function EmployeeDetails() {
                   </CardContent>
                 </Card>
               )}
-              
+
               {(isEditing ? editedEmployee.addresses : employee.addresses).length > 0 ? (
                 <div className="space-y-4">
                   {(isEditing ? editedEmployee.addresses : employee.addresses).map((address) => (
@@ -606,24 +602,24 @@ export function EmployeeDetails() {
                             )}
                           </div>
                         </div>
-                        
+
                         {isEditing ? (
                           <div className="flex space-x-2">
-                            <Button 
-                              size="sm" 
-                              variant={(isEditing ? editedEmployee.defaultAddressId : employee.defaultAddressId) === address.id 
-                                ? 'default' 
+                            <Button
+                              size="sm"
+                              variant={(isEditing ? editedEmployee.defaultAddressId : employee.defaultAddressId) === address.id
+                                ? 'default'
                                 : 'outline'}
-                              className={(isEditing ? editedEmployee.defaultAddressId : employee.defaultAddressId) === address.id 
-                                ? 'bg-etaxi-yellow hover:bg-yellow-500 text-black' 
+                              className={(isEditing ? editedEmployee.defaultAddressId : employee.defaultAddressId) === address.id
+                                ? 'bg-etaxi-yellow hover:bg-yellow-500 text-black'
                                 : ''}
                               onClick={() => setDefaultAddress(address.id)}
                             >
                               Par défaut
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
+                            <Button
+                              size="sm"
+                              variant="outline"
                               className="text-red-500 hover:text-red-700"
                               onClick={() => handleRemoveAddress(address.id)}
                             >
@@ -648,12 +644,12 @@ export function EmployeeDetails() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="history" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5" />
+                <Calendar className="" />
                 <span>Historique de transport ({transportHistory.length})</span>
               </CardTitle>
             </CardHeader>
@@ -666,7 +662,7 @@ export function EmployeeDetails() {
                       <TableHead>Heure</TableHead>
                       <TableHead>Départ</TableHead>
                       <TableHead>Arrivée</TableHead>
-                      <TableHead>Statut</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>ID Demande</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -676,13 +672,13 @@ export function EmployeeDetails() {
                       <TableRow key={transport.id}>
                         <TableCell>
                           <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-1 text-gray-500" />
+                            <Calendar className="h-4 w-4 mr-2 text-gray-500" />
                             {transport.date}
-                          </div>
-                        </TableCell>
+                          </TableCell>
+                        </div>
                         <TableCell>
                           <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-1 text-gray-500" />
+                            <Clock className="h-4 w-4 mr-2 text-gray-500" />
                             {transport.time}
                           </div>
                         </TableCell>
@@ -701,8 +697,8 @@ export function EmployeeDetails() {
                         <TableCell>
                           <Badge className={
                             transport.status === 'Complété' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-blue-100 text-blue-800'
+                              ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100' 
+                              : 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100'
                           }>
                             {transport.status}
                           </Badge>
@@ -712,10 +708,9 @@ export function EmployeeDetails() {
                         </TableCell>
                         <TableCell>
                           <Button
-                            size="sm"
                             variant="ghost"
+                            size="sm"
                             onClick={() => handleViewTransportRequest(transport.requestId)}
-                            title="Voir les détails de la demande"
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -725,8 +720,8 @@ export function EmployeeDetails() {
                   </TableBody>
                 </Table>
               ) : (
-                <div className="text-center p-8 text-muted-foreground">
-                  <Calendar className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <div className="text-center p-8 text-sm text-muted-foreground">
+                  <Calendar className="h-10 w-10 mx-auto mb-4 opacity-50" />
                   <p>Aucun historique de transport</p>
                 </div>
               )}
@@ -739,7 +734,7 @@ export function EmployeeDetails() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <MessageSquare className="h-5 w-5" />
-                <span>Historique des réclamations ({claimsHistory.length})</span>
+                <span>Historique des réclamations ({filteredClaims.length})</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -786,13 +781,11 @@ export function EmployeeDetails() {
                 </div>
               </div>
 
-              {/* Claims List */}
               {filteredClaims.length > 0 ? (
                 <div className="space-y-4">
                   {currentClaims.map((claim) => (
-                    <Collapsible key={claim.id} className="border rounded-lg">
-                      <CollapsibleTrigger className="w-full text-left p-4 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-start justify-between">
+                    <Collapsible key={claim.id} className="border rounded-lg p-                      <CollapsibleTrigger classNameError='collapsible-trigger'>
+                        <div className="flex items-start justify-between p-4">
                           <div>
                             <div className="flex items-center space-x-2 mb-1">
                               <Badge className={getClaimTypeColor(claim.type)}>
@@ -800,8 +793,8 @@ export function EmployeeDetails() {
                                  claim.type === 'suggestion' ? 'Suggestion' : 'Technique'}
                               </Badge>
                               <Badge className={getClaimStatusColor(claim.status)}>
-                                {claim.status === 'pending' ? 'En attente' :
-                                 claim.status === 'resolved' ? 'Résolu' : 'Fermé'}
+                                {claim.status === 'pending' ? 'En attente' : 
+                                  claim.status === 'resolved' ? 'Résolu' : 'Fermé'}
                               </Badge>
                             </div>
                             <h4 className="font-medium">{claim.subject}</h4>
@@ -821,14 +814,14 @@ export function EmployeeDetails() {
                       <CollapsibleContent>
                         <div className="p-4 pt-0 border-t">
                           <div className="mb-3">
-                            <p className="text-sm font-medium text-muted-foreground mb-1">Description complète:</p>
+                            <p className="text-sm font-medium text-muted-foreground mb-1">Description complète :</p>
                             <p className="text-sm">{claim.description}</p>
                           </div>
                           
                           {claim.response && (
-                            <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded">
-                              <p className="text-sm font-medium text-green-800 mb-1">Réponse:</p>
-                              <p className="text-sm text-green-700">{claim.response}</p>
+                            <div className="bg-green-50 dark:bg-green-900/50 border-l-4 border-green-500 p-3 rounded">
+                              <p className="text-sm font-medium text-green-800 dark:text-green-100 mb-1">Réponse :</p>
+                              <p className="text-sm text-green-700 dark:text-green-200">{claim.response}</p>
                             </div>
                           )}
                           
@@ -841,13 +834,12 @@ export function EmployeeDetails() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center p-8 text-muted-foreground">
-                  <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <div className="text-center p-8 text-sm text-muted-foreground">
+                  <MessageSquare className="h-10 w-10 mx-auto mb-4 opacity-50" />
                   <p>Aucune réclamation trouvée</p>
                 </div>
               )}
 
-              {/* Pagination */}
               {filteredClaims.length > 0 && (
                 <Pagination>
                   <PaginationContent>

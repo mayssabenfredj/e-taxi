@@ -54,7 +54,9 @@ console.log("user in the context", userData);
       return true;
     } catch (error: any) {
       setIsLoading(false);
-      const errorMessage = error.response?.data?.message || 'Erreur lors de la connexion';
+      console.log('error ******', error);
+      const errorMessage = error.response?.message;
+      console.log('error', errorMessage);
       setError(errorMessage);
       return false;
     }

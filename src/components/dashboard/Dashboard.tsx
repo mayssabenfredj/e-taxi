@@ -8,7 +8,6 @@ import { GroupTransportPage } from '../../pages/dashboard/transport/GroupTranspo
 import { TaxiManagementPage } from '../../pages/dashboard/taxi/TaxiManagementPage';
 import { DispatchPage } from '../../pages/dashboard/DispatchPage';
 import { ProfilePage } from '../../pages/dashboard/ProfilePage';
-import { EmployeeDetails } from '../employee/EmployeeDetails';
 import { CreateTransportRequest } from './CreateTransportRequest';
 import { NotificationsPage } from '../../pages/dashboard/NotificationsPage';
 import { ClaimsPage } from '../../pages/dashboard/ClaimsPage';
@@ -22,6 +21,7 @@ import { GroupTransportDispatchPage } from '@/pages/dashboard/transport/GroupTra
 import { TransportRequestDetails } from './TransportRequestDetails';
 import { EditTransportRequest } from './EditTransportRequest';
 import { SubsidariesPage } from '@/pages/dashboard/company/SubsidiariesPage';
+import { EmployeeDetails } from '@/pages/dashboard/employee/EmployeeDetails';
 
 export function Dashboard() {
   const [currentPage, setCurrentPage] = useState('dashboard');

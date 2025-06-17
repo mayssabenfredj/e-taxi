@@ -6,7 +6,6 @@ import { Subsidiary, EntityStatus } from '@/types/subsidiary';
 import { User, MapPin, Phone, Mail, Globe, Users, Edit, Settings2 } from 'lucide-react';
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useNavigate } from 'react-router-dom';
 
 interface SubsidiaryTableProps {
   subsidiaries: Subsidiary[];
@@ -29,12 +28,10 @@ const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
   onEdit,
   onUpdateStatus,
 }) => {
-  const navigate = useNavigate();
-
   const columns = [
     {
       header: 'Nom',
-      accessor: 'name' as keyof Subsidiary,
+      accessor: 'name',
       sortable: true,
       render: (item: Subsidiary) => (
         <div className="text-left">
@@ -47,7 +44,7 @@ const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
     },
     {
       header: 'Managers',
-      accessor: 'managerNames' as keyof Subsidiary,
+      accessor: 'managerNames',
       sortable: true,
       render: (item: Subsidiary) => (
         <div className="text-left">
@@ -71,7 +68,7 @@ const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
     },
     {
       header: 'Adresse',
-      accessor: 'address' as keyof Subsidiary,
+      accessor: 'address',
       sortable: false,
       render: (item: Subsidiary) => (
         <div className="flex items-center text-left">
@@ -87,7 +84,7 @@ const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
     },
     {
       header: 'Contact',
-      accessor: 'phone' as keyof Subsidiary, // Using 'phone' as a representative accessor
+      accessor: 'contact',
       sortable: false,
       render: (item: Subsidiary) => (
         <div className="space-y-1 text-left">
@@ -114,18 +111,18 @@ const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
     },
     {
       header: 'Employés',
-      accessor: 'employeesCount' as keyof Subsidiary,
+      accessor: 'employeesCount',
       sortable: true,
       render: (item: Subsidiary) => (
         <div className="flex items-center text-left">
           <Users className="mr-1 h-4 w-4" />
-          {item.employeesCount || 0}
+          {item.employeesCount || item.employeeCount || 0}
         </div>
       ),
     },
     {
       header: 'Statut',
-      accessor: 'status' as keyof Subsidiary,
+      accessor: 'status',
       sortable: true,
       filterable: true,
       render: (item: Subsidiary) => (
@@ -143,11 +140,11 @@ const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
   ];
 
   const filterOptions = [
-    { label: 'Tous', value: 'all', field: 'status' as keyof Subsidiary },
-    { label: 'Actif', value: EntityStatus.ACTIVE, field: 'status' as keyof Subsidiary },
-    { label: 'Inactif', value: EntityStatus.INACTIVE, field: 'status' as keyof Subsidiary },
-    { label: 'En attente', value: EntityStatus.PENDING, field: 'status' as keyof Subsidiary },
-    { label: 'Archivé', value: EntityStatus.ARCHIVED, field: 'status' as keyof Subsidiary },
+    { label: 'Tous', value: 'all', field: 'status' },
+    { label: 'Actif', value: EntityStatus.ACTIVE, field: 'status' },
+    { label: 'Inactif', value: EntityStatus.INACTIVE, field: 'status' },
+    { label: 'En attente', value: EntityStatus.PENDING, field: 'status' },
+    { label: 'Archivé', value: EntityStatus.ARCHIVED, field: 'status' },
   ];
 
   const actions = (item: Subsidiary) => (
@@ -197,13 +194,12 @@ const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
         columns={columns}
         searchPlaceholder="Rechercher une filiale..."
         actions={actions}
-        filterOptions={filterOptions}
+        filterOptions={filterOptions as { label: string; value: string; field: keyof Subsidiary }[]}
         total={total}
         skip={skip}
         take={take}
         onPageChange={onPageChange}
         onFilterChange={onFilterChange}
-        onRowClick={(subsidiary) => navigate(`/subsidiaries/${subsidiary.id}`)}
       />
     </div>
   );
