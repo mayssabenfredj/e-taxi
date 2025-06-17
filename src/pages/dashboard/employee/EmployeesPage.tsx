@@ -153,15 +153,15 @@ export function EmployeesPage() {
     }
   };
 
-  const getRoleText = (roles?: Employee['roles']) => {
+  const getRoleText = (roles?: string[]) => {
     if (!roles || roles.length === 0) return 'Aucun rôle';
-    return roles.map((role) => role.name).join(', ');
+    return roles.join(', ');
   };
 
   // Get unique values for filters
   const subsidiaries = Array.from(new Set(employees.map((emp) => emp.subsidiaryId).filter(Boolean)));
   const roles = Array.from(
-    new Set(employees.flatMap((emp) => emp.roles?.map((role) => role.name) || []).filter(Boolean))
+    new Set(employees.flatMap((emp) => emp.roles || []).filter(Boolean))
   );
   const statuses = Array.from(new Set(employees.map((emp) => emp.status).filter(Boolean)));
 
@@ -182,11 +182,11 @@ export function EmployeesPage() {
     }
   };
 
-  const getRoleColor = (roles?: Employee['roles']) => {
+  const getRoleColor = (roles?: string[]) => {
     if (!roles || roles.length === 0) return 'bg-gray-100 text-gray-800';
-    const primaryRole = roles[0]?.name.toLowerCase();
+    const primaryRole = roles[0]?.toLowerCase();
     switch (primaryRole) {
-      case 'admin':
+      case 'admin_entreprise':
         return 'bg-red-100 text-red-800';
       case 'manager':
         return 'bg-blue-100 text-blue-800';
@@ -386,7 +386,7 @@ export function EmployeesPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Managers</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {employees.filter((emp) => emp.roles?.some((role) => role.name.toLowerCase() === 'manager')).length}
+                  {employees.filter((emp) => emp.roles?.some((role) => role.toLowerCase() === 'manager')).length}
                 </p>
               </div>
             </div>

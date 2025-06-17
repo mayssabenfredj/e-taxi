@@ -1,137 +1,82 @@
-import apiClient from "./apiClient";
-import {
-  Employee,
-  CreateEmployee,
-  UpdateEmployee,
-  GetEmployeesQuery,
-  GetEmployeesPagination,
-} from "../types/employee";
-import { Role } from "@/types/role";
 
-export class EmployeeService {
-  // Get all employees with pagination and filters
-  static async getAllEmployees(query: GetEmployeesPagination) {
-    try {
-      const response = await apiClient.get<{ data: Employee[]; total: number }>(
-        "/users",
-        { params: query }
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        `Failed to fetch employees: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
+import { Employee, GetEmployeesPagination, CreateEmployee } from '@/types/employee';
+import apiClient from './apiClient';
 
-  // Get a single employee by ID
-  static async getEmployee(id: string) {
-    try {
-      const response = await apiClient.get<Employee>(`/users/${id}`);
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        `Failed to fetch employee: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
+const API_URL = 'http://localhost:3000/api/v1';
 
-  // Create a new employee
-  static async createEmployee(createData: CreateEmployee) {
+class EmployeeService {
+  async getAllEmployees(query: GetEmployeesPagination): Promise<{ data: Employee[]; total: number }> {
     try {
-      const response = await apiClient.post<Employee>("/users", createData);
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        `Failed to create employee: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
-
-  // Update an existing employee
-  static async updateEmployee(id: string, updateData: UpdateEmployee) {
-    try {
-      const response = await apiClient.put<Employee>(
-        `/users/${id}`,
-        updateData
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        `Failed to update employee: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
-
-  // Delete an employee
-  static async deleteEmployee(id: string) {
-    try {
-      const response = await apiClient.delete<{ message: string }>(
-        `/users/${id}`
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        `Failed to delete employee: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
-
-  // Update employee status
-  static async updateEmployeeStatus(id: string, enabled: boolean) {
-    try {
-      const response = await apiClient.put<Employee>(`/users/${id}/status`, {
-        enabled,
+      const response = await apiClient.get(`${API_URL}/users`, {
+        params: query,
       });
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        `Failed to update employee status: ${
-          error.response?.data?.message || error.message
-        }`
-      );
+
+      const { data, meta } = response.data;
+      // Transform response to match Employee interface
+      const transformedData: Employee[] = data.map((item: any) => ({
+        ...item,
+        status: item.enabled ? 'ENABLED' : 'DISABLED', // Map enabled to status
+        roles: item.roles || [], // Ensure roles is string[]
+        addresses: item.addresses || [],
+      }));
+
+      return {
+        data: transformedData,
+        total: meta.total,
+      };
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch employees');
     }
   }
 
-  // Get all roles
-  static async getAllRoles() {
+  async createEmployee(data: CreateEmployee): Promise<Employee> {
     try {
-      const response = await apiClient.get<Role[]>("/users/roles");
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        `Failed to fetch roles: ${
-          error.response?.data?.message || error.message
-        }`
-      );
+      const response = await apiClient.post(`${API_URL}/users`, data);
+
+      const employee = response.data.data;
+      return {
+        ...employee,
+        status: employee.enabled ? 'ENABLED' : 'DISABLED',
+        roles: employee.roles || [],
+        addresses: employee.addresses || [],
+      };
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to create employee');
     }
   }
 
-  // Get all permissions
-  static async getAllPermissions() {
+  async deleteEmployee(id: string): Promise<void> {
     try {
-      const response = await apiClient.get<string[]>(
-        "/users/roles/permissions"
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        `Failed to fetch permissions: ${
-          error.response?.data?.message || error.message
-        }`
-      );
+      await apiClient.delete(`${API_URL}/users/${id}`);
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to delete employee');
+    }
+  }
+
+  async updateEmployeeStatus(id: string, enabled: boolean): Promise<Employee> {
+    try {
+      const response = await apiClient.patch(`${API_URL}/users/${id}/status`, { enabled });
+
+      const employee = response.data.data;
+      return {
+        ...employee,
+        status: employee.enabled ? 'ENABLED' : 'DISABLED',
+        roles: employee.roles || [],
+        addresses: employee.addresses || [],
+      };
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to update employee status');
+    }
+  }
+
+  async getAllRoles(): Promise<any[]> {
+    try {
+      const response = await apiClient.get(`${API_URL}/roles`);
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch roles');
     }
   }
 }
 
-export default EmployeeService;
+export default new EmployeeService();

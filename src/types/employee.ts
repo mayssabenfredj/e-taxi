@@ -1,5 +1,4 @@
 import { Address } from "./addresse";
-import { Role } from "./role";
 
 export enum UserStatus {
   ENABLED = "ENABLED",
@@ -10,19 +9,25 @@ export interface Employee {
   id: string;
   email: string;
   fullName?: string;
-  firstName?: string;
-  lastName?: string;
+  firstName?: string | null;
+  lastName?: string | null;
   phone?: string;
-  alternativePhone?: string;
+  alternativePhone?: string | null;
   enterpriseId?: string;
-  subsidiaryId?: string;
-  managerId?: string;
-  roles?: Role[];
+  subsidiaryId?: string | null;
+  managerId?: string | null;
+  roles?: string[]; // Changed from Role[] to string[]
   roleIds?: string[];
   address?: Address | null;
-  status?: UserStatus;
+  addresses?: Address[]; // Added to match response
+  status?: UserStatus; // Still used for frontend consistency
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  accountVerified?: boolean;
+  enabled?: boolean; // Added to match response
   createdAt: string;
   updatedAt?: string;
+  lastLoginAt?: string;
   deletedAt?: string | null;
 }
 
