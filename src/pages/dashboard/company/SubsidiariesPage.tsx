@@ -38,15 +38,6 @@ export function SubsidariesPage() {
     enterpriseId: enterpriseId || '',
   });
 
-  const managers: Manager[] = [
-    { id: '1', name: 'Marie Martin' },
-    { id: '2', name: 'Pierre Durand' },
-    { id: '3', name: 'Sophie Laurent' },
-    { id: '4', name: 'Jean Dupont' },
-    { id: '5', name: 'Claire Rousseau' },
-    { id: '6', name: 'Thomas Dubois' },
-  ];
-
   const savedAddresses: Address[] = [
     {
       id: 'saved1',
@@ -99,7 +90,7 @@ export function SubsidariesPage() {
           adminIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
           managerIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
           managerNames: sub.admins
-            ? managers.filter((m) => sub.admins.some((admin: { id: string }) => admin.id === m.id)).map((m) => m.name)
+            ? sub.admins.map((admin: { firstName: string; lastName: string }) => `${admin.firstName} ${admin.lastName}`)
             : [],
         }));
         setSubsidiaries(mappedData);
@@ -193,7 +184,7 @@ export function SubsidariesPage() {
           adminIds: updated.admins?.map((admin: { id: string }) => admin.id) || [],
           managerIds: updated.admins?.map((admin: { id: string }) => admin.id) || [],
           managerNames: updated.admins
-            ? managers.filter((m) => updated.admins.some((admin: { id: string }) => admin.id === m.id)).map((m) => m.name)
+            ? updated.admins.map((admin: { firstName: string; lastName: string }) => `${admin.firstName} ${admin.lastName}`)
             : [],
         };
         setSubsidiaries((prev) =>
@@ -232,7 +223,7 @@ export function SubsidariesPage() {
           adminIds: created.admins?.map((admin: { id: string }) => admin.id) || [],
           managerIds: created.admins?.map((admin: { id: string }) => admin.id) || [],
           managerNames: created.admins
-            ? managers.filter((m) => created.admins.some((admin: { id: string }) => admin.id === m.id)).map((m) => m.name)
+            ? created.admins.map((admin: { firstName: string; lastName: string }) => `${admin.firstName} ${admin.lastName}`)
             : [],
         };
         setSubsidiaries((prev) => [newSubsidiary, ...prev]);
@@ -286,7 +277,7 @@ export function SubsidariesPage() {
         adminIds: updated.admins?.map((admin: { id: string }) => admin.id) || subsidiary.adminIds || [],
         managerIds: updated.admins?.map((admin: { id: string }) => admin.id) || subsidiary.managerIds || [],
         managerNames: updated.admins
-          ? managers.filter((m) => updated.admins.some((admin: { id: string }) => admin.id === m.id)).map((m) => m.name)
+          ? updated.admins.map((admin: { firstName: string; lastName: string }) => `${admin.firstName} ${admin.lastName}`)
           : subsidiary.managerNames || [],
       };
       setSubsidiaries((prev) =>
@@ -322,7 +313,8 @@ export function SubsidariesPage() {
             editingSubsidiary={editingSubsidiary}
             formData={formData}
             setFormData={setFormData}
-            managers={managers}
+            // Pass an empty array for managers if not needed, or fetch dynamically
+            managers={[]}
             savedAddresses={savedAddresses}
             onSubmit={handleSubmit}
             onCancel={resetForm}

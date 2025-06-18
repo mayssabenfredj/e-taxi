@@ -16,7 +16,6 @@ interface SubsidiaryFormProps {
   formData: FormData;
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
   managers: Manager[];
-  savedAddresses: Address[];
   onSubmit: () => Promise<void>;
   onCancel: () => void;
 }
@@ -25,7 +24,6 @@ const SubsidiaryForm: React.FC<SubsidiaryFormProps> = ({
   editingSubsidiary,
   formData,
   setFormData,
-  savedAddresses,
   onSubmit,
   onCancel,
 }) => {
@@ -39,7 +37,7 @@ const SubsidiaryForm: React.FC<SubsidiaryFormProps> = ({
       try {
         const query = {
           roleName: 'ADMIN_FILIAL',
-          include: false,
+          includeAllData: false,
         };
         const { data } = await EmployeeService.getAllEmployees(query);
         console.log('Fetched managers:', data);
@@ -80,7 +78,6 @@ const SubsidiaryForm: React.FC<SubsidiaryFormProps> = ({
           label="Adresse"
           value={formData.address as Address}
           onChange={(address) => setFormData({ ...formData, address })}
-          savedAddresses={savedAddresses}
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

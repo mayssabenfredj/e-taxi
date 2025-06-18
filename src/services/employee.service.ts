@@ -150,7 +150,7 @@ class EmployeeService {
       });
 
       console.log("response update status ", response);
-      const employee = response.data.data;
+      const employee = response.data;
       return {
         ...employee,
         status: employee.enabled ? "ENABLED" : "DISABLED",

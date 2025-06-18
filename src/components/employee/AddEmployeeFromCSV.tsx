@@ -199,9 +199,9 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
         const invalidCount = employees.length - validCount;
         
         if (invalidCount > 0) {
-          toast.warning(`${validCount} employé(s) valide(s), ${invalidCount} avec des erreurs`);
+          toast.warning(`${validCount} employé${validCount > 1 ? 's' : ''} valide(s), ${invalidCount} avec${invalidCount > 1 ? ' des erreurs' : ' une erreur'}`);
         } else {
-          toast.success(`${validCount} employé(s) prêt(s) à être importé(s)`);
+          toast.success(`${validCount} employé${validCount > 1 ? 's' : ''} prêt${validCount > 1 ? 's' : ''} à être importé${validCount > 1 ? 's' : ''}`);
         }
       }
     } catch (error) {
@@ -275,12 +275,15 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
       };
     });
 
+    // Log the formatted employees array
+    console.log('Formatted Employees:', formattedEmployees);
+
     onEmployeesImported(formattedEmployees);
     
     resetState();
     onOpenChange(false);
     
-    toast.success(`${validEmployees.length} employé(s) importé(s) avec succès`);
+    toast.success(`${validEmployees.length} employé${validEmployees.length > 1 ? 's' : ''} importé${validEmployees.length > 1 ? 's' : ''} avec succès`);
   };
 
   const resetState = () => {
@@ -311,7 +314,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto my-4">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto my-4">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Upload className="h-5 w-5 text-etaxi-yellow" />
@@ -364,11 +367,11 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
                   <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
                     Le fichier Excel doit contenir les colonnes suivantes :
                   </p>
-                  <Table>
+                  <Table className="table-auto min-w-full">
                     <TableHeader>
                       <TableRow>
                         {columns.map((col) => (
-                          <TableHead key={col}>{col}</TableHead>
+                          <TableHead key={col} className="text-left break-words">{col}</TableHead>
                         ))}
                       </TableRow>
                     </TableHeader>
@@ -408,19 +411,19 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
                 </div>
               </div>
 
-              <div className="border rounded-lg max-h-96 overflow-y-auto bg-card">
-                <Table>
+              <div className="border rounded-lg overflow-x-hidden bg-card">
+                <Table className="table-auto min-w-full">
                   <TableHeader>
                     <TableRow className="border-border">
-                      <TableHead>Statut</TableHead>
-                      <TableHead>Nom</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Téléphone</TableHead>
-                      <TableHead>Rôle</TableHead>
-                      <TableHead>Filiale</TableHead>
-                      <TableHead>Adresse domicile</TableHead>
-                      <TableHead>Adresse travail</TableHead>
-                      <TableHead>Erreurs</TableHead>
+                      <TableHead className="text-left break-words">Statut</TableHead>
+                      <TableHead className="text-left break-words">Nom</TableHead>
+                      <TableHead className="text-left break-words">Email</TableHead>
+                      <TableHead className="text-left break-words">Téléphone</TableHead>
+                      <TableHead className="text-left break-words">Rôle</TableHead>
+                      <TableHead className="text-left break-words">Filiale</TableHead>
+                      <TableHead className="text-left break-words">Adresse domicile</TableHead>
+                      <TableHead className="text-left break-words">Adresse travail</TableHead>
+                      <TableHead className="text-left break-words">Erreurs</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -432,23 +435,23 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
                           !employee.isValid && "bg-red-50 dark:bg-red-950/20"
                         )}
                       >
-                        <TableCell>
+                        <TableCell className="break-words">
                           {employee.isValid ? (
                             <CheckCircle className="h-4 w-4 text-green-500" />
                           ) : (
                             <AlertCircle className="h-4 w-4 text-red-500" />
                           )}
                         </TableCell>
-                        <TableCell>{employee.firstName} {employee.lastName}</TableCell>
-                        <TableCell>{employee.email}</TableCell>
-                        <TableCell>{employee.phone}</TableCell>
-                        <TableCell>
+                        <TableCell className="break-words">{employee.firstName} {employee.lastName}</TableCell>
+                        <TableCell className="break-words">{employee.email}</TableCell>
+                        <TableCell className="break-words">{employee.phone}</TableCell>
+                        <TableCell className="break-words">
                           <Badge variant="outline">{employee.role}</Badge>
                         </TableCell>
-                        <TableCell>{employee.subsidiary}</TableCell>
-                        <TableCell>{employee.homeAddress}</TableCell>
-                        <TableCell>{employee.workAddress}</TableCell>
-                        <TableCell>
+                        <TableCell className="break-words">{employee.subsidiary}</TableCell>
+                        <TableCell className="break-words">{employee.homeAddress}</TableCell>
+                        <TableCell className="break-words">{employee.workAddress}</TableCell>
+                        <TableCell className="break-words">
                           {employee.errors.length > 0 && (
                             <div className="text-xs text-red-600 dark:text-red-400">
                               {employee.errors.join(', ')}
