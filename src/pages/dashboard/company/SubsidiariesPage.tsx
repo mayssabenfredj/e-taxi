@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import SubsidiaryForm from '@/components/company/SubsidiaryForm';
 import SubsidiaryStats from '@/components/company/SubsidiaryStats';
-import SubsidiaryTable from '@/components/company/SubsidiaryTable';
+import { SubsidiaryTable } from '@/components/company/SubsidiaryTable';
 
 export function SubsidariesPage() {
   const { t } = useLanguage();
@@ -90,7 +90,7 @@ export function SubsidariesPage() {
           adminIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
           managerIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
           managerNames: sub.admins
-            ? sub.admins.map((admin: { firstName: string; lastName: string }) => `${admin.firstName} ${admin.lastName}`)
+            ? sub.admins.map((admin: { name?: string }) => admin.name || 'Admin sans nom')
             : [],
         }));
         setSubsidiaries(mappedData);
@@ -184,7 +184,7 @@ export function SubsidariesPage() {
           adminIds: updated.admins?.map((admin: { id: string }) => admin.id) || [],
           managerIds: updated.admins?.map((admin: { id: string }) => admin.id) || [],
           managerNames: updated.admins
-            ? updated.admins.map((admin: { firstName: string; lastName: string }) => `${admin.firstName} ${admin.lastName}`)
+            ? updated.admins.map((admin: { name?: string }) => admin.name || 'Admin sans nom')
             : [],
         };
         setSubsidiaries((prev) =>
@@ -223,7 +223,7 @@ export function SubsidariesPage() {
           adminIds: created.admins?.map((admin: { id: string }) => admin.id) || [],
           managerIds: created.admins?.map((admin: { id: string }) => admin.id) || [],
           managerNames: created.admins
-            ? created.admins.map((admin: { firstName: string; lastName: string }) => `${admin.firstName} ${admin.lastName}`)
+            ? created.admins.map((admin: { name?: string }) => admin.name || 'Admin sans nom')
             : [],
         };
         setSubsidiaries((prev) => [newSubsidiary, ...prev]);
@@ -277,7 +277,7 @@ export function SubsidariesPage() {
         adminIds: updated.admins?.map((admin: { id: string }) => admin.id) || subsidiary.adminIds || [],
         managerIds: updated.admins?.map((admin: { id: string }) => admin.id) || subsidiary.managerIds || [],
         managerNames: updated.admins
-          ? updated.admins.map((admin: { firstName: string; lastName: string }) => `${admin.firstName} ${admin.lastName}`)
+          ? updated.admins.map((admin: { name?: string }) => admin.name || 'Admin sans nom')
           : subsidiary.managerNames || [],
       };
       setSubsidiaries((prev) =>

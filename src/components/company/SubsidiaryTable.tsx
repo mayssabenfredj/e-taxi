@@ -149,7 +149,6 @@ export const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
       skip={skip}
       onPageChange={onPageChange}
       onFilterChange={onFilterChange}
-      onRowAction={(subsidiary) => navigate(`/subsidiaries/${subsidiary.id}`)}
       actions={getActions}
       emptyMessage="Aucune filiale trouvée"
     />
