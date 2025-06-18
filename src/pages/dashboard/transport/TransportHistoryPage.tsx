@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { TableWithPagination } from '@/components/ui/table-with-pagination';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TableWithPagination } from '@/components/ui/table-with-pagination';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { History, Eye, MapPin, Clock, User, Car, Star } from 'lucide-react';
+import { Car, Clock, Eye, History, MapPin, Star, User } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface TransportHistory {

@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -11,7 +10,6 @@ import Index from './pages/Index';
 import { AuthPage } from './pages/auth/AuthPage';
 import { ForgotPasswordPage } from './pages/auth/ForgetPasswordPage';
 import { UpdatePasswordPage } from './pages/auth/UpdatePasswordPage';
-import { DraftRequestsPage } from './pages/dashboard/transport/DraftRequestsPage';
 
 function App() {
   return (
@@ -21,13 +19,15 @@ function App() {
           <Router>
             <div className="min-h-screen bg-background">
               <Routes>
+                {/* Public routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<AuthPage />} />
-                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/update-password/:token" element={<UpdatePasswordPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/update-password/:token" element={<UpdatePasswordPage />} />
                 <Route path="/confirm-account/:token" element={<ConfirmAccount />} />
+                
+                {/* Protected routes - handled by Dashboard component */}
                 <Route path="/*" element={<Dashboard />} />
-
               </Routes>
               <Toaster />
             </div>

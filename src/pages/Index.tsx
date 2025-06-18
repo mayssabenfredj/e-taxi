@@ -1,12 +1,21 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LandingPage } from '@/pages/LandingPage';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 
 const Index = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
+  useEffect(() => {
+    // If not loading and not authenticated, redirect to login
+    if (!isLoading && !isAuthenticated) {
+      navigate('/auth');
+    }
+  }, [isLoading, isAuthenticated, navigate]);
+
+  // Show loading spinner while checking authentication
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -15,11 +24,13 @@ const Index = () => {
     );
   }
 
-  if (!user) {
-    return <LandingPage />;
+  // If authenticated, show dashboard
+  if (isAuthenticated && user) {
+    return <Dashboard />;
   }
 
-  return <Dashboard />;
+  // If not authenticated, show landing page (will redirect to login)
+  return <LandingPage />;
 };
 
 export default Index;

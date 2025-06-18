@@ -54,54 +54,60 @@ export function SubsidariesPage() {
   ];
 
   // Fetch subsidiaries with pagination and filters
-  useEffect(() => {
-    const fetchSubsidiaries = async () => {
-      if (!enterpriseId) {
-        setLoading(false);
-        return;
-      }
+  const fetchSubsidiaries = async () => {
+    if (!enterpriseId) {
+      setLoading(false);
+      return;
+    }
 
-      try {
-        setLoading(true);
-        const query = {
-          enterpriseId,
-          name: nameFilter || undefined,
-          status: statusFilter === 'all' ? undefined : statusFilter,
-          skip,
-          take,
-        };
-        const { data, total } = await SubsidiaryService.getAllSubsidiaries(query);
-        const mappedData: Subsidiary[] = data.map((sub) => ({
-          id: sub.id,
-          name: sub.name,
-          address: sub.address || null,
-          phone: sub.phone,
-          email: sub.email,
-          website: sub.website,
-          description: sub.description,
-          status: sub.status || EntityStatus.ACTIVE,
-          createdAt: sub.createdAt || new Date().toISOString().split('T')[0],
-          updatedAt: sub.updatedAt,
-          deletedAt: sub.deletedAt,
-          enterpriseId: sub.enterpriseId,
-          employeeCount: sub.employeeCount || 0,
-          employeesCount: sub.employeesCount || 0,
-          admins: sub.admins || [],
-          adminIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
-          managerIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
-          managerNames: sub.admins
-            ? sub.admins.map((admin: { name?: string }) => admin.name || 'Admin sans nom')
-            : [],
-        }));
-        setSubsidiaries(mappedData);
-        setTotal(total);
-        toast.success('Filiales chargées avec succès!');
-      } catch (err: any) {
-        toast.error(`Erreur lors du chargement des filiales: ${err.message || 'Une erreur est survenue.'}`);
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      setLoading(true);
+      const query = {
+        enterpriseId,
+        name: nameFilter || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        skip,
+        take,
+      };
+      const { data, total } = await SubsidiaryService.getAllSubsidiaries(query);
+      const mappedData: Subsidiary[] = data.map((sub) => ({
+        id: sub.id,
+        name: sub.name,
+        address: sub.address || null,
+        phone: sub.phone,
+        email: sub.email,
+        website: sub.website,
+        description: sub.description,
+        status: sub.status || EntityStatus.ACTIVE,
+        createdAt: sub.createdAt || new Date().toISOString().split('T')[0],
+        updatedAt: sub.updatedAt,
+        deletedAt: sub.deletedAt,
+        enterpriseId: sub.enterpriseId,
+        employeeCount: sub.employeeCount || 0,
+        employeesCount: sub.employeesCount || 0,
+        admins: sub.admins || [],
+        adminIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
+        managerIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
+        managerNames: sub.admins
+          ? sub.admins.map((admin: { name?: string }) => admin.name || 'Admin sans nom')
+          : [],
+      }));
+      setSubsidiaries(mappedData);
+      setTotal(total);
+      toast.success('Filiales chargées avec succès!');
+    } catch (err: any) {
+      toast.error(`Erreur lors du chargement des filiales: ${err.message || 'Une erreur est survenue.'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Refetch function to update table data after changes
+  const refetchData = async () => {
+    await fetchSubsidiaries();
+  };
+
+  useEffect(() => {
     fetchSubsidiaries();
   }, [enterpriseId, skip, take, nameFilter, statusFilter]);
 
@@ -151,8 +157,6 @@ export function SubsidariesPage() {
         notes: formData.address.notes || undefined,
       };
 
-      let newSubsidiary: Subsidiary;
-
       if (editingSubsidiary) {
         const updateData: UpdateSubsidiary = {
           name: formData.name,
@@ -164,32 +168,7 @@ export function SubsidariesPage() {
           address: addressData,
           status: EntityStatus.ACTIVE,
         };
-        const updated = await SubsidiaryService.updateSubsidiary(editingSubsidiary.id, updateData);
-        newSubsidiary = {
-          id: updated.id,
-          name: updated.name,
-          address: updated.address || null,
-          phone: updated.phone,
-          email: updated.email,
-          website: updated.website,
-          description: updated.description,
-          status: updated.status || EntityStatus.ACTIVE,
-          createdAt: editingSubsidiary.createdAt,
-          updatedAt: updated.updatedAt || new Date().toISOString(),
-          deletedAt: updated.deletedAt,
-          enterpriseId: updated.enterpriseId,
-          employeeCount: updated.employeeCount || 0,
-          employeesCount: updated.employeesCount || 0,
-          admins: updated.admins || [],
-          adminIds: updated.admins?.map((admin: { id: string }) => admin.id) || [],
-          managerIds: updated.admins?.map((admin: { id: string }) => admin.id) || [],
-          managerNames: updated.admins
-            ? updated.admins.map((admin: { name?: string }) => admin.name || 'Admin sans nom')
-            : [],
-        };
-        setSubsidiaries((prev) =>
-          prev.map((s) => (s.id === updated.id ? newSubsidiary : s))
-        );
+        await SubsidiaryService.updateSubsidiary(editingSubsidiary.id, updateData);
         toast.success('Filiale modifiée avec succès!');
       } else {
         const createData: CreateSubsidiary = {
@@ -203,33 +182,12 @@ export function SubsidariesPage() {
           address: addressData,
           status: EntityStatus.ACTIVE,
         };
-        const created = await SubsidiaryService.createSubsidiary(createData);
-        newSubsidiary = {
-          id: created.id,
-          name: created.name,
-          address: created.address || null,
-          phone: created.phone,
-          email: created.email,
-          website: created.website,
-          description: created.description,
-          status: created.status || EntityStatus.ACTIVE,
-          createdAt: created.createdAt || new Date().toISOString().split('T')[0],
-          updatedAt: created.updatedAt,
-          deletedAt: created.deletedAt,
-          enterpriseId: created.enterpriseId,
-          employeeCount: created.employeeCount || 0,
-          employeesCount: created.employeesCount || 0,
-          admins: created.admins || [],
-          adminIds: created.admins?.map((admin: { id: string }) => admin.id) || [],
-          managerIds: created.admins?.map((admin: { id: string }) => admin.id) || [],
-          managerNames: created.admins
-            ? created.admins.map((admin: { name?: string }) => admin.name || 'Admin sans nom')
-            : [],
-        };
-        setSubsidiaries((prev) => [newSubsidiary, ...prev]);
-        setTotal((prev) => prev + 1);
+        await SubsidiaryService.createSubsidiary(createData);
         toast.success('Filiale créée avec succès!');
       }
+      
+      // Refetch data to update the table with the latest information
+      await refetchData();
       resetForm();
     } catch (err: any) {
       toast.error(`Erreur: ${err.message || 'Une erreur est survenue.'}`);
@@ -268,22 +226,11 @@ export function SubsidariesPage() {
 
   const handleUpdateStatus = async (subsidiary: Subsidiary, newStatus: EntityStatus) => {
     try {
-      const updated = await SubsidiaryService.updateSubsidiaryStatus(subsidiary.id, newStatus);
-      const updatedSubsidiary: Subsidiary = {
-        ...subsidiary,
-        status: updated.status || newStatus,
-        updatedAt: updated.updatedAt || new Date().toISOString(),
-        admins: updated.admins || subsidiary.admins || [],
-        adminIds: updated.admins?.map((admin: { id: string }) => admin.id) || subsidiary.adminIds || [],
-        managerIds: updated.admins?.map((admin: { id: string }) => admin.id) || subsidiary.managerIds || [],
-        managerNames: updated.admins
-          ? updated.admins.map((admin: { name?: string }) => admin.name || 'Admin sans nom')
-          : subsidiary.managerNames || [],
-      };
-      setSubsidiaries((prev) =>
-        prev.map((s) => (s.id === updated.id ? updatedSubsidiary : s))
-      );
+      await SubsidiaryService.updateSubsidiaryStatus(subsidiary.id, newStatus);
       toast.success(`Statut de la filiale mis à jour à "${newStatus}" avec succès!`);
+      
+      // Refetch data to update the table with the latest information
+      await refetchData();
     } catch (err: any) {
       toast.error(`Erreur lors du changement de statut: ${err.message || 'Une erreur est survenue.'}`);
     }
@@ -315,7 +262,6 @@ export function SubsidariesPage() {
             setFormData={setFormData}
             // Pass an empty array for managers if not needed, or fetch dynamically
             managers={[]}
-            savedAddresses={savedAddresses}
             onSubmit={handleSubmit}
             onCancel={resetForm}
           />

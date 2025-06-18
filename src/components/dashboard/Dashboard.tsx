@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { DashboardHome } from './DashboardHome';
 import { CompanyPage } from '../../pages/dashboard/company/CompanyPage';
 import { EmployeesPage } from '../../pages/dashboard/employee/EmployeesPage';
@@ -25,19 +26,42 @@ import { EmployeeDetails } from '@/pages/dashboard/employee/EmployeeDetails';
 
 export function Dashboard() {
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   const handlePageChange = (page: string) => {
     setCurrentPage(page);
   };
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/auth');
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-etaxi-yellow"></div>
+      </div>
+    );
+  }
+
+  // Don't render dashboard if not authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <DashboardLayout currentPage={currentPage} onPageChange={handlePageChange}>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard\" replace />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardHome />} />
         <Route path="/company" element={<CompanyPage />} />
         <Route path="/employees" element={<EmployeesLayout />}>
-          <Route index element={<Navigate to="list\" replace />} />
+          <Route index element={<Navigate to="list" replace />} />
           <Route path="list" element={<EmployeesPage />} />
           <Route path="requests" element={<EmployeeRequestsPage />} />
         </Route>
@@ -57,6 +81,9 @@ export function Dashboard() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/claims" element={<ClaimsPage />} />
         <Route path="/assign-taxi" element={<TaxiAssignmentPage />} />
+        
+        {/* Catch all route - redirect to dashboard */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </DashboardLayout>
   );

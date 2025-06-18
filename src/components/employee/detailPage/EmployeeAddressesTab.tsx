@@ -7,6 +7,8 @@ import { MapPin, FilePlus, FileMinus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Employee, UserAddressDto, AddressDto } from '@/types/employee';
 import { AddressInput } from '@/components/shared/AddressInput';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AddressType } from '@/types/addresse';
 
 interface EmployeeAddressesTabProps {
   employee: Employee;
@@ -23,6 +25,7 @@ const EmployeeAddressesTab: React.FC<EmployeeAddressesTabProps> = ({
 }) => {
   const [newAddress, setNewAddress] = useState<AddressDto | null>(null);
   const [newAddressLabel, setNewAddressLabel] = useState('');
+  const [newAddressType, setNewAddressType] = useState<AddressType>(AddressType.CUSTOM);
 
   const handleAddAddress = () => {
     if (!newAddress || !newAddressLabel.trim()) {
@@ -33,7 +36,7 @@ const EmployeeAddressesTab: React.FC<EmployeeAddressesTabProps> = ({
     const addressWithLabel: UserAddressDto = {
       address: {
         ...newAddress,
-        addressType: 'CUSTOM',
+        addressType: newAddressType,
       },
       isDefault: false,
       label: newAddressLabel,
@@ -46,6 +49,7 @@ const EmployeeAddressesTab: React.FC<EmployeeAddressesTabProps> = ({
     });
     setNewAddress(null);
     setNewAddressLabel('');
+    setNewAddressType(AddressType.CUSTOM);
     toast.success('Adresse ajoutée avec succès');
   };
 
@@ -61,6 +65,19 @@ const EmployeeAddressesTab: React.FC<EmployeeAddressesTabProps> = ({
   };
 
   const addresses = isEditing ? editedEmployee.addresses : employee.addresses;
+
+  const getAddressTypeLabel = (type: AddressType | string) => {
+    switch (type) {
+      case AddressType.HOME:
+        return 'Domicile';
+      case AddressType.OFFICE:
+        return 'Bureau';
+      case AddressType.CUSTOM:
+        return 'Personnalisé';
+      default:
+        return 'Personnalisé';
+    }
+  };
 
   return (
     <Card>
@@ -79,6 +96,7 @@ const EmployeeAddressesTab: React.FC<EmployeeAddressesTabProps> = ({
                   onClick={() => {
                     setNewAddress(null);
                     setNewAddressLabel('');
+                    setNewAddressType(AddressType.CUSTOM);
                   }}
                 >
                   <FileMinus className="h-4 w-4 mr-1" />
@@ -101,7 +119,8 @@ const EmployeeAddressesTab: React.FC<EmployeeAddressesTabProps> = ({
                   setNewAddress({
                     street: '',
                     formattedAddress: '',
-                    addressType: 'CUSTOM',
+                    addressType: AddressType.CUSTOM,
+                    placeId: '',
                   })
                 }
               >
@@ -122,13 +141,32 @@ const EmployeeAddressesTab: React.FC<EmployeeAddressesTabProps> = ({
                   <Input
                     value={newAddressLabel}
                     onChange={(e) => setNewAddressLabel(e.target.value)}
-                    placeholder="Ex: Custom, Autre, etc."
+                    placeholder="Ex: Domicile, Bureau, Autre, etc."
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Type d'adresse</Label>
+                  <Select value={newAddressType} onValueChange={(value) => setNewAddressType(value as AddressType)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez un type d'adresse" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={AddressType.HOME}>
+                        🏠 {getAddressTypeLabel(AddressType.HOME)}
+                      </SelectItem>
+                      <SelectItem value={AddressType.OFFICE}>
+                        🏢 {getAddressTypeLabel(AddressType.OFFICE)}
+                      </SelectItem>
+                      <SelectItem value={AddressType.CUSTOM}>
+                        📍 {getAddressTypeLabel(AddressType.CUSTOM)}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <AddressInput
                   label="Adresse"
-                  value={newAddress}
-                  onChange={(address) => address && setNewAddress(address)}
+                  value={newAddress as any}
+                  onChange={(address) => address && setNewAddress(address as AddressDto)}
                 />
               </div>
             </CardContent>
@@ -146,11 +184,18 @@ const EmployeeAddressesTab: React.FC<EmployeeAddressesTabProps> = ({
                   <div className="flex items-start">
                     <MapPin className="h-5 w-5 text-etaxi-yellow mr-2 mt-0.5" />
                     <div>
-                      {address.label && (
-                        <span className="inline-block px-2 py-0.5 bg-etaxi-yellow/20 text-xs rounded mb-1">
-                          {address.label}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2 mb-1">
+                        {address.label && (
+                          <span className="inline-block px-2 py-0.5 bg-etaxi-yellow/20 text-xs rounded">
+                            {address.label}
+                          </span>
+                        )}
+                        {address.address.addressType && (
+                          <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">
+                            {getAddressTypeLabel(address.address.addressType as AddressType)}
+                          </span>
+                        )}
+                      </div>
                       <p className="font-medium">{address.address.street}</p>
                       <p className="text-sm text-muted-foreground">
                         {address.address.formattedAddress}
@@ -164,7 +209,7 @@ const EmployeeAddressesTab: React.FC<EmployeeAddressesTabProps> = ({
                     </div>
                   </div>
 
-                  {isEditing && address.address.addressType === 'CUSTOM' ? (
+                  {isEditing && (address.address.addressType === 'CUSTOM' || address.address.addressType === AddressType.CUSTOM) ? (
                     <Button
                       size="sm"
                       variant="outline"
