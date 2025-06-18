@@ -1,0 +1,40 @@
+# Use the official NGINX image as a base
+FROM nginx:alpine
+
+# Install necessary packages
+RUN apk add --no-cache \
+    openssl \
+    certbot \
+    certbot-nginx
+
+# Create necessary directories
+RUN mkdir -p /etc/letsencrypt/live/www.stg.blassa.pro \
+    && mkdir -p /var/log/nginx \
+    && mkdir -p /app/dist \
+    && mkdir -p /app/public
+
+# Copy the NGINX configuration file
+COPY config/nginx-fixed.conf /etc/nginx/nginx.conf
+
+# Copy SSL certificates (if they exist)
+COPY config/ssl/fullchain.pem /etc/letsencrypt/live/www.stg.blassa.pro/fullchain.pem
+COPY config/ssl/privkey.pem /etc/letsencrypt/live/www.stg.blassa.pro/privkey.pem
+
+# Set proper permissions for SSL certificates
+RUN chmod 644 /etc/letsencrypt/live/www.stg.blassa.pro/fullchain.pem \
+    && chmod 600 /etc/letsencrypt/live/www.stg.blassa.pro/privkey.pem
+
+# Create a health check script
+RUN echo '#!/bin/sh' > /usr/local/bin/healthcheck.sh \
+    && echo 'wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1' >> /usr/local/bin/healthcheck.sh \
+    && chmod +x /usr/local/bin/healthcheck.sh
+
+# Expose the necessary ports (80 for HTTP and 443 for HTTPS)
+EXPOSE 80 443
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD /usr/local/bin/healthcheck.sh
+
+# Start NGINX
+CMD ["nginx", "-g", "daemon off;"] 
