@@ -124,8 +124,8 @@ class EmployeeService {
   )
   {
     try {
-      
-      const response = await apiClient.patch(`/users/${id}`, data);
+      console.log("data", data);
+      const response = await apiClient.put(`/users/${id}`, data);
       console.log("response", response);
       const employee = response.data;
       return {
@@ -145,10 +145,11 @@ class EmployeeService {
 
   async updateEmployeeStatus(id: string, enabled: boolean): Promise<Employee> {
     try {
-      const response = await apiClient.patch(`/users/${id}/status`, {
+      const response = await apiClient.put(`/users/${id}/status`, {
         enabled,
       });
 
+      console.log("response update status ", response);
       const employee = response.data.data;
       return {
         ...employee,

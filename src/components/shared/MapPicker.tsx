@@ -362,132 +362,101 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
 
   return (
     <div className={`space-y-2 ${className}`}>
-      <Tabs defaultValue="carte" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="carte">Carte</TabsTrigger>
-          <TabsTrigger value="adresse">Adresse</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="carte" className="space-y-2">
-          <div className="space-y-2 p-2">
-            <div className="space-y-1">
-              <Label className="text-xs">Rechercher une adresse</Label>
-              <div className="relative flex space-x-1">
-                <Input
-                  ref={autocompleteRef}
-                  placeholder="Entrez une adresse..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    fetchSuggestions(e.target.value);
-                  }}
-                  className="flex-1 text-xs h-8"
-                />
-              </div>
-              {isSearching && (
-                <div className="text-center py-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-etaxi-yellow mx-auto"></div>
-                </div>
-              )}
-              {suggestions.length > 0 && (
-                <div className="space-y-1 max-h-32 overflow-y-auto bg-white border border-gray-200 rounded-md">
-                  {suggestions.map((prediction) => (
-                    <div
-                      key={prediction.place_id}
-                      onClick={() => handleSuggestionSelect(prediction)}
-                      className="p-2 hover:bg-muted rounded cursor-pointer"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <MapPin className="h-3 w-3 text-etaxi-yellow flex-shrink-0" />
-                        <span className="text-xs truncate">{prediction.description}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Coordonnées</Label>
-              <div className="grid grid-cols-2 gap-1">
-                <Input
-                  type="number"
-                  step="any"
-                  placeholder="Latitude"
-                  value={manualCoords.lat}
-                  onChange={(e) => handleManualCoordsChange('lat', e.target.value)}
-                  className="text-xs h-8"
-                />
-                <Input
-                  type="number"
-                  step="any"
-                  placeholder="Longitude"
-                  value={manualCoords.lng}
-                  onChange={(e) => handleManualCoordsChange('lng', e.target.value)}
-                  className="text-xs h-8"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Cliquez sur la carte pour sélectionner</Label>
-              <div
-                ref={mapRef}
-                className="w-full h-[150px] rounded-lg overflow-hidden border border-gray-200"
-              />
-            </div>
-
-            <Button
-              onClick={getCurrentLocation}
-              variant="outline"
-              className="w-full text-xs h-8"
+  <div className="space-y-2 p-2">
+    <div className="space-y-1">
+      <Label className="text-xs">Rechercher une adresse</Label>
+      <div className="relative flex space-x-1">
+        <Input
+          ref={autocompleteRef}
+          placeholder="Entrez une adresse..."
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            fetchSuggestions(e.target.value);
+          }}
+          className="flex-1 text-xs h-8"
+        />
+      </div>
+      {isSearching && (
+        <div className="text-center py-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-etaxi-yellow mx-auto"></div>
+        </div>
+      )}
+      {suggestions.length > 0 && (
+        <div className="space-y-1 max-h-32 overflow-y-auto bg-white border border-gray-200 rounded-md">
+          {suggestions.map((prediction) => (
+            <div
+              key={prediction.place_id}
+              onClick={() => handleSuggestionSelect(prediction)}
+              className="p-2 hover:bg-muted rounded cursor-pointer"
             >
-              <Target className="mr-1 h-3 w-3" />
-              Utiliser ma position
-            </Button>
-
-            {address && (
-              <div className="p-2 bg-muted rounded-lg">
-                <Label className="text-xs font-medium">Adresse sélectionnée :</Label>
-                <p className="text-xs text-muted-foreground mt-1 truncate">{address}</p>
-                <p className="text-xs text-muted-foreground">
-                  {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
-                </p>
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-3 w-3 text-etaxi-yellow flex-shrink-0" />
+                <span className="text-xs truncate">{prediction.description}</span>
               </div>
-            )}
-
-            <Button
-              onClick={handleConfirmLocation}
-              className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-xs h-8"
-              disabled={!selectedLocation}
-            >
-              Confirmer l’adresse
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="adresse" className="space-y-2">
-          <div className="space-y-2 p-2">
-            <div className="space-y-1">
-              <Label className="text-xs">Adresse complète</Label>
-              <div className="grid grid-cols-2 gap-1">
-                <Input placeholder="N° bâtiment" className="text-xs h-8" />
-                <Input placeholder="Rue *" className="text-xs h-8" />
-              </div>
-              <Input placeholder="Complément d’adresse" className="text-xs h-8" />
-              <div className="grid grid-cols-2 gap-1">
-                <Input placeholder="Code postal *" className="text-xs h-8" />
-                <Input placeholder="Ville *" className="text-xs h-8" />
-              </div>
-              <Button
-                className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-xs h-8"
-              >
-                Utiliser cette adresse
-              </Button>
             </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+          ))}
+        </div>
+      )}
     </div>
+
+    <div className="space-y-1">
+      <Label className="text-xs">Coordonnées</Label>
+      <div className="grid grid-cols-2 gap-1">
+        <Input
+          type="number"
+          step="any"
+          placeholder="Latitude"
+          value={manualCoords.lat}
+          onChange={(e) => handleManualCoordsChange('lat', e.target.value)}
+          className="text-xs h-8"
+        />
+        <Input
+          type="number"
+          step="any"
+          placeholder="Longitude"
+          value={manualCoords.lng}
+          onChange={(e) => handleManualCoordsChange('lng', e.target.value)}
+          className="text-xs h-8"
+        />
+      </div>
+    </div>
+
+    <div className="space-y-1">
+      <Label className="text-xs">Cliquez sur la carte pour sélectionner</Label>
+      <div
+        ref={mapRef}
+        className="w-full h-[150px] rounded-lg overflow-hidden border border-gray-200"
+      />
+    </div>
+
+    <Button
+      onClick={getCurrentLocation}
+      variant="outline"
+      className="w-full text-xs h-8"
+    >
+      <Target className="mr-1 h-3 w-3" />
+      Utiliser ma position
+    </Button>
+
+    {address && (
+      <div className="p-2 bg-muted rounded-lg">
+        <Label className="text-xs font-medium">Adresse sélectionnée :</Label>
+        <p className="text-xs text-muted-foreground mt-1 truncate">{address}</p>
+        <p className="text-xs text-muted-foreground">
+          {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+        </p>
+      </div>
+    )}
+
+    <Button
+      onClick={handleConfirmLocation}
+      className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-xs h-8"
+      disabled={!selectedLocation}
+    >
+      Confirmer l’adresse
+    </Button>
+  </div>
+</div>
   );
 }

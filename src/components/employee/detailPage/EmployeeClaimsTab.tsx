@@ -1,25 +1,17 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
-import { MessageSquare, Search, Filter, ChevronDown } from 'lucide-react';
-import { Claim } from './types';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { Search, Filter, MessageSquare, ChevronDown } from 'lucide-react';
+import { Claim } from '@/types/employee';
 
-interface EmployeeClaimsProps {
+interface EmployeeClaimsTabProps {
   claimsHistory: Claim[];
 }
 
-export function EmployeeClaims({ claimsHistory }: EmployeeClaimsProps) {
+const EmployeeClaimsTab: React.FC<EmployeeClaimsTabProps> = ({ claimsHistory }) => {
   const [currentClaimsPage, setCurrentClaimsPage] = useState(1);
   const [claimsPerPage] = useState(3);
   const [claimsSearchTerm, setClaimsSearchTerm] = useState('');
@@ -28,43 +20,32 @@ export function EmployeeClaims({ claimsHistory }: EmployeeClaimsProps) {
 
   const getClaimTypeColor = (type: string) => {
     switch (type) {
-      case 'complaint':
-        return 'bg-red-100 text-red-800';
-      case 'suggestion':
-        return 'bg-blue-100 text-blue-800';
-      case 'technical':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'complaint': return 'bg-red-100 text-red-800';
+      case 'suggestion': return 'bg-blue-100 text-blue-800';
+      case 'technical': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getClaimStatusColor = (status: string) => {
     switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'resolved':
-        return 'bg-green-100 text-green-800';
-      case 'closed':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'resolved': return 'bg-green-100 text-green-800';
+      case 'closed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  // Filter claims
   const filteredClaims = claimsHistory.filter((claim) => {
     const matchesSearch =
       claim.subject.toLowerCase().includes(claimsSearchTerm.toLowerCase()) ||
       claim.description.toLowerCase().includes(claimsSearchTerm.toLowerCase());
     const matchesType = claimsTypeFilter === 'all' || claim.type === claimsTypeFilter;
-    const matchesStatus =
-      claimsStatusFilter === 'all' || claim.status === claimsStatusFilter;
+    const matchesStatus = claimsStatusFilter === 'all' || claim.status === claimsStatusFilter;
 
     return matchesSearch && matchesType && matchesStatus;
   });
 
-  // Paginate claims
   const indexOfLastClaim = currentClaimsPage * claimsPerPage;
   const indexOfFirstClaim = indexOfLastClaim - claimsPerPage;
   const currentClaims = filteredClaims.slice(indexOfFirstClaim, indexOfLastClaim);
@@ -79,7 +60,6 @@ export function EmployeeClaims({ claimsHistory }: EmployeeClaimsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Filters */}
         <div className="flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -122,7 +102,6 @@ export function EmployeeClaims({ claimsHistory }: EmployeeClaimsProps) {
           </div>
         </div>
 
-        {/* Claims List */}
         {filteredClaims.length > 0 ? (
           <div className="space-y-4">
             {currentClaims.map((claim) => (
@@ -131,20 +110,12 @@ export function EmployeeClaims({ claimsHistory }: EmployeeClaimsProps) {
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center space-x-2 mb-1">
-                        <Badge className={getClaimTypeColor(claim.type)}>
-                          {claim.type === 'complaint'
-                            ? 'Plainte'
-                            : claim.type === 'suggestion'
-                            ? 'Suggestion'
-                            : 'Technique'}
-                        </Badge>
-                        <Badge className={getClaimStatusColor(claim.status)}>
-                          {claim.status === 'pending'
-                            ? 'En attente'
-                            : claim.status === 'resolved'
-                            ? 'Résolu'
-                            : 'Fermé'}
-                        </Badge>
+                        <span className={`inline-block px-2 py-0.5 text-xs rounded ${getClaimTypeColor(claim.type)}`}>
+                          {claim.type === 'complaint' ? 'Plainte' : claim.type === 'suggestion' ? 'Suggestion' : 'Technique'}
+                        </span>
+                        <span className={`inline-block px-2 py-0.5 text-xs rounded ${getClaimStatusColor(claim.status)}`}>
+                          {claim.status === 'pending' ? 'En attente' : claim.status === 'resolved' ? 'Résolu' : 'Fermé'}
+                        </span>
                       </div>
                       <h4 className="font-medium">{claim.subject}</h4>
                       <p className="text-sm text-muted-foreground truncate max-w-md">
@@ -163,9 +134,7 @@ export function EmployeeClaims({ claimsHistory }: EmployeeClaimsProps) {
                 <CollapsibleContent>
                   <div className="p-4 pt-0 border-t">
                     <div className="mb-3">
-                      <p className="text-sm font-medium text-muted-foreground mb-1">
-                        Description complète:
-                      </p>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Description complète:</p>
                       <p className="text-sm">{claim.description}</p>
                     </div>
 
@@ -191,7 +160,6 @@ export function EmployeeClaims({ claimsHistory }: EmployeeClaimsProps) {
           </div>
         )}
 
-        {/* Pagination */}
         {filteredClaims.length > 0 && (
           <Pagination>
             <PaginationContent>
@@ -215,14 +183,8 @@ export function EmployeeClaims({ claimsHistory }: EmployeeClaimsProps) {
 
               <PaginationItem>
                 <PaginationNext
-                  onClick={() =>
-                    setCurrentClaimsPage((prev) => Math.min(prev + 1, totalClaimsPages))
-                  }
-                  className={
-                    currentClaimsPage === totalClaimsPages
-                      ? 'pointer-events-none opacity-50'
-                      : ''
-                  }
+                  onClick={() => setCurrentClaimsPage((prev) => Math.min(prev + 1, totalClaimsPages))}
+                  className={currentClaimsPage === totalClaimsPages ? 'pointer-events-none opacity-50' : ''}
                 />
               </PaginationItem>
             </PaginationContent>
@@ -231,4 +193,6 @@ export function EmployeeClaims({ claimsHistory }: EmployeeClaimsProps) {
       </CardContent>
     </Card>
   );
-}
+};
+
+export default EmployeeClaimsTab;

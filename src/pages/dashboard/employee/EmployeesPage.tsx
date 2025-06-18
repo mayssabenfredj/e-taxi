@@ -4,10 +4,10 @@ import { Plus, Upload, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AddEmployeeForm } from '@/components/employee/AddEmployeeForm';
 import { AddEmployeeFromCSV } from '@/components/employee/AddEmployeeFromCSV';
-import { EmployeeStats } from '@/components/employee/EmployeeStats';
-import { EmployeeFilters } from '@/components/employee/EmployeeFilters';
-import { EmployeeTable } from '@/components/employee/EmployeeTable';
-import { EmployeeDialogs } from '@/components/employee/EmployeeDialogs';
+import { EmployeeStats } from '@/components/employee/listPage/EmployeeStats';
+import { EmployeeFilters } from '@/components/employee/listPage/EmployeeFilters';
+import { EmployeeTable } from '@/components/employee/listPage/EmployeeTable';
+import { EmployeeDialogs } from '@/components/employee/listPage/EmployeeDialogs';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateEmployee, Employee } from '@/types/employee';
@@ -123,7 +123,6 @@ export function EmployeesPage() {
         setSubsidiaryFilter={setSubsidiaryFilter}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
-        employees={employees}
         clearFilters={clearFilters}
         hasActiveFilters={roleFilter !== 'all' || subsidiaryFilter !== 'all' || statusFilter !== 'all'}
       />

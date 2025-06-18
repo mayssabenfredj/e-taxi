@@ -10,11 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AddressInput } from '@/components/shared/AddressInput';
 import { UserPlus } from 'lucide-react';
 import { Address, AddressType } from '@/types/addresse';
-import { roleService } from '@/services/role.service';
-import SubsidiaryService from '@/services/subsidiarie.service';
 import { CreateEmployee, UserAddressDto } from '@/types/employee';
-import { EntityStatus } from '@/types/subsidiary';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRolesAndSubsidiaries } from '@/hooks/useRolesAndSubsidiaries';
 import { toast } from 'sonner';
 
 interface AddEmployeeFormProps {
@@ -26,11 +24,9 @@ interface AddEmployeeFormProps {
 export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmployeeFormProps) {
   const [selectedHomeAddress, setSelectedHomeAddress] = useState<Address | null>(null);
   const [selectedWorkAddress, setSelectedWorkAddress] = useState<Address | null>(null);
-  const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
-  const [subsidiaries, setSubsidiaries] = useState<{ id: string; name: string }[]>([]);
-  const [loading, setLoading] = useState(false);
   const [isManager, setIsManager] = useState(false);
   const { user } = useAuth();
+  const { roles, subsidiaries, loading } = useRolesAndSubsidiaries(user?.enterpriseId);
 
   const form = useForm<CreateEmployee>({
     defaultValues: {
@@ -49,74 +45,6 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
   const { setValue, watch } = form;
   const selectedRoleIds = watch('roleIds');
 
-  const savedAddresses: Address[] = [
-    {
-      id: 'saved1',
-      label: 'Siège social',
-      street: '123 Avenue des Champs-Élysées',
-      postalCode: '75008',
-      city: { id: 'city1', name: 'Paris', postalCode: '75008', regionId: 'region1' },
-      country: { id: 'country1', name: 'France', code: 'FR' },
-      addressType: AddressType.OFFICE,
-      isVerified: true,
-      isExact: true,
-      manuallyEntered: false,
-    },
-    {
-      id: 'saved2',
-      label: 'Bureau Lyon',
-      street: '45 Rue de la République',
-      postalCode: '69002',
-      city: { id: 'city2', name: 'Lyon', postalCode: '69002', regionId: 'region2' },
-      country: { id: 'country1', name: 'France', code: 'FR' },
-      addressType: AddressType.OFFICE,
-      isVerified: true,
-      isExact: true,
-      manuallyEntered: false,
-    },
-  ];
-
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const roleData = await roleService.getAllRoles();
-        const allowedRoles = ['ADMIN_FILIAL', 'EMPLOYEE_ENTREPRISE', 'EMPLOYEE_ENTREPRISE_TRUSTED'];
-        const filteredRoles = roleData
-          .filter((role: any) => allowedRoles.includes(role.name))
-          .map((role: any) => ({ id: role.id, name: role.name }));
-        setRoles(filteredRoles);
-
-        const defaultRole = filteredRoles.find(
-          (role) => role.name === (isManager ? 'ADMIN_FILIAL' : 'EMPLOYEE_ENTREPRISE')
-        );
-        if (defaultRole) {
-          setValue('roleIds', [defaultRole.id]);
-        }
-
-        const subsidiaryData = await SubsidiaryService.getAllSubsidiaries({
-          include: true,
-          status: EntityStatus.ACTIVE,
-          enterpriseId: user?.enterpriseId,
-        });
-        setSubsidiaries(subsidiaryData.data.map((sub: any) => ({ id: sub.id, name: sub.name })));
-      } catch (error) {
-        toast.error('Erreur lors du chargement des rôles ou filiales');
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchData();
-  }, [user?.enterpriseId, setValue, isManager]);
-
-  useEffect(() => {
-    if (selectedRoleIds.length > 0) {
-      const selectedRole = roles.find((role) => role.id === selectedRoleIds[0]);
-      setIsManager(selectedRole?.name === 'ADMIN_FILIAL');
-    }
-  }, [selectedRoleIds, roles]);
-
   useEffect(() => {
     const defaultRole = roles.find(
       (role) => role.name === (isManager ? 'ADMIN_FILIAL' : 'EMPLOYEE_ENTREPRISE')
@@ -125,6 +53,13 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
       setValue('roleIds', [defaultRole.id]);
     }
   }, [isManager, roles, setValue, selectedRoleIds]);
+
+  useEffect(() => {
+    if (selectedRoleIds.length > 0) {
+      const selectedRole = roles.find((role) => role.id === selectedRoleIds[0]);
+      setIsManager(selectedRole?.name === 'ADMIN_FILIAL');
+    }
+  }, [selectedRoleIds, roles]);
 
   const onSubmit = (data: CreateEmployee) => {
     const addresses: UserAddressDto[] = [];
@@ -161,7 +96,7 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
           postalCode: selectedWorkAddress.postalCode || '',
           cityId: selectedWorkAddress.cityId || selectedWorkAddress.city?.id || null,
           regionId: selectedWorkAddress.regionId || selectedWorkAddress.region?.id || null,
-          countryId: selectedWorkAddress.countryId || selectedWorkAddress.country?.id || null,
+          countryId: selectedWorkAddress.countryId || selectedHomeAddress.country?.id || null,
           latitude: selectedWorkAddress.latitude || undefined,
           longitude: selectedWorkAddress.longitude || undefined,
           placeId: selectedWorkAddress.placeId || undefined,
@@ -259,8 +194,6 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
                   )}
                 />
 
-              
-
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -302,14 +235,12 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
                   label="Adresse domicile"
                   value={selectedHomeAddress}
                   onChange={setSelectedHomeAddress}
-                  savedAddresses={savedAddresses}
                   showMapPicker={true}
                 />
                 <AddressInput
                   label="Adresse travail"
                   value={selectedWorkAddress}
                   onChange={setSelectedWorkAddress}
-                  savedAddresses={savedAddresses}
                   showMapPicker={true}
                 />
               </CardContent>

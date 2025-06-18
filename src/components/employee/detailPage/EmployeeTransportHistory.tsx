@@ -1,6 +1,5 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -9,24 +8,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Eye } from 'lucide-react';
-import { NavigateFunction } from 'react-router-dom';
-import { Transport } from './types';
+import { Transport } from '@/types/employee';
 
-interface EmployeeTransportHistoryProps {
+interface EmployeeHistoryTabProps {
   transportHistory: Transport[];
-  navigate: NavigateFunction;
+  onViewRequest: (requestId: string) => void;
 }
 
-export function EmployeeTransportHistory({
+const EmployeeHistoryTab: React.FC<EmployeeHistoryTabProps> = ({
   transportHistory,
-  navigate,
-}: EmployeeTransportHistoryProps) {
-  const handleViewTransportRequest = (requestId: string) => {
-    navigate(`/transport/${requestId}`);
-  };
-
+  onViewRequest,
+}) => {
   return (
     <Card>
       <CardHeader>
@@ -66,30 +60,28 @@ export function EmployeeTransportHistory({
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <span className="font-medium">{transport.departureAddress.label}</span>
                       <p className="text-xs text-muted-foreground">
-                        {transport.departureAddress.street}
+                        {transport.departureAddress.formattedAddress}
                       </p>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <span className="font-medium">{transport.arrivalAddress.label}</span>
                       <p className="text-xs text-muted-foreground">
-                        {transport.arrivalAddress.street}
+                        {transport.arrivalAddress.formattedAddress}
                       </p>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      className={
+                    <span
+                      className={`inline-block px-2 py-0.5 text-xs rounded ${
                         transport.status === 'Complété'
                           ? 'bg-green-100 text-green-800'
                           : 'bg-blue-100 text-blue-800'
-                      }
+                      }`}
                     >
                       {transport.status}
-                    </Badge>
+                    </span>
                   </TableCell>
                   <TableCell>
                     <span className="text-xs font-mono">{transport.requestId}</span>
@@ -98,7 +90,7 @@ export function EmployeeTransportHistory({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => handleViewTransportRequest(transport.requestId)}
+                      onClick={() => onViewRequest(transport.requestId)}
                       title="Voir les détails de la demande"
                     >
                       <Eye className="h-4 w-4" />
@@ -117,4 +109,6 @@ export function EmployeeTransportHistory({
       </CardContent>
     </Card>
   );
-}
+};
+
+export default EmployeeHistoryTab;

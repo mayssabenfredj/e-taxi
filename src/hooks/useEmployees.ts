@@ -111,6 +111,7 @@ export const useEmployees = ({
   // Toggle employee status
   const toggleEmployeeStatus = async (id: string, currentStatus: string) => {
     const enabled = currentStatus !== "ENABLED";
+    console.log(enabled);
     const updatedEmployee = await EmployeeService.updateEmployeeStatus(
       id,
       enabled
