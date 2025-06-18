@@ -68,6 +68,11 @@ export function GroupTransportPage() {
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [historyDetailsOpen, setHistoryDetailsOpen] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState<TransportHistory | null>(null);
+  // Pagination state for requests
+  const [requestsSkip, setRequestsSkip] = useState(0);
+  const [requestsTake, setRequestsTake] = useState(10);
+  const [historySkip, setHistorySkip] = useState(0);
+  const [historyTake, setHistoryTake] = useState(10);
   
   const [requests, setRequests] = useState<TransportRequest[]>([
     {
@@ -288,10 +293,19 @@ export function GroupTransportPage() {
     return <Badge className={color}>{label}</Badge>;
   };
 
-  const requestColumns = [
+  const handleRequestsPageChange = (skip: number, take: number) => {
+    setRequestsSkip(skip);
+    setRequestsTake(take);
+  };
+
+  const handleHistoryPageChange = (skip: number, take: number) => {
+    setHistorySkip(skip);
+    setHistoryTake(take);
+  };
+ const requestColumns = [
     {
       header: 'Demandeur',
-      accessor: 'requestedBy' as keyof TransportRequest,
+      accessor: 'requestedBy' as string, // Changed to string to match TableWithPaginationProps
       render: (request: TransportRequest) => (
         <div>
           <div className="font-medium">{request.requestedBy}</div>
@@ -299,39 +313,45 @@ export function GroupTransportPage() {
             <Badge variant="secondary">Groupe</Badge>
           </div>
         </div>
-      )
+      ),
+      sortable: true,
+      filterable: true,
     },
     {
       header: 'Passagers',
-      accessor: 'passengerCount' as keyof TransportRequest,
-      render: (request: TransportRequest) => `${request.passengerCount} passagers`
+      accessor: 'passengerCount' as string,
+      render: (request: TransportRequest) => `${request.passengerCount} passagers`,
+      sortable: true,
     },
     {
       header: 'Trajet',
-      accessor: 'departureLocation' as keyof TransportRequest,
+      accessor: 'departureLocation' as string,
       render: (request: TransportRequest) => (
         <div className="text-sm">
           <div>De: {request.departureLocation}</div>
           <div>Vers: {request.arrivalLocation}</div>
         </div>
-      )
+      ),
+      sortable: true,
     },
     {
       header: 'Date prévue',
-      accessor: 'scheduledDate' as keyof TransportRequest,
-      render: (request: TransportRequest) => new Date(request.scheduledDate).toLocaleString('fr-FR')
+      accessor: 'scheduledDate' as string,
+      render: (request: TransportRequest) => new Date(request.scheduledDate).toLocaleString('fr-FR'),
+      sortable: true,
     },
     {
       header: 'Statut',
-      accessor: 'status' as keyof TransportRequest,
-      render: (request: TransportRequest) => getStatusBadge(request.status)
-    }
+      accessor: 'status' as string,
+      render: (request: TransportRequest) => getStatusBadge(request.status),
+      filterable: true,
+    },
   ];
 
   const historyColumns = [
     {
       header: 'Référence',
-      accessor: 'reference' as keyof TransportHistory,
+      accessor: 'reference' as string,
       render: (item: TransportHistory) => (
         <div>
           <div className="font-medium text-etaxi-yellow">{item.reference}</div>
@@ -339,11 +359,12 @@ export function GroupTransportPage() {
             <Badge variant="secondary" className="text-xs">Groupe</Badge>
           </div>
         </div>
-      )
+      ),
+      sortable: true,
     },
     {
       header: 'Demandeur',
-      accessor: 'requestedBy' as keyof TransportHistory,
+      accessor: 'requestedBy' as string,
       render: (item: TransportHistory) => (
         <div>
           <div className="font-medium">{item.requestedBy}</div>
@@ -351,11 +372,12 @@ export function GroupTransportPage() {
             {item.passengerCount} passagers • {item.taxiCount} taxi{item.taxiCount > 1 ? 's' : ''}
           </div>
         </div>
-      )
+      ),
+      sortable: true,
     },
     {
       header: 'Trajet',
-      accessor: 'departureLocation' as keyof TransportHistory,
+      accessor: 'departureLocation' as string,
       render: (item: TransportHistory) => (
         <div className="text-sm max-w-xs">
           <div className="flex items-center space-x-1 mb-1">
@@ -367,11 +389,12 @@ export function GroupTransportPage() {
             <span className="truncate">{item.arrivalLocation}</span>
           </div>
         </div>
-      )
+      ),
+      sortable: true,
     },
     {
       header: 'Date',
-      accessor: 'scheduledDate' as keyof TransportHistory,
+      accessor: 'scheduledDate' as string,
       render: (item: TransportHistory) => (
         <div className="text-sm">
           <div className="flex items-center space-x-1">
@@ -382,11 +405,12 @@ export function GroupTransportPage() {
             {new Date(item.scheduledDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
-      )
+      ),
+      sortable: true,
     },
     {
       header: 'Courses',
-      accessor: 'taxiCount' as keyof TransportHistory,
+      accessor: 'taxiCount' as string,
       render: (item: TransportHistory) => (
         <div className="text-sm">
           <div className="font-medium">{item.courses.length} course{item.courses.length > 1 ? 's' : ''}</div>
@@ -394,22 +418,25 @@ export function GroupTransportPage() {
             {item.taxiCount} taxi{item.taxiCount > 1 ? 's' : ''}
           </div>
         </div>
-      )
+      ),
+      sortable: true,
     },
     {
       header: 'Coût total',
-      accessor: 'totalCost' as keyof TransportHistory,
+      accessor: 'totalCost' as string,
       render: (item: TransportHistory) => (
         <div className="text-sm font-medium">
           {item.totalCost > 0 ? `${item.totalCost.toFixed(2)}€` : '-'}
         </div>
-      )
+      ),
+      sortable: true,
     },
     {
       header: 'Statut',
-      accessor: 'status' as keyof TransportHistory,
-      render: (item: TransportHistory) => getStatusBadge(item.status)
-    }
+      accessor: 'status' as string,
+      render: (item: TransportHistory) => getStatusBadge(item.status),
+      filterable: true,
+    },
   ];
 
   const requestActions = (request: TransportRequest) => (
@@ -556,10 +583,12 @@ export function GroupTransportPage() {
             data={requests}
             columns={requestColumns}
             actions={requestActions}
-            itemsPerPage={10}
-            onRowClick={handleViewRequest}
-            emptyMessage="Aucune demande de transport de groupe trouvée"
+            total={requests.length} // Total number of requests
+            skip={requestsSkip}
+            take={requestsTake}
+            onPageChange={handleRequestsPageChange}
             searchPlaceholder="Rechercher par demandeur, trajet..."
+            onRowClick={handleViewRequest}
           />
         </TabsContent>
 
@@ -624,15 +653,17 @@ export function GroupTransportPage() {
               </Card>
             </div>
 
-            <TableWithPagination
+           <TableWithPagination
               data={history}
               columns={historyColumns}
               actions={historyActions}
               filterOptions={historyFilterOptions}
-              itemsPerPage={10}
-              onRowClick={handleViewHistoryDetails}
-              emptyMessage="Aucun historique de transport trouvé"
+              total={history.length} // Total number of history items
+              skip={historySkip}
+              take={historyTake}
+              onPageChange={handleHistoryPageChange}
               searchPlaceholder="Rechercher par référence, demandeur..."
+              onRowClick={handleViewHistoryDetails}
             />
           </div>
         </TabsContent>
