@@ -43,7 +43,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
   const mapRef = useRef<HTMLDivElement>(null);
   const autocompleteRef = useRef<HTMLInputElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [marker, setMarker] = useState<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const [marker, setMarker] = useState<google.maps.Marker | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
 
   // Load Google Maps script
@@ -90,7 +90,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
         google.maps.event.clearInstanceListeners(map);
       }
       if (marker) {
-        marker.map = null;
+        marker.setMap(null);
       }
     };
   }, [scriptLoaded]);
@@ -111,10 +111,10 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
       fullscreenControl: false,
     });
 
-    const markerInstance = new google.maps.marker.AdvancedMarkerElement({
+    const markerInstance = new google.maps.Marker({
       position: coordinates,
       map: mapInstance,
-      gmpDraggable: true,
+      draggable: true,
     });
 
     // Initialize autocomplete for fallback
@@ -135,7 +135,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
         setCoordinates(newCoords);
         setManualCoords({ lat: newCoords.lat.toString(), lng: newCoords.lng.toString() });
         mapInstance.setCenter(newCoords);
-        markerInstance.position = newCoords;
+        markerInstance.setPosition(newCoords);
         setAddress(place.formatted_address || '');
         setSearchQuery(place.formatted_address || '');
         setSuggestions([]);
@@ -150,14 +150,12 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
 
     // Marker dragend event
     markerInstance.addListener('dragend', () => {
-      const position = markerInstance.position;
+      const position = markerInstance.getPosition();
       if (!position) return;
-
       const newCoords = {
-        lat: typeof position.lat === 'function' ? position.lat() : position.lat,
-        lng: typeof position.lng === 'function' ? position.lng() : position.lng,
+        lat: position.lat(),
+        lng: position.lng(),
       };
-
       setCoordinates(newCoords);
       setManualCoords({ lat: newCoords.lat.toString(), lng: newCoords.lng.toString() });
       reverseGeocode(newCoords);
@@ -174,7 +172,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
 
       setCoordinates(newCoords);
       setManualCoords({ lat: newCoords.lat.toString(), lng: newCoords.lng.toString() });
-      markerInstance.position = newCoords;
+      markerInstance.setPosition(newCoords);
       reverseGeocode(newCoords);
     });
 
@@ -233,7 +231,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
               map.setCenter(newCoords);
             }
             if (marker) {
-              marker.position = newCoords;
+              marker.setPosition(newCoords);
             }
             setAddress(place.formatted_address || '');
             setSearchQuery(place.formatted_address || '');
@@ -314,7 +312,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
           map.setZoom(15);
         }
         if (marker) {
-          marker.position = newCoords;
+          marker.setPosition(newCoords);
         }
         reverseGeocode(newCoords);
         toast.success('Position actuelle obtenue !');
@@ -345,7 +343,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
       map.setCenter(newCoords);
     }
     if (marker) {
-      marker.position = newCoords;
+      marker.setPosition(newCoords);
     }
     reverseGeocode(newCoords);
   };

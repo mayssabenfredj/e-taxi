@@ -35,6 +35,7 @@ export function GroupTransportPage() {
         limit: requestsTake,
       };
       const response = await demandeService.getTransportRequests(query);
+      console.log("fetching requests ", response.data);
       setRequests(
         response.data.map((req) => ({
           id: req.id,

@@ -389,7 +389,7 @@ const calculateRoutes = async () => {
         scheduledDate: combineDateTime(scheduledDate, scheduledTime),
         requestedById: user?.id || 'current-user-id',
         enterpriseId,
-        direction: isHomeToWorkTrip ? TransportDirection.HOMETOOFFICE : TransportDirection.OFFICETOHOME,
+        Direction: isHomeToWorkTrip ? TransportDirection.HOMETOOFFICE : TransportDirection.OFFICETOHOME,
         employeeTransports: selectedPassengers.map((passenger) => ({
           employeeId: passenger.id,
           note: passenger.note || undefined,
@@ -405,7 +405,7 @@ const calculateRoutes = async () => {
           scheduledDate: combineDateTime(rd.date, rd.time),
           employeeTransports: requestData.employeeTransports.map((et) => ({
             ...et,
-            startTime: rd.time,
+            startTime: combineDateTime(rd.date, rd.time),
           })),
         }));
         await Promise.all(requests.map(demandeService.createTransportRequest));

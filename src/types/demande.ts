@@ -53,7 +53,7 @@ export interface CreateTransportRequestDto {
   priority?: RequestPriority;
   note?: string;
   scheduledDate?: string;
-  direction?: string;
+  Direction?: string;
   requestedById?: string;
   enterpriseId?: string;
   subsidiaryId?: string;
