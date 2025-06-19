@@ -143,7 +143,7 @@ export function TableWithPagination<T>({
               onClick={() => onRowClick && onRowClick(item)}
             >
               {columns.map((col) => (
-                <td key={col.accessor} className="p-2">
+                <td key={col.accessor} className="p-2 text-start">
                   {col.render ? col.render(item) : (item as any)[col.accessor]}
                 </td>
               ))}
@@ -160,6 +160,7 @@ export function TableWithPagination<T>({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+            <SelectItem value="2">2</SelectItem>
               <SelectItem value="10">10</SelectItem>
               <SelectItem value="20">20</SelectItem>
               <SelectItem value="50">50</SelectItem>

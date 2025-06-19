@@ -6,19 +6,19 @@ import { RequestsTab } from '@/components/transport/groupTransport/RequestsTab';
 import { HistoryTab } from '@/components/transport/groupTransport/HistoryTab';
 import { DuplicateDialog } from '@/components/transport/groupTransport/DuplicateDialog';
 import { HistoryDetailsDialog } from '@/components/transport/groupTransport/HistoryDetailsDialog';
-import { TransportRequest, TransportHistory, DuplicateSchedule, GetTransportRequestsQueryDto } from '@/types/demande';
+import { TransportRequest, TransportHistory, DuplicateSchedule, GetTransportRequestsQueryDto, TransportRequestResponse } from '@/types/demande';
 import { demandeService } from '@/services/demande.service';
 import { toast } from 'sonner';
 
 export function GroupTransportPage() {
   const [activeTab, setActiveTab] = useState<'requests' | 'history'>('requests');
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<TransportRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<TransportRequestResponse | null>(null);
   const [duplicateSchedules, setDuplicateSchedules] = useState<DuplicateSchedule[]>([]);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [historyDetailsOpen, setHistoryDetailsOpen] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState<TransportHistory | null>(null);
-  const [requests, setRequests] = useState<TransportRequest[]>([]);
+  const [requests, setRequests] = useState<TransportRequestResponse[]>([]);
   const [history, setHistory] = useState<TransportHistory[]>([]);
   const [requestsSkip, setRequestsSkip] = useState(0);
   const [requestsTake, setRequestsTake] = useState(10);
@@ -36,18 +36,7 @@ export function GroupTransportPage() {
       };
       const response = await demandeService.getTransportRequests(query);
       console.log("fetching requests ", response.data);
-      setRequests(
-        response.data.map((req) => ({
-          id: req.id,
-          requestedBy: req.requestedBy?.fullName || 'Inconnu',
-          passengerCount: req.employeeTransports.length,
-          departureLocation: req.employeeTransports[0]?.departure?.formattedAddress || 'Non spécifié',
-          arrivalLocation: req.employeeTransports[0]?.arrival?.formattedAddress || 'Non spécifié',
-          scheduledDate: req.scheduledDate || new Date().toISOString(),
-          status: (req.status || 'PENDING').toLowerCase() as TransportRequest['status'],
-          note: req.note || '',
-        }))
-      );
+      setRequests(response.data.filter(req => req.employeeTransports.length != 1));
       console.log("fetching requests ", response.total);
       setRequestsTotal(response.total);
     } catch (error) {

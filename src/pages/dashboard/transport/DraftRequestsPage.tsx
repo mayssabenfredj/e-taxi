@@ -31,34 +31,7 @@ export function DraftRequestsPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'requests' | 'dispatch'>('requests');
   
-  const [drafts, setDrafts] = useState<DraftRequest[]>([
-    {
-      id: 'draft-1',
-      type: 'individual',
-      title: 'Transport Jean Dupont',
-      lastModified: '2024-01-15 14:30',
-      passengerCount: 1,
-      note: 'Transport vers aéroport',
-      completionPercentage: 75
-    },
-    {
-      id: 'draft-2',
-      type: 'group',
-      title: 'Transport équipe Marketing',
-      lastModified: '2024-01-14 16:45',
-      passengerCount: 5,
-      note: 'Réunion client',
-      completionPercentage: 60
-    },
-    {
-      id: 'draft-3',
-      type: 'individual',
-      title: 'Transport Pierre Martin',
-      lastModified: '2024-01-13 09:15',
-      passengerCount: 1,
-      completionPercentage: 30
-    }
-  ]);
+  const [drafts, setDrafts] = useState<DraftRequest[]>([]);
 
   const [dispatchDrafts, setDispatchDrafts] = useState<DispatchDraft[]>([]);
 
@@ -99,6 +72,33 @@ export function DraftRequestsPage() {
     };
     
     loadDispatchDrafts();
+  }, []);
+
+  useEffect(() => {
+    const loadDrafts = () => {
+      const loadedDrafts: DraftRequest[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('groupTransportDraft')) {
+          try {
+            const draftData = JSON.parse(localStorage.getItem(key) || '');
+            loadedDrafts.push({
+              id: key,
+              type: 'group',
+              title: draftData.note || 'Brouillon de groupe',
+              lastModified: draftData.lastModified || new Date().toISOString(),
+              passengerCount: draftData.selectedPassengers?.length || 0,
+              note: draftData.note,
+              completionPercentage: 100 // ou calcule le % selon les champs remplis
+            });
+          } catch (error) {
+            // ignore
+          }
+        }
+      }
+      setDrafts(loadedDrafts);
+    };
+    loadDrafts();
   }, []);
 
   const handleEditDraft = (draft: DraftRequest) => {
@@ -267,6 +267,14 @@ export function DraftRequestsPage() {
     </div>
   );
 
+  const [skip, setSkip] = useState(0);
+  const [take, setTake] = useState(10);
+
+  const handlePageChange = (newSkip: number, newTake: number) => {
+    setSkip(newSkip);
+    setTake(newTake);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -307,9 +315,11 @@ export function DraftRequestsPage() {
                 data={drafts}
                 columns={requestColumns}
                 actions={requestActions}
-                itemsPerPage={10}
+                take={take}
+                skip={skip}
+                total={drafts.length}
+                onPageChange={handlePageChange}
                 onRowClick={handleEditDraft}
-                emptyMessage="Aucun brouillon de demande trouvé"
               />
             </CardContent>
           </Card>
@@ -325,9 +335,11 @@ export function DraftRequestsPage() {
                 data={dispatchDrafts}
                 columns={dispatchColumns}
                 actions={dispatchActions}
-                itemsPerPage={10}
+                take={take}
+                skip={skip}
+                total={dispatchDrafts.length}
+                onPageChange={handlePageChange}
                 onRowClick={handleEditDispatchDraft}
-                emptyMessage="Aucun brouillon de dispatch trouvé"
               />
             </CardContent>
           </Card>

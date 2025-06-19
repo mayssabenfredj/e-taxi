@@ -5,19 +5,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, X } from 'lucide-react';
-import { TransportRequest, DuplicateSchedule } from '@/types/demande';
+import { TransportRequestResponse, DuplicateSchedule, CreateTransportRequestDto, TransportDirection, TransportType, RequestPriority } from '@/types/demande';
 import { toast } from 'sonner';
 import { demandeService } from '@/services/demande.service';
+import { format, parseISO } from 'date-fns';
 
 interface DuplicateDialogProps {
   open: boolean;
   setOpen: (open: boolean) => void;
-  selectedRequest: TransportRequest | null;
-  setSelectedRequest: (request: TransportRequest | null) => void;
+  selectedRequest: TransportRequestResponse | null;
+  setSelectedRequest: (request: TransportRequestResponse | null) => void;
   duplicateSchedules: DuplicateSchedule[];
-  setDuplicateSchedules: (schedules: DuplicateSchedule[]) => void;
+  setDuplicateSchedules: React.Dispatch<React.SetStateAction<DuplicateSchedule[]>>;
   selectedDates: Date[];
-  setSelectedDates: (dates: Date[]) => void;
+  setSelectedDates: React.Dispatch<React.SetStateAction<Date[]>>;
 }
 
 export function DuplicateDialog({
@@ -30,10 +31,11 @@ export function DuplicateDialog({
   selectedDates,
   setSelectedDates,
 }: DuplicateDialogProps) {
+  console.log("Selected Requesst", selectedRequest);
   const handleDateSelect = (dates: Date[] | undefined) => {
     if (dates) {
       setSelectedDates(dates);
-      const newSchedules = dates.map((date) => {
+      const newSchedules: DuplicateSchedule[] = dates.map((date) => {
         const existing = duplicateSchedules.find(
           (s) => s.date.toDateString() === date.toDateString()
         );
@@ -44,8 +46,8 @@ export function DuplicateDialog({
   };
 
   const updateScheduleTime = (date: Date, time: string) => {
-    setDuplicateSchedules((prev) =>
-      prev.map((schedule) =>
+    setDuplicateSchedules((prev: DuplicateSchedule[]) =>
+      prev.map((schedule: DuplicateSchedule) =>
         schedule.date.toDateString() === date.toDateString()
           ? { ...schedule, time }
           : schedule
@@ -54,48 +56,66 @@ export function DuplicateDialog({
   };
 
   const removeSchedule = (date: Date) => {
-    setDuplicateSchedules((prev) =>
-      prev.filter((schedule) => schedule.date.toDateString() !== date.toDateString())
+    setDuplicateSchedules((prev: DuplicateSchedule[]) =>
+      prev.filter((schedule: DuplicateSchedule) => schedule.date.toDateString() !== date.toDateString())
     );
-    setSelectedDates((prev) =>
-      prev.filter((d) => d.toDateString() !== date.toDateString())
+    setSelectedDates((prev: Date[]) =>
+      prev.filter((d: Date) => d.toDateString() !== date.toDateString())
     );
   };
 
   const confirmDuplicate = async () => {
-    if (selectedRequest && duplicateSchedules.length > 0) {
-      try {
-        const createRequests = duplicateSchedules.map((schedule, index) => ({
-          ...selectedRequest,
-          id: `${selectedRequest.id}-copy-${Date.now()}-${index}`,
-          scheduledDate: `${schedule.date.toISOString().split('T')[0]} ${schedule.time}`,
-          status: 'pending' as const,
-        }));
+    if (!selectedRequest || duplicateSchedules.length === 0) {
+      toast.error('Aucune demande sélectionnée ou aucune date choisie');
+      return;
+    }
 
-        await demandeService.createMultipleTransportRequests(
-          createRequests.map((req) => ({
-            reference: req.id,
-            note: req.note,
-            scheduledDate: req.scheduledDate,
-            employeeTransports: [
-              {
-                employeeId: req.requestedBy, // Simplified; adjust based on actual data
-                startTime: req.scheduledDate,
-                departureAddress: { formattedAddress: req.departureLocation },
-                arrivalAddress: { formattedAddress: req.arrivalLocation },
-              },
-            ],
-          }))
+    if (!selectedRequest.employeeTransports || !Array.isArray(selectedRequest.employeeTransports)) {
+      toast.error('Les données des transports des employés sont manquantes ou invalides');
+      return;
+    }
+
+    try {
+      for (const schedule of duplicateSchedules) {
+        const scheduledDateTime = parseISO(
+          `${format(schedule.date, 'yyyy-MM-dd')}T${schedule.time}:00.000Z`
         );
 
-        toast.success(`${duplicateSchedules.length} demande(s) de groupe dupliquée(s) avec succès`);
-        setOpen(false);
-        setSelectedRequest(null);
-        setDuplicateSchedules([]);
-        setSelectedDates([]);
-      } catch (error) {
-        toast.error('Failed to duplicate transport requests');
+        const createRequest: CreateTransportRequestDto = {
+          reference: `${selectedRequest.id}-copy-${Date.now()}`,
+          type: selectedRequest.type || TransportType.SCHEDULED,
+          priority: selectedRequest.priority || RequestPriority.NORMAL,
+          note: selectedRequest.note || undefined,
+          scheduledDate: scheduledDateTime.toISOString(),
+          direction: selectedRequest.direction as TransportDirection, // Assuming `direction` in DTO
+          requestedById: selectedRequest.requestedById,
+          enterpriseId: selectedRequest.enterpriseId,
+          subsidiaryId: selectedRequest.subsidiaryId,
+          employeeTransports: selectedRequest.employeeTransports.map((et) => ({
+            employeeId: et.employeeId,
+            note: et.note || undefined,
+            startTime: scheduledDateTime.toISOString(),
+            estimatedArrival: undefined,
+            departureId: et.departure?.id,
+            arrivalId: et.arrival?.id,
+            departureAddress: et.departure || undefined,
+            arrivalAddress: et.arrival || undefined,
+          })),
+        };
+
+        // Log the createRequest object to verify its structure
+        console.log('Transport Request Data:', JSON.stringify(createRequest, null, 2));
+
+        await demandeService.createTransportRequest(createRequest);
       }
+
+      toast.success(`${duplicateSchedules.length} demande(s) de groupe dupliquée(s) avec succès`);
+      setOpen(false);
+      setSelectedRequest(null);
+      setDuplicateSchedules([]);
+      setSelectedDates([]);
+    } catch (error: any) {
+      toast.error(`Échec de la duplication des demandes : ${error.message || 'Erreur inconnue'}`);
     }
   };
 

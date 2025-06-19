@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,128 +12,94 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Car, Plus, Eye, Copy, Navigation, Calendar as CalendarIcon, X, AlertTriangle, History, Star, MapPin, Clock, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-
-interface TransportRequest {
-  id: string;
-  requestedBy: string;
-  passengerCount: number;
-  departureLocation: string;
-  arrivalLocation: string;
-  scheduledDate: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
-  note?: string;
-}
-
-interface TransportHistory {
-  id: string;
-  requestId: string;
-  reference: string;
-  type: 'individual';
-  requestedBy: string;
-  passengerCount: number;
-  departureLocation: string;
-  arrivalLocation: string;
-  scheduledDate: string;
-  completedDate: string;
-  status: 'completed' | 'cancelled';
-  driver?: {
-    name: string;
-    rating: number;
-    vehicle: string;
-  };
-  cost: number;
-  duration: string;
-  distance: string;
-  note?: string;
-}
-
-interface DuplicateSchedule {
-  date: Date;
-  time: string;
-}
+import { TransportRequestResponse, TransportStatus, DuplicateSchedule, TransportHistory, CreateTransportRequestDto } from '@/types/demande';
+import { demandeService } from '@/services/demande.service';
 
 export function IndividualTransportPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'requests' | 'history'>('requests');
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<TransportRequest | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<TransportRequestResponse | null>(null);
   const [duplicateSchedules, setDuplicateSchedules] = useState<DuplicateSchedule[]>([]);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [historyDetailsOpen, setHistoryDetailsOpen] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState<TransportHistory | null>(null);
-  
-  const [requests, setRequests] = useState<TransportRequest[]>([
-    {
-      id: '1',
-      requestedBy: 'Jean Dupont',
-      passengerCount: 1,
-      departureLocation: 'Domicile',
-      arrivalLocation: 'Aéroport CDG',
-      scheduledDate: '2024-01-20 09:00',
-      status: 'pending'
-    },
-    {
-      id: '2',
-      requestedBy: 'Pierre Durand',
-      passengerCount: 1,
-      departureLocation: 'Gare du Nord',
-      arrivalLocation: 'Bureau client',
-      scheduledDate: '2024-01-25 14:00',
-      status: 'completed'
-    },
-    {
-      id: '3',
-      requestedBy: 'Sophie Martin',
-      passengerCount: 1,
-      departureLocation: 'Hôtel',
-      arrivalLocation: 'Centre de conférences',
-      scheduledDate: '2024-01-28 08:30',
-      status: 'approved'
-    }
-  ]);
+  const [requests, setRequests] = useState<TransportRequestResponse[]>([]);
+  const [history, setHistory] = useState<TransportHistory[]>([]);
+  const [totalRequests, setTotalRequests] = useState(0);
+  const [totalHistory, setTotalHistory] = useState(0);
+  const [skip, setSkip] = useState(0);
+  const [take, setTake] = useState(10);
+  const [loading, setLoading] = useState(false);
 
-  const [history] = useState<TransportHistory[]>([
-    {
-      id: '1',
-      requestId: '2',
-      reference: 'TR-2024-001',
-      type: 'individual',
-      requestedBy: 'Pierre Durand',
-      passengerCount: 1,
-      departureLocation: 'Gare du Nord, 75010 Paris',
-      arrivalLocation: 'Bureau client - 25 Rue de la République, 75011 Paris',
-      scheduledDate: '2024-01-25 14:00',
-      completedDate: '2024-01-25 14:30',
-      status: 'completed',
-      driver: {
-        name: 'Jean Moreau',
-        rating: 4.6,
-        vehicle: 'Volkswagen e-Golf - IJ-789-KL'
-      },
-      cost: 25.00,
-      duration: '30min',
-      distance: '8 km'
-    },
-    {
-      id: '2',
-      requestId: '4',
-      reference: 'TR-2024-002',
-      type: 'individual',
-      requestedBy: 'Marie Laurent',
-      passengerCount: 1,
-      departureLocation: 'Hôtel Marriott, 75008 Paris',
-      arrivalLocation: 'Gare de Lyon, 75012 Paris',
-      scheduledDate: '2024-01-12 16:00',
-      completedDate: '',
-      status: 'cancelled',
-      cost: 0,
-      duration: '',
-      distance: '',
-      note: 'Annulé par le client'
+  const fetchRequests = async () => {
+    setLoading(true);
+    try {
+      const response = await demandeService.getTransportRequests({
+        page: skip / take + 1,
+        limit: take,
+      });
+      setRequests(response.data.filter(req => req.employeeTransports.length === 1));
+      setTotalRequests(response.total);
+    } catch (error) {
+      toast.error('Erreur lors du chargement des demandes');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const handleViewRequest = (request: TransportRequest) => {
+  const fetchHistory = async () => {
+    setLoading(true);
+    try {
+      const response = await demandeService.getTransportRequests({
+        page: skip / take + 1,
+        limit: take,
+        status: TransportStatus.COMPLETED || TransportStatus.CANCELLED,
+        type: TransportStatus.IN_PROGRESS,
+      });
+      // Transform response data to match TransportHistory interface
+      const historyData: TransportHistory[] = response.data
+        .filter(req => req.employeeTransports.length === 1)
+        .map(req => ({
+          id: req.id,
+          requestId: req.id,
+          reference: req.reference || '',
+          type: 'individual',
+          requestedBy: req.requestedBy?.fullName || '',
+          passengerCount: req.passengerCount || 1,
+          departureLocation: req.employeeTransports[0]?.departure?.fullAddress || '',
+          arrivalLocation: req.employeeTransports[0]?.arrival?.fullAddress || '',
+          scheduledDate: req.scheduledDate || '',
+          completedDate: req.employeeTransports[0]?.actualArrival || '',
+          status: req.status as 'completed' | 'cancelled',
+          driver: req.employeeTransports[0]?.rideId ? {
+            name: 'Unknown', // Update with actual driver data if available
+            rating: 0,
+            vehicle: 'Unknown',
+          } : undefined,
+          cost: 0, // Update with actual cost if available
+          duration: '', // Update with actual duration if available
+          distance: '', // Update with actual distance if available
+          note: req.note,
+        }));
+      setHistory(historyData);
+      setTotalHistory(response.total);
+    } catch (error) {
+      toast.error('Erreur lors du chargement de l\'historique');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'requests') {
+      fetchRequests();
+    } else {
+      fetchHistory();
+    }
+  }, [activeTab, skip, take]);
+
+  const handleViewRequest = (request: TransportRequestResponse) => {
     navigate(`/transport/${request.id}`);
   };
 
@@ -142,39 +108,49 @@ export function IndividualTransportPage() {
     setHistoryDetailsOpen(true);
   };
 
-  const handleDuplicateRequest = (request: TransportRequest) => {
+  const handleDuplicateRequest = (request: TransportRequestResponse) => {
     setSelectedRequest(request);
     setDuplicateDialogOpen(true);
     setSelectedDates([]);
     setDuplicateSchedules([]);
   };
 
-  const handleCancelRequest = (request: TransportRequest) => {
-    const scheduledTime = new Date(request.scheduledDate).getTime();
+  const handleCancelRequest = async (request: TransportRequestResponse) => {
+    const scheduledTime = new Date(request.scheduledDate!).getTime();
     const currentTime = new Date().getTime();
     const thirtyMinutesInMs = 30 * 60 * 1000;
-    
+
     if (currentTime >= (scheduledTime - thirtyMinutesInMs)) {
       toast.error('Impossible d\'annuler une demande moins de 30 minutes avant le départ');
       return false;
     }
-    
-    setRequests(prev => 
-      prev.map(req => 
-        req.id === request.id 
-          ? { ...req, status: 'rejected' as const } 
-          : req
-      )
-    );
-    toast.success('Demande annulée avec succès');
-    return true;
+
+    try {
+      // Update status to CANCELLED via API
+      await demandeService.createTransportRequest({
+        ...request,
+        status: TransportStatus.CANCELLED,
+      });
+      setRequests(prev =>
+        prev.map(req =>
+          req.id === request.id
+            ? { ...req, status: TransportStatus.CANCELLED }
+            : req
+        )
+      );
+      toast.success('Demande annulée avec succès');
+      return true;
+    } catch (error) {
+      toast.error('Erreur lors de l\'annulation de la demande');
+      return false;
+    }
   };
 
   const handleDateSelect = (dates: Date[] | undefined) => {
     if (dates) {
       setSelectedDates(dates);
       const newSchedules = dates.map(date => {
-        const existing = duplicateSchedules.find(s => 
+        const existing = duplicateSchedules.find(s =>
           s.date.toDateString() === date.toDateString()
         );
         return existing || { date, time: '09:00' };
@@ -184,8 +160,8 @@ export function IndividualTransportPage() {
   };
 
   const updateScheduleTime = (date: Date, time: string) => {
-    setDuplicateSchedules(prev => 
-      prev.map(schedule => 
+    setDuplicateSchedules(prev =>
+      prev.map(schedule =>
         schedule.date.toDateString() === date.toDateString()
           ? { ...schedule, time }
           : schedule
@@ -194,86 +170,88 @@ export function IndividualTransportPage() {
   };
 
   const removeSchedule = (date: Date) => {
-    setDuplicateSchedules(prev => 
+    setDuplicateSchedules(prev =>
       prev.filter(schedule => schedule.date.toDateString() !== date.toDateString())
     );
-    setSelectedDates(prev => 
+    setSelectedDates(prev =>
       prev.filter(d => d.toDateString() !== date.toDateString())
     );
   };
 
-  const confirmDuplicate = () => {
+  const confirmDuplicate = async () => {
     if (selectedRequest && duplicateSchedules.length > 0) {
-      duplicateSchedules.forEach((schedule, index) => {
-        const duplicatedRequest = {
-          ...selectedRequest,
-          id: `${selectedRequest.id}-copy-${Date.now()}-${index}`,
-          scheduledDate: `${schedule.date.toISOString().split('T')[0]} ${schedule.time}`,
-          status: 'pending' as const
-        };
-        
-        console.log('Duplicating request:', duplicatedRequest);
-      });
-      
-      toast.success(`${duplicateSchedules.length} demande(s) dupliquée(s) avec succès`);
-      setDuplicateDialogOpen(false);
-      setSelectedRequest(null);
-      setDuplicateSchedules([]);
-      setSelectedDates([]);
+      const newRequests: CreateTransportRequestDto[] = duplicateSchedules.map((schedule, index) => ({
+        ...selectedRequest,
+        reference: `${selectedRequest.reference || 'TR'}-copy-${Date.now()}-${index}`,
+        scheduledDate: `${schedule.date.toISOString().split('T')[0]} ${schedule.time}`,
+        status: TransportStatus.PENDING,
+        employeeTransports: selectedRequest.employeeTransports.map(et => ({
+          ...et,
+          startTime: `${schedule.date.toISOString().split('T')[0]} ${schedule.time}`,
+        })),
+      }));
+
+      try {
+        await demandeService.createMultipleTransportRequests(newRequests);
+        toast.success(`${duplicateSchedules.length} demande(s) dupliquée(s) avec succès`);
+        fetchRequests();
+      } catch (error) {
+        toast.error('Erreur lors de la duplication des demandes');
+      } finally {
+        setDuplicateDialogOpen(false);
+        setSelectedRequest(null);
+        setDuplicateSchedules([]);
+        setSelectedDates([]);
+      }
     }
   };
 
-  const getStatusBadge = (status: TransportRequest['status'] | TransportHistory['status']) => {
+  const getStatusBadge = (status: TransportStatus | TransportHistory['status']) => {
     const variants = {
-      pending: { variant: 'outline' as const, label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
-      approved: { variant: 'default' as const, label: 'Approuvée', color: 'bg-blue-100 text-blue-800' },
-      rejected: { variant: 'destructive' as const, label: 'Rejetée', color: 'bg-red-100 text-red-800' },
-      completed: { variant: 'secondary' as const, label: 'Terminée', color: 'bg-green-100 text-green-800' },
-      cancelled: { variant: 'destructive' as const, label: 'Annulée', color: 'bg-red-100 text-red-800' }
+      [TransportStatus.PENDING]: { variant: 'outline' as const, label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
+      [TransportStatus.APPROVED]: { variant: 'default' as const, label: 'Approuvée', color: 'bg-blue-100 text-blue-800' },
+      [TransportStatus.REJECTED]: { variant: 'destructive' as const, label: 'Rejetée', color: 'bg-red-100 text-red-800' },
+      [TransportStatus.COMPLETED]: { variant: 'secondary' as const, label: 'Terminée', color: 'bg-green-100 text-green-800' },
+      [TransportStatus.CANCELLED]: { variant: 'destructive' as const, label: 'Annulée', color: 'bg-red-100 text-red-800' },
+      [TransportStatus.DISPATCHED]: { variant: 'default' as const, label: 'Dispatchée', color: 'bg-purple-100 text-purple-800' },
+      [TransportStatus.ASSIGNED]: { variant: 'default' as const, label: 'Assignée', color: 'bg-indigo-100 text-indigo-800' },
+      [TransportStatus.IN_PROGRESS]: { variant: 'default' as const, label: 'En cours', color: 'bg-teal-100 text-teal-800' },
     };
-    
-    const { label, color } = variants[status];
+
+    const { label, color } = variants[status] || { variant: 'outline' as const, label: status, color: 'bg-gray-100 text-gray-800' };
     return <Badge className={color}>{label}</Badge>;
   };
 
   const requestColumns = [
     {
       header: 'Demandeur',
-      accessor: 'requestedBy' as keyof TransportRequest,
-      render: (request: TransportRequest) => (
+      accessor: 'requestedBy' as keyof TransportRequestResponse,
+      render: (request: TransportRequestResponse) => (
         <div>
-          <div className="font-medium">{request.requestedBy}</div>
+          <div className="font-medium">{request.requestedBy?.fullName}</div>
           <div className="text-sm text-muted-foreground">
             <Badge variant="outline">Individuel</Badge>
           </div>
         </div>
-      )
+      ),
     },
     {
       header: 'Passagers',
-      accessor: 'passengerCount' as keyof TransportRequest,
-      render: (request: TransportRequest) => `${request.passengerCount} passager`
+      accessor: 'passengerCount' as keyof TransportRequestResponse,
+      render: (request: TransportRequestResponse) => `${request.passengerCount || 1} passager`,
     },
-    {
-      header: 'Trajet',
-      accessor: 'departureLocation' as keyof TransportRequest,
-      render: (request: TransportRequest) => (
-        <div className="text-sm">
-          <div>De: {request.departureLocation}</div>
-          <div>Vers: {request.arrivalLocation}</div>
-        </div>
-      )
-    },
+  
     {
       header: 'Date prévue',
-      accessor: 'scheduledDate' as keyof TransportRequest,
-      render: (request: TransportRequest) => new Date(request.scheduledDate).toLocaleString('fr-FR')
+      accessor: 'scheduledDate' as keyof TransportRequestResponse,
+      render: (request: TransportRequestResponse) =>
+        request.scheduledDate ? new Date(request.scheduledDate).toLocaleString('fr-FR') : '-',
     },
     {
       header: 'Statut',
-      accessor: 'status' as keyof TransportRequest,
-      render: (request: TransportRequest) => getStatusBadge(request.status)
-    }
+      accessor: 'status' as keyof TransportRequestResponse,
+      render: (request: TransportRequestResponse) => getStatusBadge(request.status!),
+    },
   ];
 
   const historyColumns = [
@@ -287,7 +265,7 @@ export function IndividualTransportPage() {
             <Badge variant="outline" className="text-xs">Individuel</Badge>
           </div>
         </div>
-      )
+      ),
     },
     {
       header: 'Demandeur',
@@ -299,7 +277,7 @@ export function IndividualTransportPage() {
             {item.passengerCount} passager{item.passengerCount > 1 ? 's' : ''}
           </div>
         </div>
-      )
+      ),
     },
     {
       header: 'Trajet',
@@ -308,14 +286,14 @@ export function IndividualTransportPage() {
         <div className="text-sm max-w-xs">
           <div className="flex items-center space-x-1 mb-1">
             <MapPin className="h-3 w-3 text-green-500" />
-            <span className="truncate">{item.departureLocation.split(' - ')[0]}</span>
+            <span className="truncate">{item.departureLocation}</span>
           </div>
           <div className="flex items-center space-x-1">
             <MapPin className="h-3 w-3 text-red-500" />
-            <span className="truncate">{item.arrivalLocation.split(' - ')[0]}</span>
+            <span className="truncate">{item.arrivalLocation}</span>
           </div>
         </div>
-      )
+      ),
     },
     {
       header: 'Date',
@@ -330,7 +308,7 @@ export function IndividualTransportPage() {
             {new Date(item.scheduledDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
-      )
+      ),
     },
     {
       header: 'Chauffeur',
@@ -347,7 +325,7 @@ export function IndividualTransportPage() {
         ) : (
           <span className="text-sm text-muted-foreground">-</span>
         )
-      )
+      ),
     },
     {
       header: 'Coût',
@@ -356,16 +334,16 @@ export function IndividualTransportPage() {
         <div className="text-sm font-medium">
           {item.cost > 0 ? `${item.cost.toFixed(2)}€` : '-'}
         </div>
-      )
+      ),
     },
     {
       header: 'Statut',
       accessor: 'status' as keyof TransportHistory,
-      render: (item: TransportHistory) => getStatusBadge(item.status)
-    }
+      render: (item: TransportHistory) => getStatusBadge(item.status),
+    },
   ];
 
-  const requestActions = (request: TransportRequest) => (
+  const requestActions = (request: TransportRequestResponse) => (
     <div className="flex items-center space-x-2">
       <Button
         size="sm"
@@ -389,7 +367,7 @@ export function IndividualTransportPage() {
       >
         <Copy className="h-4 w-4" />
       </Button>
-      {(request.status === 'pending' || request.status === 'approved') && (
+      {(request.status === TransportStatus.PENDING || request.status === TransportStatus.APPROVED) && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
@@ -409,13 +387,13 @@ export function IndividualTransportPage() {
                 <span>Annuler la demande</span>
               </AlertDialogTitle>
               <AlertDialogDescription>
-                Êtes-vous sûr de vouloir annuler cette demande de transport ? 
+                Êtes-vous sûr de vouloir annuler cette demande de transport ?
                 Cette action est irréversible.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Retour</AlertDialogCancel>
-              <AlertDialogAction 
+              <AlertDialogAction
                 onClick={() => handleCancelRequest(request)}
                 className="bg-red-600 hover:bg-red-700"
               >
@@ -442,11 +420,29 @@ export function IndividualTransportPage() {
     </Button>
   );
 
+  const requestFilterOptions = [
+    { label: 'Toutes', value: 'all', field: 'status' as keyof TransportRequestResponse },
+    { label: 'En attente', value: TransportStatus.PENDING, field: 'status' as keyof TransportRequestResponse },
+    { label: 'Approuvée', value: TransportStatus.APPROVED, field: 'status' as keyof TransportRequestResponse },
+    { label: 'Rejetée', value: TransportStatus.REJECTED, field: 'status' as keyof TransportRequestResponse },
+    { label: 'Terminée', value: TransportStatus.COMPLETED, field: 'status' as keyof TransportRequestResponse },
+  ];
+
   const historyFilterOptions = [
     { label: 'Toutes', value: 'all', field: 'status' as keyof TransportHistory },
     { label: 'Terminées', value: 'completed', field: 'status' as keyof TransportHistory },
-    { label: 'Annulées', value: 'cancelled', field: 'status' as keyof TransportHistory }
+    { label: 'Annulées', value: 'cancelled', field: 'status' as keyof TransportHistory },
   ];
+
+  const handlePageChange = (newSkip: number, newTake: number) => {
+    setSkip(newSkip);
+    setTake(newTake);
+  };
+
+  const handleFilterChange = (filters: Record<string, string>) => {
+    setSkip(0); // Reset to first page when filters change
+    // Update fetch logic with new filters if needed
+  };
 
   return (
     <div className="space-y-6">
@@ -456,13 +452,13 @@ export function IndividualTransportPage() {
           <h2 className="text-2xl font-bold">Transport individuel</h2>
         </div>
         <div className="flex space-x-2">
-          <Button 
+          <Button
             variant="outline"
             onClick={() => navigate('/transport/drafts')}
           >
             Brouillons
           </Button>
-          <Button 
+          <Button
             onClick={() => navigate('/transport/create')}
             className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
           >
@@ -476,11 +472,11 @@ export function IndividualTransportPage() {
         <TabsList>
           <TabsTrigger value="requests" className="flex items-center space-x-2">
             <Car className="h-4 w-4" />
-            <span>Demandes ({requests.length})</span>
+            <span>Demandes ({totalRequests})</span>
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center space-x-2">
             <History className="h-4 w-4" />
-            <span>Historique ({history.length})</span>
+            <span>Historique ({totalHistory})</span>
           </TabsTrigger>
         </TabsList>
 
@@ -489,9 +485,13 @@ export function IndividualTransportPage() {
             data={requests}
             columns={requestColumns}
             actions={requestActions}
-            itemsPerPage={10}
+            filterOptions={requestFilterOptions}
+            total={totalRequests}
+            skip={skip}
+            take={take}
+            onPageChange={handlePageChange}
+            onFilterChange={handleFilterChange}
             onRowClick={handleViewRequest}
-            emptyMessage="Aucune demande de transport individuelle trouvée"
             searchPlaceholder="Rechercher par demandeur, trajet..."
           />
         </TabsContent>
@@ -506,12 +506,11 @@ export function IndividualTransportPage() {
                     <History className="h-5 w-5 text-blue-500" />
                     <div>
                       <p className="text-sm text-muted-foreground">Total courses</p>
-                      <p className="text-2xl font-bold">{history.length}</p>
+                      <p className="text-2xl font-bold">{totalHistory}</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
@@ -525,7 +524,6 @@ export function IndividualTransportPage() {
                   </div>
                 </CardContent>
               </Card>
-
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
@@ -539,7 +537,6 @@ export function IndividualTransportPage() {
                   </div>
                 </CardContent>
               </Card>
-
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
@@ -562,9 +559,12 @@ export function IndividualTransportPage() {
               columns={historyColumns}
               actions={historyActions}
               filterOptions={historyFilterOptions}
-              itemsPerPage={10}
+              total={totalHistory}
+              skip={skip}
+              take={take}
+              onPageChange={handlePageChange}
+              onFilterChange={handleFilterChange}
               onRowClick={handleViewHistoryDetails}
-              emptyMessage="Aucun historique de transport trouvé"
               searchPlaceholder="Rechercher par référence, demandeur..."
             />
           </div>
@@ -587,7 +587,6 @@ export function IndividualTransportPage() {
                 className="rounded-md border"
               />
             </div>
-            
             <div>
               <Label className="text-base font-medium mb-4 block">
                 Horaires pour chaque date ({duplicateSchedules.length})
@@ -598,11 +597,11 @@ export function IndividualTransportPage() {
                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                     <div className="flex-1">
                       <div className="font-medium text-sm">
-                        {schedule.date.toLocaleDateString('fr-FR', { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
+                        {schedule.date.toLocaleDateString('fr-FR', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
                         })}
                       </div>
                     </div>
@@ -630,12 +629,11 @@ export function IndividualTransportPage() {
               </div>
             </div>
           </div>
-          
           <div className="flex justify-end space-x-2 mt-6">
             <Button variant="outline" onClick={() => setDuplicateDialogOpen(false)}>
               Annuler
             </Button>
-            <Button 
+            <Button
               onClick={confirmDuplicate}
               className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
               disabled={duplicateSchedules.length === 0}
@@ -652,14 +650,12 @@ export function IndividualTransportPage() {
           <DialogHeader>
             <DialogTitle>Détails de la course {selectedHistory?.reference}</DialogTitle>
           </DialogHeader>
-          
           {selectedHistory && (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 {getStatusBadge(selectedHistory.status)}
                 <Badge variant="outline">Transport individuel</Badge>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium">Demandeur</p>
@@ -680,7 +676,6 @@ export function IndividualTransportPage() {
                   </div>
                 )}
               </div>
-
               <div>
                 <p className="text-sm font-medium mb-2">Trajet</p>
                 <div className="space-y-2">
@@ -694,7 +689,6 @@ export function IndividualTransportPage() {
                   </div>
                 </div>
               </div>
-
               {selectedHistory.driver && (
                 <div>
                   <p className="text-sm font-medium mb-2">Chauffeur</p>
@@ -712,7 +706,6 @@ export function IndividualTransportPage() {
                   </div>
                 </div>
               )}
-
               {selectedHistory.status === 'completed' && (
                 <div className="grid grid-cols-3 gap-4">
                   <div>
@@ -729,7 +722,6 @@ export function IndividualTransportPage() {
                   </div>
                 </div>
               )}
-
               {selectedHistory.note && (
                 <div>
                   <p className="text-sm font-medium mb-2">Note</p>
