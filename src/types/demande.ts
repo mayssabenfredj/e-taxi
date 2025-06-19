@@ -100,6 +100,7 @@ export interface EmployeeTransportDto {
   employee?: Employee;
   createdAt: string;
   updatedAt: string;
+
 }
 
 export interface TransportRequestResponse {
@@ -119,6 +120,10 @@ export interface TransportRequestResponse {
   enterprise?: EnterpriseDto;
   subsidiaryId?: string;
   employeeTransports: EmployeeTransportDto[];
+  passengerCount?: number;
+  departureLocation?: string;
+  arrivalLocation?: string;
+ 
 }
 
 // Types specific to the frontend UI

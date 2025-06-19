@@ -72,7 +72,7 @@ export function EditTransportRequest() {
 
   // Utiliser le hook useEmployees pour charger les employés
   const { employees: availableEmployees, loading: employeesLoading } = useEmployees({
-    enterpriseId: request?.enterpriseId, // Utiliser l'enterpriseId de la demande
+    enterpriseId: request?.enterprise.id, // Utiliser l'enterpriseId de la demande
     roleFilter: 'all',
     subsidiaryFilter: 'all',
     statusFilter: 'ENABLED', // Ne charger que les employés actifs

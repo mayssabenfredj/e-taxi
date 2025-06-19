@@ -169,6 +169,20 @@ export function CreateGroupTransportRequest() {
     }
   }, [location.state]);
 
+  useEffect(() => {
+    saveDraftData();
+  }, [
+    selectedEmployees,
+    selectedPassengers,
+    transportType,
+    scheduledDate,
+    scheduledTime,
+    isRecurring,
+    recurringDates,
+    note,
+    isHomeToWorkTrip
+  ]);
+
   const handleEmployeeSelect = (employeeId: string) => {
     const employee = mappedEmployees.find((emp) => emp.id === employeeId);
     if (!employee) return;
@@ -197,12 +211,14 @@ export function CreateGroupTransportRequest() {
         },
       ]);
     }
+    saveDraftData();
   };
 
   const updatePassengerAddress = (passengerId: string, field: 'departureAddressId' | 'arrivalAddressId', value: string) => {
     setSelectedPassengers((prev) =>
       prev.map((passenger) => (passenger.id === passengerId ? { ...passenger, [field]: value } : passenger))
     );
+    saveDraftData();
   };
 
   const handleRecurringDateChange = (dates: Date[] | undefined) => {
@@ -215,10 +231,12 @@ export function CreateGroupTransportRequest() {
     } else {
       setRecurringDates([]);
     }
+    saveDraftData();
   };
 
   const updateRecurringTime = (index: number, time: string) => {
     setRecurringDates((prev) => prev.map((item, i) => (i === index ? { ...item, time } : item)));
+    saveDraftData();
   };
 
   const handleSaveDraft = () => {
@@ -444,6 +462,7 @@ const calculateRoutes = async () => {
         };
       })
     );
+    saveDraftData();
   };
 
   const handleEmployeesImported = (importedEmployees: Employee[]) => {
@@ -468,6 +487,7 @@ const calculateRoutes = async () => {
     setSelectedEmployees((prev) => [...prev, ...newPassengers.map((p) => p.id)]);
     setSelectedPassengers((prev) => [...prev, ...newPassengers]);
     toast.success(`${newPassengers.length} employé(s) ajouté(s) à la demande`);
+    saveDraftData();
   };
 
   const handleShowConfirmation = () => {
