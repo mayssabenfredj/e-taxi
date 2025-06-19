@@ -4,8 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DashboardHome } from './DashboardHome';
 import { CompanyPage } from '../../pages/dashboard/company/CompanyPage';
 import { EmployeesPage } from '../../pages/dashboard/employee/EmployeesPage';
-import { IndividualTransportPage } from '../../pages/dashboard/transport/IndividualTransportPage';
-import { GroupTransportPage } from '../../pages/dashboard/transport/GroupTransportPage';
+import { IndividualTransportPage } from '../../pages/dashboard/transport/individualTransport/IndividualTransportPage';
+import { GroupTransportPage } from '../../pages/dashboard/transport/groupTransport/GroupTransportPage';
 import { TaxiManagementPage } from '../../pages/dashboard/taxi/TaxiManagementPage';
 import { DispatchPage } from '../../pages/dashboard/DispatchPage';
 import { ProfilePage } from '../../pages/dashboard/ProfilePage';
@@ -17,12 +17,12 @@ import { DashboardLayout } from '@/layout/DashboardLayout';
 import { EmployeeRequestsPage } from '@/pages/dashboard/employee/EmployeeRequestsPage';
 import { EmployeesLayout } from '@/layout/EmployeesLayout';
 import { DraftRequestsPage } from '@/pages/dashboard/transport/DraftRequestsPage';
-import { CreateGroupTransportRequest } from './CreateGroupTransportRequest';
-import { GroupTransportDispatchPage } from '@/pages/dashboard/transport/GroupTransportDispatchPage';
+import { GroupTransportDispatchPage } from '@/pages/dashboard/transport/groupTransport/GroupTransportDispatchPage';
 import { TransportRequestDetails } from './TransportRequestDetails';
 import { EditTransportRequest } from './EditTransportRequest';
 import { SubsidariesPage } from '@/pages/dashboard/company/SubsidiariesPage';
 import { EmployeeDetails } from '@/pages/dashboard/employee/EmployeeDetails';
+import { CreateGroupTransportRequest } from '@/pages/dashboard/transport/groupTransport/CreateGroupTransportRequest';
 
 export function Dashboard() {
   const [currentPage, setCurrentPage] = useState('dashboard');

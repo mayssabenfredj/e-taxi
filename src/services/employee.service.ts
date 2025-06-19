@@ -145,7 +145,7 @@ class EmployeeService {
 
   async updateEmployeeStatus(id: string, enabled: boolean): Promise<Employee> {
     try {
-      const response = await apiClient.put(`/users/${id}/status`, {
+      const response = await apiClient.patch(`/users/${id}/status`, {
         enabled,
       });
 

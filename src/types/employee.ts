@@ -1,10 +1,10 @@
-
 export enum UserStatus {
   ENABLED = "ENABLED",
   DISABLED = "DISABLED",
 }
 
 export interface AddressDto {
+  id?: string;
   street?: string;
   buildingNumber?: string;
   complement?: string;
@@ -24,6 +24,7 @@ export interface AddressDto {
 }
 
 export interface UserAddressDto {
+  id?: string;
   address: AddressDto;
   isDefault?: boolean;
   label?: string;

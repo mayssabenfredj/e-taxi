@@ -20,6 +20,7 @@ interface TableWithPaginationProps<T> {
   take: number;
   onPageChange: (skip: number, take: number) => void;
   onFilterChange?: (filters: Record<string, string>) => void; // Added to support multiple filters
+    onRowClick?: (item: T) => void; // Added to support row click handling
 }
 
 export function TableWithPagination<T>({
@@ -33,6 +34,8 @@ export function TableWithPagination<T>({
   take,
   onPageChange,
   onFilterChange,
+    onRowClick,
+
 }: TableWithPaginationProps<T>) {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({});
@@ -134,7 +137,11 @@ export function TableWithPagination<T>({
         </thead>
         <tbody>
           {filteredData.map((item, index) => (
-            <tr key={index} className="border-t">
+               <tr
+              key={index}
+              className={onRowClick ? 'cursor-pointer hover:bg-gray-100' : ''}
+              onClick={() => onRowClick && onRowClick(item)}
+            >
               {columns.map((col) => (
                 <td key={col.accessor} className="p-2">
                   {col.render ? col.render(item) : (item as any)[col.accessor]}

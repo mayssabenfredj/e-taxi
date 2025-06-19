@@ -1,0 +1,148 @@
+import React, { useState, useEffect } from 'react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Users, History } from 'lucide-react';
+import { Header } from '@/components/transport/groupTransport/Header';
+import { RequestsTab } from '@/components/transport/groupTransport/RequestsTab';
+import { HistoryTab } from '@/components/transport/groupTransport/HistoryTab';
+import { DuplicateDialog } from '@/components/transport/groupTransport/DuplicateDialog';
+import { HistoryDetailsDialog } from '@/components/transport/groupTransport/HistoryDetailsDialog';
+import { TransportRequest, TransportHistory, DuplicateSchedule, GetTransportRequestsQueryDto } from '@/types/demande';
+import { demandeService } from '@/services/demande.service';
+import { toast } from 'sonner';
+
+export function GroupTransportPage() {
+  const [activeTab, setActiveTab] = useState<'requests' | 'history'>('requests');
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<TransportRequest | null>(null);
+  const [duplicateSchedules, setDuplicateSchedules] = useState<DuplicateSchedule[]>([]);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [historyDetailsOpen, setHistoryDetailsOpen] = useState(false);
+  const [selectedHistory, setSelectedHistory] = useState<TransportHistory | null>(null);
+  const [requests, setRequests] = useState<TransportRequest[]>([]);
+  const [history, setHistory] = useState<TransportHistory[]>([]);
+  const [requestsSkip, setRequestsSkip] = useState(0);
+  const [requestsTake, setRequestsTake] = useState(10);
+  const [historySkip, setHistorySkip] = useState(0);
+  const [historyTake, setHistoryTake] = useState(10);
+  const [requestsTotal, setRequestsTotal] = useState(0);
+  const [historyTotal, setHistoryTotal] = useState(0);
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const query: GetTransportRequestsQueryDto = {
+          page: Math.floor(requestsSkip / requestsTake) + 1,
+          limit: requestsTake,
+        };
+        const response = await demandeService.getTransportRequests(query);
+        console.log("responsseeee ***", response);
+        setRequests(response.data.map((req) => ({
+          id: req.id,
+          requestedBy: req.requestedById || 'Unknown',
+          passengerCount: req.employeeTransports.length,
+          departureLocation: req.employeeTransports[0]?.departureAddress?.formattedAddress || 'Unknown',
+          arrivalLocation: req.employeeTransports[0]?.arrivalAddress?.formattedAddress || 'Unknown',
+          scheduledDate: req.scheduledDate || new Date().toISOString(),
+          status: (req.status || 'pending').toLowerCase() as TransportRequest['status'],
+          note: req.note,
+        })));
+        setRequestsTotal(response.total);
+      } catch (error) {
+        toast.error('Failed to load transport requests');
+      }
+    };
+
+    const fetchHistory = async () => {
+      try {
+        const response = await demandeService.getTransportRequests({
+          page: Math.floor(historySkip / historyTake) + 1,
+          limit: historyTake,
+          status: 'COMPLETED' as any, // Adjust based on actual API
+        });
+        setHistory(response.data.map((req) => ({
+          id: req.id,
+          requestId: req.id,
+          reference: req.reference || `TR-${req.id}`,
+          type: 'group',
+          requestedBy: req.requestedById || 'Unknown',
+          passengerCount: req.employeeTransports.length,
+          departureLocation: req.employeeTransports[0]?.departureAddress?.formattedAddress || 'Unknown',
+          arrivalLocation: req.employeeTransports[0]?.arrivalAddress?.formattedAddress || 'Unknown',
+          scheduledDate: req.scheduledDate || new Date().toISOString(),
+          completedDate: req.updatedAt || new Date().toISOString(),
+          status: (req.status === 'COMPLETED' ? 'completed' : 'cancelled') as TransportHistory['status'],
+          taxiCount: req.employeeTransports.length, // Adjust based on actual data
+          courses: [], // Placeholder; adjust based on actual API response
+          totalCost: 0, // Placeholder; adjust based on actual API response
+          note: req.note,
+        })));
+        setHistoryTotal(response.total);
+      } catch (error) {
+        toast.error('Failed to load transport history');
+      }
+    };
+
+    if (activeTab === 'requests') {
+      fetchRequests();
+    } else {
+      fetchHistory();
+    }
+  }, [activeTab, requestsSkip, requestsTake, historySkip, historyTake]);
+
+  return (
+    <div className="space-y-6">
+      <Header />
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'requests' | 'history')}>
+        <TabsList>
+          <TabsTrigger value="requests" className="flex items-center space-x-2">
+            <Users className="h-4 w-4" />
+            <span>Demandes ({requestsTotal})</span>
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center space-x-2">
+            <History className="h-4 w-4" />
+            <span>Historique ({historyTotal})</span>
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="requests">
+          <RequestsTab
+            requests={requests}
+            skip={requestsSkip}
+            take={requestsTake}
+            total={requestsTotal}
+            setSkip={setRequestsSkip}
+            setTake={setRequestsTake}
+            setSelectedRequest={setSelectedRequest}
+            setDuplicateDialogOpen={setDuplicateDialogOpen}
+          />
+        </TabsContent>
+        <TabsContent value="history">
+          <HistoryTab
+            history={history}
+            skip={historySkip}
+            take={historyTake}
+            total={historyTotal}
+            setSkip={setHistorySkip}
+            setTake={setHistoryTake}
+            setSelectedHistory={setSelectedHistory}
+            setHistoryDetailsOpen={setHistoryDetailsOpen}
+          />
+        </TabsContent>
+      </Tabs>
+      <DuplicateDialog
+        open={duplicateDialogOpen}
+        setOpen={setDuplicateDialogOpen}
+        selectedRequest={selectedRequest}
+        setSelectedRequest={setSelectedRequest}
+        duplicateSchedules={duplicateSchedules}
+        setDuplicateSchedules={setDuplicateSchedules}
+        selectedDates={selectedDates}
+        setSelectedDates={setSelectedDates}
+      />
+      <HistoryDetailsDialog
+        open={historyDetailsOpen}
+        setOpen={setHistoryDetailsOpen}
+        selectedHistory={selectedHistory}
+      />
+    </div>
+  );
+}

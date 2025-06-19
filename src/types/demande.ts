@@ -1,0 +1,166 @@
+import { Employee as BaseEmployee, AddressDto } from "@/types/employee";
+
+export enum TransportType {
+  IMMEDIATE = "IMMEDIATE",
+  SCHEDULED = "SCHEDULED",
+  RECURRING = "RECURRING",
+}
+
+export enum RequestPriority {
+  LOW = "LOW",
+  NORMAL = "NORMAL",
+  HIGH = "HIGH",
+  URGENT = "URGENT",
+}
+
+export enum TransportStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  DISPATCHED = "DISPATCHED",
+  ASSIGNED = "ASSIGNED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  REJECTED = "REJECTED",
+}
+
+export enum AddressType {
+  HOME = "HOME",
+  OFFICE = "OFFICE",
+  CUSTOM = "CUSTOM",
+}
+
+
+
+export interface EmployeeTransportDto {
+  employeeId: string;
+  note?: string;
+  startTime: string;
+  estimatedArrival?: string;
+  departureId?: string;
+  arrivalId?: string;
+  departureAddress?: AddressDto;
+  arrivalAddress?: AddressDto;
+}
+
+export interface CreateTransportRequestDto {
+  reference?: string;
+  type?: TransportType;
+  priority?: RequestPriority;
+  note?: string;
+  scheduledDate?: string;
+  requestedById?: string;
+  enterpriseId?: string;
+  subsidiaryId?: string;
+  employeeTransports: EmployeeTransportDto[];
+}
+
+export interface GetTransportRequestsQueryDto {
+  page?: number;
+  limit?: number;
+  status?: TransportStatus;
+  type?: TransportType;
+  priority?: RequestPriority;
+  enterpriseId?: string;
+  subsidiaryId?: string;
+}
+
+export interface TransportRequestResponse {
+  id: string;
+  reference?: string;
+  type?: TransportType;
+  priority?: RequestPriority;
+  status?: TransportStatus;
+  note?: string;
+  scheduledDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  requestedById?: string;
+  enterpriseId?: string;
+  subsidiaryId?: string;
+  employeeTransports: EmployeeTransportDto[];
+}
+
+// Types specific to the frontend UI
+export interface TransportRequest {
+  id: string;
+  requestedBy: string;
+  passengerCount: number;
+  departureLocation: string;
+  arrivalLocation: string;
+  scheduledDate: string;
+  status: "pending" | "approved" | "rejected" | "completed";
+  note?: string;
+}
+
+export interface TransportHistory {
+  id: string;
+  requestId: string;
+  reference: string;
+  type: "group";
+  requestedBy: string;
+  passengerCount: number;
+  departureLocation: string;
+  arrivalLocation: string;
+  scheduledDate: string;
+  completedDate: string;
+  status: "completed" | "cancelled";
+  taxiCount: number;
+  courses: {
+    id: string;
+    taxiNumber: string;
+    driver: {
+      name: string;
+      rating: number;
+      vehicle: string;
+    };
+    passengers: string[];
+    cost: number;
+    duration: string;
+    distance: string;
+  }[];
+  totalCost: number;
+  note?: string;
+}
+
+export interface DuplicateSchedule {
+  date: Date;
+  time: string;
+}
+
+export interface Employee extends BaseEmployee {
+  subsidiaryName?: string; // Derived from subsidiary.name
+}
+
+export interface SelectedPassenger extends Employee {
+  departureAddress?: string;
+  arrivalAddress?: string;
+  departureAddressId?: string; // ID of the departure address from UserAddressDto
+  arrivalAddressId?: string;
+  isHomeToWork: boolean;
+  note?: string;
+}
+
+export interface RecurringDateTime {
+  date: Date;
+  time: string;
+}
+
+export interface RouteEstimation {
+  distance: string;
+  duration: string;
+  price: number;
+}
+
+export interface DraftData {
+  selectedEmployees: string[];
+  selectedPassengers: SelectedPassenger[];
+  transportType: "public" | "private";
+  scheduledDate: string;
+  scheduledTime: string;
+  isRecurring: boolean;
+  recurringDates: RecurringDateTime[];
+  note: string;
+  isHomeToWorkTrip: boolean;
+  lastModified: string;
+}
