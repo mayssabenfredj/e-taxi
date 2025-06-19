@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,181 +14,161 @@ import {
   MapPin, 
   Phone, 
   Mail,
-  Clock,
   FileText,
   Car,
-  X,
-  AlertTriangle,
-  Home,
-  Briefcase
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface Passenger {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  departureAddress: string;
-  arrivalAddress: string;
-}
-
-interface TransportRequest {
-  id: string;
-  reference: string;
-  type: 'immediate' | 'scheduled';
-  requestType: 'private' | 'public';
-  status: 'pending' | 'approved' | 'dispatched' | 'in_progress' | 'completed' | 'cancelled';
-  scheduledDate: string;
-  requestedBy: string;
-  enterprise: string;
-  subsidiary?: string;
-  passengers: Passenger[];
-  note?: string;
-  createdAt: string;
-}
+import { TransportRequestResponse, EmployeeTransportDto, TransportStatus, TransportType } from '@/types/demande';
+import { demandeService } from '@/services/demande.service';
+import { AddressDto } from '@/types/employee';
 
 export function TransportRequestDetails() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [request, setRequest] = useState<TransportRequestResponse | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock data
-  const [request, setRequest] = useState<TransportRequest>({
-    id: '1',
-    reference: 'TR-2024-001',
-    type: 'scheduled',
-    requestType: 'public',
-    status: 'pending',
-    scheduledDate: '2024-01-15 09:00',
-    requestedBy: 'Marie Dubois',
-    enterprise: 'TechCorp SARL',
-    subsidiary: 'TechCorp Paris',
-    passengers: [
-      {
-        id: '1',
-        name: 'Jean Dupont',
-        phone: '+33 6 12 34 56 78',
-        email: 'jean.dupont@techcorp.fr',
-        departureAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris',
-        arrivalAddress: 'Aéroport Charles de Gaulle, 95700 Roissy'
-      },
-      {
-        id: '2',
-        name: 'Marie Martin',
-        phone: '+33 6 98 76 54 32',
-        email: 'marie.martin@techcorp.fr',
-        departureAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris',
-        arrivalAddress: 'Aéroport Charles de Gaulle, 95700 Roissy'
-      },
-      {
-        id: '3',
-        name: 'Pierre Durand',
-        phone: '+33 7 11 22 33 44',
-        email: 'pierre.durand@techcorp.fr',
-        departureAddress: 'La Défense, 92800 Puteaux',
-        arrivalAddress: 'Gare de Lyon, 75012 Paris'
-      },
-      {
-        id: '4',
-        name: 'Sophie Lefebvre',
-        phone: '+33 6 45 67 89 01',
-        email: 'sophie.lefebvre@techcorp.fr',
-        departureAddress: 'La Défense, 92800 Puteaux',
-        arrivalAddress: 'Gare de Lyon, 75012 Paris'
-      },
-      {
-        id: '5',
-        name: 'Marc Rousseau',
-        phone: '+33 6 11 22 33 44',
-        email: 'marc.rousseau@techcorp.fr',
-        departureAddress: 'Opéra, 75009 Paris',
-        arrivalAddress: 'Centre de conférences - 101 Avenue des Champs-Élysées, 75008 Paris'
+  useEffect(() => {
+    const fetchRequest = async () => {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const response = await demandeService.getTransportRequestById(id);
+        setRequest(response);
+      } catch (error) {
+        toast.error('Erreur lors du chargement de la demande');
+      } finally {
+        setLoading(false);
       }
-    ],
-    note: 'Transport pour réunion client importante',
-    createdAt: '2024-01-10 14:30'
-  });
+    };
+    fetchRequest();
+  }, [id]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status?: TransportStatus) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
-      case 'approved': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100';
-      case 'dispatched': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100';
-      case 'in_progress': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100';
-      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
-      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
+      case TransportStatus.PENDING: return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
+      case TransportStatus.APPROVED: return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100';
+      case TransportStatus.DISPATCHED: return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100';
+      case TransportStatus.IN_PROGRESS: return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100';
+      case TransportStatus.COMPLETED: return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
+      case TransportStatus.CANCELLED: return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100';
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status?: TransportStatus) => {
     switch (status) {
-      case 'pending': return 'En attente';
-      case 'approved': return 'Approuvé';
-      case 'dispatched': return 'Dispatché';
-      case 'in_progress': return 'En cours';
-      case 'completed': return 'Terminé';
-      case 'cancelled': return 'Annulé';
-      default: return status;
+      case TransportStatus.PENDING: return 'En attente';
+      case TransportStatus.APPROVED: return 'Approuvé';
+      case TransportStatus.DISPATCHED: return 'Dispatché';
+      case TransportStatus.IN_PROGRESS: return 'En cours';
+      case TransportStatus.COMPLETED: return 'Terminé';
+      case TransportStatus.CANCELLED: return 'Annulé';
+      case TransportStatus.REJECTED: return 'Rejeté';
+      case TransportStatus.ASSIGNED: return 'Assigné';
+      default: return status || 'Inconnu';
+    }
+  };
+
+  const getTypeLabel = (type?: TransportType) => {
+    switch (type) {
+      case TransportType.IMMEDIATE: return 'Immédiat';
+      case TransportType.SCHEDULED: return 'Programmé';
+      case TransportType.RECURRING: return 'Récurrent';
+      default: return type || 'Inconnu';
     }
   };
 
   const handleEdit = () => {
-    navigate(`/transport/${id}/edit`);
+    if (id) navigate(`/transport/${id}/edit`);
   };
 
   const handleDispatch = () => {
-    if (request.passengers.length > 1) {
+    if (!request || !id) return;
+    if (request.employeeTransports.length > 1) {
       navigate(`/transport/${id}/group-dispatch`);
     } else {
       navigate(`/transport/${id}/dispatch`);
     }
   };
 
-  const handleApprove = () => {
-    setRequest(prev => ({...prev, status: 'approved'}));
-    toast.success('Demande approuvée avec succès');
+  const handleApprove = async () => {
+    if (!request || !id) return;
+    try {
+      const updatedRequest = { ...request, status: TransportStatus.APPROVED };
+      setRequest(updatedRequest);
+      toast.success('Demande approuvée avec succès');
+    } catch (error) {
+      toast.error('Erreur lors de l\'approbation de la demande');
+    }
   };
 
-  const handleCancel = () => {
-    setRequest(prev => ({...prev, status: 'cancelled'}));
-    toast.success('Demande annulée');
-    setShowCancelDialog(false);
+  const handleCancel = async () => {
+    if (!request || !id) return;
+    try {
+      const updatedRequest = { ...request, status: TransportStatus.CANCELLED };
+      setRequest(updatedRequest);
+      toast.success('Demande annulée');
+      setShowCancelDialog(false);
+    } catch (error) {
+      toast.error('Erreur lors de l\'annulation de la demande');
+    }
   };
 
-  // Vérifier si la demande peut être annulée (30 minutes avant le départ)
   const canCancel = () => {
-    if (request.status === 'cancelled' || request.status === 'completed') {
+    if (!request || request.status === TransportStatus.CANCELLED || request.status === TransportStatus.COMPLETED) {
       return false;
     }
     
-    const scheduledTime = new Date(request.scheduledDate).getTime();
+    const scheduledTime = new Date(request.scheduledDate || '').getTime();
     const currentTime = new Date().getTime();
     const thirtyMinutesInMs = 30 * 60 * 1000;
     
     return currentTime < (scheduledTime - thirtyMinutesInMs);
   };
 
-  // Group passengers by departure address for better visualization
-  const passengersByDeparture = request.passengers.reduce((groups, passenger) => {
-    const departure = passenger.departureAddress;
+  const formatAddress = (address?: AddressDto) => {
+    if (!address) return 'Non spécifié';
+    const parts = [
+      address.street,
+      address.buildingNumber,
+      address.complement,
+      address.postalCode,
+      address.cityId,
+      address.regionId,
+      address.countryId
+    ].filter(Boolean);
+    return parts.join(', ');
+  };
+
+  // Group passengers by departure address
+  const passengersByDeparture = request?.employeeTransports.reduce((groups, transport) => {
+    const departure = formatAddress(transport.departureAddress);
     if (!groups[departure]) {
       groups[departure] = [];
     }
-    groups[departure].push(passenger);
+    groups[departure].push(transport);
     return groups;
-  }, {} as Record<string, Passenger[]>);
+  }, {} as Record<string, EmployeeTransportDto[]>) || {};
+
+  if (loading) {
+    return <div>Chargement...</div>;
+  }
+
+  if (!request) {
+    return <div>Demande non trouvée</div>;
+  }
 
   return (
     <div className="space-y-4 max-w-7xl">
-      {/* Header - Responsive */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-2 sm:space-x-4 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/transport/individual')}
+            onClick={() => navigate(-1)} // Changed to navigate(-1) for going back
             className="flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
@@ -198,7 +178,7 @@ export function TransportRequestDetails() {
           <div className="flex items-center space-x-2 min-w-0 flex-1">
             <Car className="h-5 w-5 text-etaxi-yellow flex-shrink-0" />
             <h2 className="text-lg sm:text-xl font-bold truncate">
-              <span className="hidden sm:inline">Détails - </span>{request.reference}
+              <span className="hidden sm:inline">Détails - </span>{request.reference || 'N/A'}
             </h2>
             <Badge className={getStatusColor(request.status)}>
               {getStatusLabel(request.status)}
@@ -206,16 +186,15 @@ export function TransportRequestDetails() {
           </div>
         </div>
 
-        {/* Action Buttons - Responsive */}
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {(request.status === 'pending' || request.status === 'approved') && (
-            <Button variant="outline\" size="sm\" onClick={handleEdit} className="flex-1 sm:flex-none">
+          {(request.status === TransportStatus.PENDING || request.status === TransportStatus.APPROVED) && (
+            <Button variant="outline" size="sm" onClick={handleEdit} className="flex-1 sm:flex-none">
               <Edit className="mr-1 h-3 w-3" />
               <span className="hidden sm:inline">Modifier</span>
             </Button>
           )}
           
-          {request.status === 'pending' && (
+          {request.status === TransportStatus.PENDING && (
             <Button 
               size="sm"
               className="bg-green-600 hover:bg-green-700 text-white flex-1 sm:flex-none"
@@ -226,7 +205,7 @@ export function TransportRequestDetails() {
             </Button>
           )}
           
-          {(request.status === 'approved' || request.status === 'pending') && (
+          {(request.status === TransportStatus.APPROVED || request.status === TransportStatus.PENDING) && (
             <Button
               size="sm"
               className="bg-etaxi-yellow hover:bg-yellow-500 text-black flex-1 sm:flex-none"
@@ -265,9 +244,7 @@ export function TransportRequestDetails() {
         </div>
       </div>
 
-      {/* Content - Responsive Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {/* Request Information - Compact */}
         <Card className="bg-card border-border">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center space-x-2 text-sm">
@@ -279,11 +256,8 @@ export function TransportRequestDetails() {
             <div>
               <p className="text-xs text-muted-foreground">Type</p>
               <div className="flex space-x-1 mt-1">
-                <Badge variant={request.requestType === 'private' ? 'default' : 'secondary'} className="text-xs">
-                  {request.requestType === 'private' ? 'Privé' : 'Public'}
-                </Badge>
                 <Badge variant="outline" className="text-xs">
-                  {request.type === 'immediate' ? 'Immédiat' : 'Programmé'}
+                  {getTypeLabel(request.type)}
                 </Badge>
               </div>
             </div>
@@ -292,21 +266,18 @@ export function TransportRequestDetails() {
               <p className="text-xs text-muted-foreground">Date</p>
               <div className="flex items-center space-x-1 mt-1">
                 <Calendar className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs">{new Date(request.scheduledDate).toLocaleString('fr-FR')}</span>
+                <span className="text-xs">
+                  {request.scheduledDate ? new Date(request.scheduledDate).toLocaleString('fr-FR') : 'Non spécifié'}
+                </span>
               </div>
-            </div>
-            
-            <div>
-              <p className="text-xs text-muted-foreground">Demandeur</p>
-              <p className="text-xs font-medium">{request.requestedBy}</p>
             </div>
             
             <div>
               <p className="text-xs text-muted-foreground">Entreprise</p>
               <div>
-                <p className="text-xs font-medium">{request.enterprise}</p>
-                {request.subsidiary && (
-                  <p className="text-xs text-muted-foreground">{request.subsidiary}</p>
+                <p className="text-xs font-medium">{request.enterpriseId || 'Non spécifié'}</p>
+                {request.subsidiaryId && (
+                  <p className="text-xs text-muted-foreground">{request.subsidiaryId}</p>
                 )}
               </div>
             </div>
@@ -320,40 +291,39 @@ export function TransportRequestDetails() {
           </CardContent>
         </Card>
 
-        {/* Passengers - Optimized for mobile */}
         <Card className="lg:col-span-3 bg-card border-border">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Users className="h-4 w-4" />
-                <span className="text-sm">Passagers ({request.passengers.length})</span>
+                <span className="text-sm">Passagers ({request.employeeTransports.length})</span>
               </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-80">
               <div className="space-y-3">
-                {Object.entries(passengersByDeparture).map(([departure, passengers]) => (
+                {Object.entries(passengersByDeparture).map(([departure, transports]) => (
                   <div key={departure} className="space-y-2">
                     <div className="flex items-center space-x-2 p-2 bg-muted rounded text-sm">
                       <MapPin className="h-4 w-4 text-green-500 flex-shrink-0" />
                       <span className="font-medium flex-1 truncate">{departure}</span>
-                      <Badge variant="secondary" className="text-xs flex-shrink-0">{passengers.length}</Badge>
+                      <Badge variant="secondary" className="text-xs flex-shrink-0">{transports.length}</Badge>
                     </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 ml-2 sm:ml-6">
-                      {passengers.map((passenger) => (
-                        <div key={passenger.id} className="border rounded p-2 text-xs bg-card">
-                          <div className="font-medium mb-1 truncate">{passenger.name}</div>
+                      {transports.map((transport) => (
+                        <div key={transport.employeeId} className="border rounded p-2 text-xs bg-card">
+                          <div className="font-medium mb-1 truncate">{transport.employeeId}</div>
                           
                           <div className="space-y-1 text-muted-foreground">
                             <div className="flex items-center space-x-1">
                               <Phone className="h-3 w-3 flex-shrink-0" />
-                              <span className="truncate">{passenger.phone}</span>
+                              <span className="truncate">Non disponible</span>
                             </div>
                             <div className="flex items-center space-x-1">
                               <Mail className="h-3 w-3 flex-shrink-0" />
-                              <span className="truncate">{passenger.email}</span>
+                              <span className="truncate">Non disponible</span>
                             </div>
                           </div>
                           
@@ -363,7 +333,7 @@ export function TransportRequestDetails() {
                               <span className="font-medium text-xs">Vers:</span>
                             </div>
                             <p className="text-xs bg-red-50 dark:bg-red-950/20 p-1 rounded border border-red-200 dark:border-red-800 truncate">
-                              {passenger.arrivalAddress}
+                              {formatAddress(transport.arrivalAddress)}
                             </p>
                           </div>
                         </div>
