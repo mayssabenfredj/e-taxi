@@ -1,137 +1,219 @@
-import apiClient from "./apiClient";
 import {
   Employee,
+  GetEmployeesPagination,
   CreateEmployee,
   UpdateEmployee,
-  GetEmployeesQuery,
-  GetEmployeesPagination,
-} from "../types/employee";
-import { Role } from "@/types/role";
+  CreateMultipleUsersDto,
+} from "@/types/employee";
+import apiClient from "./apiClient";
 
-export class EmployeeService {
-  // Get all employees with pagination and filters
-  static async getAllEmployees(query: GetEmployeesPagination) {
+
+class EmployeeService {
+  async getAllEmployees(
+    query: GetEmployeesPagination
+  ): Promise<{ data: Employee[]; total: number }> {
     try {
-      const response = await apiClient.get<{ data: Employee[]; total: number }>(
-        "/users",
-        { params: query }
-      );
-      return response.data;
-    } catch (error) {
+      const response = await apiClient.get(`/users`, {
+        params: query,
+      });
+
+      console.log("response", response.data);
+      const { data, meta } = response.data;
+      const transformedData: Employee[] = data.map((item: any) => ({
+        ...item,
+        status: item.enabled ? "ENABLED" : "DISABLED",
+        roles: item.roles || [],
+        roleIds: item.roleIds || [],
+        addresses: item.addresses || [],
+      }));
+
+      return {
+        data: transformedData,
+        total: meta.total,
+      };
+    } catch (error: any) {
       throw new Error(
-        `Failed to fetch employees: ${
-          error.response?.data?.message || error.message
-        }`
+        error.response?.data?.message || "Failed to fetch employees"
+      );
+    }
+  }
+  async getEmployeeById(id: string): Promise<Employee> {
+    try {
+      const response = await apiClient.get(`/users/${id}`);
+      const employee = response.data;
+      return {
+        ...employee,
+        status: employee.enabled ? "ENABLED" : "DISABLED",
+        roles: employee.roles || [],
+        roleIds: employee.roleIds || [],
+        addresses: employee.addresses || [],
+      };
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.message || "Failed to fetch employee"
       );
     }
   }
 
-  // Get a single employee by ID
-  static async getEmployee(id: string) {
+  async createEmployee(data: CreateEmployee): Promise<Employee> {
     try {
-      const response = await apiClient.get<Employee>(`/users/${id}`);
-      return response.data;
-    } catch (error) {
+      console.log("data", data);
+
+      // Prepare payload
+      const payload: CreateEmployee = {
+        ...data,
+        addresses: data.addresses?.map((addr) => ({
+          address: {
+            street: addr.address.street,
+            postalCode: addr.address.postalCode,
+            cityId: addr.address.cityId,
+            countryId: addr.address.countryId,
+            buildingNumber: addr.address.buildingNumber,
+            complement: addr.address.complement,
+            regionId: addr.address.regionId,
+            latitude: addr.address.latitude,
+            longitude: addr.address.longitude,
+            placeId: addr.address.placeId,
+            formattedAddress: addr.address.formattedAddress,
+            isVerified: addr.address.isVerified,
+            isExact: addr.address.isExact,
+            manuallyEntered: addr.address.manuallyEntered,
+            addressType: addr.address.addressType,
+            notes: addr.address.notes,
+          },
+          isDefault: addr.isDefault,
+          label: addr.label,
+        })),
+      };
+
+      console.log("payload", payload);
+      const response = await apiClient.post(`/users`, payload);
+      console.log("response employee ****", response.data);
+      const employee = response.data;
+      return {
+        ...employee,
+        status: employee.enabled ? "ENABLED" : "DISABLED",
+        roles: employee.roles || [],
+        roleIds: employee.roleIds || [],
+        addresses: employee.addresses || [],
+      };
+    } catch (error: any) {
       throw new Error(
-        `Failed to fetch employee: ${
-          error.response?.data?.message || error.message
-        }`
+        error.response?.data?.message ||
+          `Failed to create employee: ${error.message}`
       );
     }
   }
 
-  // Create a new employee
-  static async createEmployee(createData: CreateEmployee) {
+  async deleteEmployee(id: string) {
     try {
-      const response = await apiClient.post<Employee>("/users", createData);
-      return response.data;
-    } catch (error) {
+      const response = await apiClient.delete(`/users/${id}`);
+      console.log("response", response);
+      return response;
+    } catch (error: any) {
+      console.error("error", error);
       throw new Error(
-        `Failed to create employee: ${
-          error.response?.data?.message || error.message
-        }`
+        error.response?.data?.message || "Failed to delete employee"
       );
     }
   }
 
-  // Update an existing employee
-  static async updateEmployee(id: string, updateData: UpdateEmployee) {
+  async updateEmployee(id: string, data: UpdateEmployee) {
     try {
-      const response = await apiClient.put<Employee>(
-        `/users/${id}`,
-        updateData
-      );
-      return response.data;
-    } catch (error) {
+      console.log("data", data);
+      const response = await apiClient.put(`/users/${id}`, data);
+      console.log("response", response);
+      const employee = response.data;
+      return {
+        ...employee,
+        status: employee.enabled ? "ENABLED" : "DISABLED",
+        roles: employee.roles || [],
+        roleIds: employee.roleIds || [],
+        addresses: employee.addresses || [],
+      };
+    } catch (error: any) {
       throw new Error(
-        `Failed to update employee: ${
-          error.response?.data?.message || error.message
-        }`
+        error.response?.data?.message || "Failed to update employee"
       );
     }
   }
 
-  // Delete an employee
-  static async deleteEmployee(id: string) {
+  async updateEmployeeStatus(id: string, enabled: boolean): Promise<Employee> {
     try {
-      const response = await apiClient.delete<{ message: string }>(
-        `/users/${id}`
-      );
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        `Failed to delete employee: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
-
-  // Update employee status
-  static async updateEmployeeStatus(id: string, enabled: boolean) {
-    try {
-      const response = await apiClient.put<Employee>(`/users/${id}/status`, {
+      const response = await apiClient.patch(`/users/${id}/status`, {
         enabled,
       });
-      return response.data;
-    } catch (error) {
+
+      console.log("response update status ", response);
+      const employee = response.data;
+      return {
+        ...employee,
+        status: employee.enabled ? "ENABLED" : "DISABLED",
+        roles: employee.roles || [],
+        roleIds: employee.roleIds || [],
+        addresses: employee.addresses || [],
+      };
+    } catch (error: any) {
       throw new Error(
-        `Failed to update employee status: ${
-          error.response?.data?.message || error.message
-        }`
+        error.response?.data?.message || "Failed to update employee status"
       );
     }
   }
 
-  // Get all roles
-  static async getAllRoles() {
+  async createMultipleEmployees(
+    data: CreateMultipleUsersDto
+  ): Promise<Employee[]> {
     try {
-      const response = await apiClient.get<Role[]>("/users/roles");
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        `Failed to fetch roles: ${
-          error.response?.data?.message || error.message
-        }`
-      );
-    }
-  }
+      console.log("bulk data", data);
 
-  // Get all permissions
-  static async getAllPermissions() {
-    try {
-      const response = await apiClient.get<string[]>(
-        "/users/roles/permissions"
-      );
-      return response.data;
-    } catch (error) {
+      // Prepare payload
+      const payload: CreateMultipleUsersDto = {
+        users: data.users.map((user) => ({
+          ...user,
+          addresses: user.addresses?.map((addr) => ({
+            address: {
+              street: addr.address.street,
+              postalCode: addr.address.postalCode,
+              cityId: addr.address.cityId,
+              countryId: addr.address.countryId,
+              buildingNumber: addr.address.buildingNumber,
+              complement: addr.address.complement,
+              regionId: addr.address.regionId,
+              latitude: addr.address.latitude,
+              longitude: addr.address.longitude,
+              placeId: addr.address.placeId,
+              formattedAddress: addr.address.formattedAddress,
+              isVerified: addr.address.isVerified,
+              isExact: addr.address.isExact,
+              manuallyEntered: addr.address.manuallyEntered,
+              addressType: addr.address.addressType,
+              notes: addr.address.notes,
+            },
+            isDefault: addr.isDefault,
+            label: addr.label,
+          })),
+        })),
+        continueOnError: data.continueOnError,
+      };
+
+      console.log("bulk payload", payload);
+      const response = await apiClient.post(`/users/bulk`, payload);
+      console.log("bulk response", response.data);
+      const employees = response.data;
+      return employees.map((employee: any) => ({
+        ...employee,
+        status: employee.enabled ? "ENABLED" : "DISABLED",
+        roles: employee.roles || [],
+        roleIds: employee.roleIds || [],
+        addresses: employee.addresses || [],
+      }));
+    } catch (error: any) {
       throw new Error(
-        `Failed to fetch permissions: ${
-          error.response?.data?.message || error.message
-        }`
+        error.response?.data?.message ||
+          `Failed to create multiple employees: ${error.message}`
       );
     }
   }
 }
 
-export default EmployeeService;
+export default new EmployeeService();

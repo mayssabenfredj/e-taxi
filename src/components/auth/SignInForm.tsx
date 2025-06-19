@@ -33,10 +33,10 @@ export function SignInForm({ onToggleMode, onForgotPassword }: SignInFormProps) 
         navigate('/dashboard');
       } else {
         // Use the error from AuthContext if available
-        toast.error(error || 'Une erreur est survenue lors de la connexion');
+        toast.error(error);
       }
     } catch (error: any) {
-      const errorMessage = error.response?.message || 'Erreur lors de la connexion';
+      const errorMessage = error.response?.message ;
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);

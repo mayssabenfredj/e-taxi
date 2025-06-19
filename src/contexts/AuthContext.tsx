@@ -10,6 +10,7 @@ interface AuthContextType {
   register: (data: any) => Promise<boolean>;
   logout: () => Promise<void>;
   verifyEmail: (token: string) => Promise<boolean>;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,22 +20,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Check if user is authenticated
+  const isAuthenticated = !!user && !!authService.getStoredToken();
+
   useEffect(() => {
     // Check for existing auth token and fetch user data
     const initializeAuth = async () => {
-      const token = authService.getStoredToken();
-      if (token) {
-        try {
+      try {
+        const token = authService.getStoredToken();
+        if (token) {
+          console.log("[AuthContext] Found stored token, fetching user data...");
           const userData = await authService.getCurrentUser();
-          console.log("user in the context", userData);
+          console.log("[AuthContext] User data fetched successfully:", userData);
           setUser(userData);
-          console.log('useeerrr', userData);
-        } catch (err) {
-          authService.clearTokens();
+        } else {
+          console.log("[AuthContext] No stored token found");
         }
+      } catch (err: any) {
+        console.error("[AuthContext] Error during auth initialization:", err);
+        // Clear invalid tokens
+        authService.clearTokens();
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
+
     initializeAuth();
   }, []);
 
@@ -42,19 +53,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      console.log('emaill, pass', email);
+      console.log('[AuthContext] Attempting login for:', email);
       const response: LoginResponse = await authService.login(email, password);
+      
+      // Store the token
       authService.setTokens(response.access_token);
 
       // Fetch full user data after successful login
       const userData = await authService.getCurrentUser();
       setUser(userData);
-console.log("user in the context", userData);
+      console.log("[AuthContext] Login successful, user set:", userData);
+      
       setIsLoading(false);
       return true;
     } catch (error: any) {
       setIsLoading(false);
-      const errorMessage = error.response?.data?.message || 'Erreur lors de la connexion';
+      console.error('[AuthContext] Login error:', error);
+      const errorMessage = error.message || 'Échec de la connexion';
       setError(errorMessage);
       return false;
     }
@@ -64,6 +79,7 @@ console.log("user in the context", userData);
     setIsLoading(true);
     setError(null);
     try {
+      // TODO: Implement actual registration API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsLoading(false);
       return true;
@@ -78,11 +94,17 @@ console.log("user in the context", userData);
     setIsLoading(true);
     setError(null);
     try {
+      console.log('[AuthContext] Logging out...');
       await authService.logout();
       setUser(null);
       authService.clearTokens();
+      console.log('[AuthContext] Logout successful');
     } catch (error: any) {
+      console.error('[AuthContext] Logout error:', error);
       setError(error.message || 'Erreur lors de la déconnexion');
+      // Still clear local state even if server logout fails
+      setUser(null);
+      authService.clearTokens();
     } finally {
       setIsLoading(false);
     }
@@ -92,6 +114,7 @@ console.log("user in the context", userData);
     setIsLoading(true);
     setError(null);
     try {
+      // TODO: Implement actual email verification API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       setIsLoading(false);
       return true;
@@ -101,10 +124,6 @@ console.log("user in the context", userData);
       return false;
     }
   };
-
-  
-
- 
 
   return (
     <AuthContext.Provider
@@ -116,6 +135,7 @@ console.log("user in the context", userData);
         register,
         logout,
         verifyEmail,
+        isAuthenticated,
       }}
     >
       {children}

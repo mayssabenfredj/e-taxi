@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+import { addressService } from '@/services/address.service';
+import { Address, AddressType, City, Region, Country } from '@/types/addresse';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Command,
@@ -24,12 +34,9 @@ import {
 } from '@/components/ui/dialog';
 import { Check, ChevronsUpDown, MapPin, Map } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 import { SavedAddressSelector } from './address/SavedAddressSelector';
-import { AddressSearchInput } from './address/AddressSearchInput';
 import { CoordinatesInput } from './address/CoordinatesInput';
 import { MapPicker } from '../shared/MapPicker';
-import { Address, AddressType } from '@/types/addresse';
 import { ManualAddressForm } from './address/ManualAddressForm';
 
 interface AddressInputProps {
@@ -39,6 +46,7 @@ interface AddressInputProps {
   savedAddresses?: Address[];
   required?: boolean;
   showMapPicker?: boolean;
+  showSavedAddresses?: boolean; // New prop
 }
 
 export function AddressInput({
@@ -48,12 +56,14 @@ export function AddressInput({
   savedAddresses = [],
   required = false,
   showMapPicker = true,
+  showSavedAddresses = false, // Default to false
 }: AddressInputProps) {
   const [open, setOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('saved');
+  const [activeTab, setActiveTab] = useState(showSavedAddresses ? 'saved' : 'manual');
 
   const handleAddressSelect = (address: Address) => {
+    console.log('Address selected in AddressInput:', address); // Debugging
     onChange(address);
     setOpen(false);
     toast.success('Adresse sélectionnée');
@@ -64,8 +74,8 @@ export function AddressInput({
       id: `map-${Date.now()}`,
       label: mapData.address,
       street: mapData.address.split(',')[0]?.trim() || '',
-      postalCode: '', // Will be set in ManualAddressForm if needed
-      cityId: null, // Set to null since MapPicker doesn't provide cityId
+      postalCode: '',
+      cityId: null,
       regionId: null,
       countryId: null,
       latitude: mapData.coordinates.lat,
@@ -79,18 +89,19 @@ export function AddressInput({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       deletedAt: null,
-      city: null, // MapPicker doesn't provide City object
+      city: null,
       region: null,
       country: null,
     };
 
+    console.log('Map address selected:', address); // Debugging
     onChange(address);
     setMapOpen(false);
     toast.success('Adresse sélectionnée depuis la carte');
   };
 
   return (
-    <div className="space-y-2 w-full">
+    <div className="space-y-2 w-full max-w-full">
       <Label className="text-sm font-medium">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
@@ -103,7 +114,7 @@ export function AddressInput({
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className="flex-1 justify-between min-h-[40px] text-left"
+              className="flex-1 justify-between min-h-[40px] text-left text-sm"
             >
               {value ? (
                 <div className="flex items-center truncate">
@@ -118,24 +129,23 @@ export function AddressInput({
           </PopoverTrigger>
           <PopoverContent className="w-full p-0 max-w-lg" align="start">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 text-xs">
-                <TabsTrigger value="saved" className="text-xs">Sauvées</TabsTrigger>
-                <TabsTrigger value="search" className="text-xs">Recherche</TabsTrigger>
+              <TabsList className={`grid w-full ${showSavedAddresses ? 'grid-cols-4' : 'grid-cols-3'} text-xs`}>
+                {showSavedAddresses && (
+                  <TabsTrigger value="saved" className="text-xs">Sauvées</TabsTrigger>
+                )}
                 <TabsTrigger value="manual" className="text-xs">Manuelle</TabsTrigger>
                 <TabsTrigger value="coords" className="text-xs">GPS</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="saved" className="p-2">
-                <SavedAddressSelector
-                  savedAddresses={savedAddresses}
-                  selectedAddress={value}
-                  onSelect={handleAddressSelect}
-                />
-              </TabsContent>
-
-              <TabsContent value="search" className="p-2">
-                <AddressSearchInput onSelect={handleAddressSelect} />
-              </TabsContent>
+              {showSavedAddresses && (
+                <TabsContent value="saved" className="p-2">
+                  <SavedAddressSelector
+                    savedAddresses={savedAddresses}
+                    selectedAddress={value}
+                    onSelect={handleAddressSelect}
+                  />
+                </TabsContent>
+              )}
 
               <TabsContent value="manual" className="p-2">
                 <ManualAddressForm onSubmit={handleAddressSelect} />

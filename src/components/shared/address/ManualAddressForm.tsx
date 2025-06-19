@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { addressService } from '@/services/address.service';
 import { Address, AddressType, City, Region, Country } from '@/types/addresse';
 
+
 interface ManualAddressFormProps {
   onSubmit: (address: Address) => void;
 }
@@ -99,8 +100,8 @@ export function ManualAddressForm({ onSubmit }: ManualAddressFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.street || !formData.postalCode || !formData.cityId) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
+    if (!formData.street || !formData.postalCode || !formData.cityId || !formData.countryId) {
+      toast.error('Veuillez remplir tous les champs obligatoires (Rue, Code postal, Pays, Ville)');
       return;
     }
 
@@ -144,122 +145,144 @@ export function ManualAddressForm({ onSubmit }: ManualAddressFormProps) {
       country: selectedCountry || null,
     };
 
+    console.log('Submitting address:', address); // Debugging
     onSubmit(address);
     toast.success('Adresse enregistrée');
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label>Label</Label>
-        <Input
-          value={formData.label}
-          onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-          placeholder="Nom de l'adresse"
-        />
-      </div>
-
-      <div>
-        <Label>Rue *</Label>
-        <Input
-          value={formData.street}
-          onChange={(e) => setFormData({ ...formData, street: e.target.value })}
-          placeholder="Nom de la rue"
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
+    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-full p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
-          <Label>N° bâtiment</Label>
+          <Label className="text-sm">Rue *</Label>
+          <Input
+            value={formData.street}
+            onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+            placeholder="Nom de la rue"
+            required
+            className="text-sm h-10"
+          />
+        </div>
+        <div>
+          <Label className="text-sm">N° bâtiment</Label>
           <Input
             value={formData.buildingNumber}
             onChange={(e) => setFormData({ ...formData, buildingNumber: e.target.value })}
             placeholder="N°"
+            className="text-sm h-10"
           />
         </div>
         <div>
-          <Label>Complément</Label>
+          <Label className="text-sm">Complément</Label>
           <Input
             value={formData.complement}
             onChange={(e) => setFormData({ ...formData, complement: e.target.value })}
             placeholder="Apt, étage, etc."
+            className="text-sm h-10"
           />
         </div>
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+          <Label className="text-sm">Pays *</Label>
+          <Select
+            value={formData.countryId}
+            onValueChange={(value) => setFormData({ ...formData, countryId: value })}
+            required
+          >
+            <SelectTrigger className="text-sm h-10">
+              <SelectValue placeholder="Sélectionner un pays" />
+            </SelectTrigger>
+            <SelectContent>
+              {loading ? (
+                <div className="text-center py-2">Chargement...</div>
+              ) : (
+                countries.map((country) => (
+                  <SelectItem key={country.id} value={country.id} className="text-sm">
+                    {country.name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-sm">Région</Label>
+          <Select
+            value={formData.regionId}
+            onValueChange={(value) => setFormData({ ...formData, regionId: value })}
+            disabled={!formData.countryId || loading}
+          >
+            <SelectTrigger className="text-sm h-10">
+              <SelectValue placeholder="Sélectionner une région" />
+            </SelectTrigger>
+            <SelectContent>
+              {loading ? (
+                <div className="text-center py-2">Chargement...</div>
+              ) : (
+                regions.map((region) => (
+                  <SelectItem key={region.id} value={region.id} className="text-sm">
+                    {region.name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-sm">Ville *</Label>
+          <Select
+            value={formData.cityId}
+            onValueChange={(value) => setFormData({ ...formData, cityId: value })}
+            disabled={!formData.regionId || loading}
+            required
+          >
+            <SelectTrigger className="text-sm h-10">
+              <SelectValue placeholder="Sélectionner une ville" />
+            </SelectTrigger>
+            <SelectContent>
+              {loading ? (
+                <div className="text-center py-2">Chargement...</div>
+              ) : (
+                cities.map((city) => (
+                  <SelectItem key={city.id} value={city.id} className="text-sm">
+                    {city.name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div>
-        <Label>Code postal *</Label>
+        <Label className="text-sm">Code postal *</Label>
         <Input
           value={formData.postalCode}
           onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
           placeholder="Code postal"
           required
+          className="text-sm h-10"
         />
       </div>
 
       <div>
-        <Label>Pays *</Label>
-        <Select
-          value={formData.countryId}
-          onValueChange={(value) => setFormData({ ...formData, countryId: value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionner un pays" />
-          </SelectTrigger>
-          <SelectContent>
-            {countries.map((country) => (
-              <SelectItem key={country.id} value={country.id}>
-                {country.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label className="text-sm">Label</Label>
+        <Input
+          value={formData.label}
+          onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+          placeholder="Nom de l'adresse"
+          className="text-sm h-10"
+        />
       </div>
 
-      <div>
-        <Label>Région</Label>
-        <Select
-          value={formData.regionId}
-          onValueChange={(value) => setFormData({ ...formData, regionId: value })}
-          disabled={!formData.countryId}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionner une région" />
-          </SelectTrigger>
-          <SelectContent>
-            {regions.map((region) => (
-              <SelectItem key={region.id} value={region.id}>
-                {region.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
-        <Label>Ville *</Label>
-        <Select
-          value={formData.cityId}
-          onValueChange={(value) => setFormData({ ...formData, cityId: value })}
-          disabled={!formData.regionId}
-          required
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionner une ville" />
-          </SelectTrigger>
-          <SelectContent>
-            {cities.map((city) => (
-              <SelectItem key={city.id} value={city.id}>
-                {city.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <Button type="submit" className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black">
-        Utiliser cette adresse
+      <Button
+        type="submit"
+        className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-sm h-10"
+        disabled={loading}
+      >
+        {loading ? 'Chargement...' : 'Utiliser cette adresse'}
       </Button>
     </form>
   );
