@@ -214,3 +214,16 @@ export interface DraftData {
   isHomeToWorkTrip: boolean;
   lastModified: string;
 }
+
+export interface UpdateTransportRequestDto {
+  reference?: string;
+  Direction?: string;
+  type?: string;
+  priority?: string;
+  note?: string;
+  scheduledDate?: string;
+  requestedById?: string;
+  enterpriseId?: string;
+  subsidiaryId?: string;
+  employeeTransports?: EmployeeTransportDto[];
+}

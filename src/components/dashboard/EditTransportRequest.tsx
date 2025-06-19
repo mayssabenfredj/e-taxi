@@ -36,6 +36,8 @@ import {
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useEmployees } from '@/hooks/useEmployees';
+import SubsidiaryService from '@/services/subsidiarie.service';
+import { Subsidiary } from '@/types/subsidiary';
 
 interface Passenger {
   id: string;
@@ -69,15 +71,18 @@ export function EditTransportRequest() {
     arrivalAddress: { formattedAddress: '' } as any,
     direction: TransportDirection.HOMETOOFFICE,
   });
+  const [subsidiaries, setSubsidiaries] = useState<Subsidiary[]>([]);
+  const [selectedSubsidiaryId, setSelectedSubsidiaryId] = useState<string>('all');
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
   // Utiliser le hook useEmployees pour charger les employés
   const { employees: availableEmployees, loading: employeesLoading } = useEmployees({
-    enterpriseId: request?.enterpriseId, // Utiliser l'enterpriseId de la demande
+    enterpriseId: request?.enterprise.id,
     roleFilter: 'all',
-    subsidiaryFilter: 'all',
-    statusFilter: 'ENABLED', // Ne charger que les employés actifs
+    subsidiaryFilter: selectedSubsidiaryId,
+    statusFilter: 'ENABLED',
     skip: 0,
-    take: 100, // Charger jusqu'à 100 employés (ajustez selon besoin)
+    take: 100,
   });
 
   // Charger la demande
@@ -123,6 +128,32 @@ export function EditTransportRequest() {
     fetchRequest();
   }, [id]);
 
+  // Fetch subsidiaries for the current enterprise
+  useEffect(() => {
+    if (!request?.enterprise?.id) {
+      console.log('No enterpriseId available for subsidiary fetch');
+      return;
+    }
+    SubsidiaryService.getAllSubsidiaries({ enterpriseId: request.enterprise.id, take: 100 })
+      .then(res => {
+        setSubsidiaries(res.data);
+        console.log('Fetched subsidiaries:', res.data);
+      })
+      .catch((err) => {
+        setSubsidiaries([]);
+        console.error('Error fetching subsidiaries:', err);
+      });
+  }, [request?.enterprise?.id]);
+
+  // Debug log for employees
+  useEffect(() => {
+    if (!request?.enterpriseId) {
+      console.log('No enterpriseId available for employee fetch');
+      return;
+    }
+    console.log('Available employees:', availableEmployees);
+  }, [availableEmployees, request?.enterpriseId]);
+
   const handleSave = async () => {
     if (!scheduledDate || !scheduledTime || passengers.length === 0) {
       toast.error('Veuillez remplir tous les champs obligatoires (date, heure, au moins un passager)');
@@ -133,24 +164,26 @@ export function EditTransportRequest() {
 
     try {
       const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
-      const updatedRequest: Partial<TransportRequestResponse> = {
-        ...request,
+      const updateDto = {
+        reference: request.reference,
         type,
-        direction,
+        Direction: direction,
         scheduledDate: scheduledDateTime,
         note,
+        priority: request.priority,
+        requestedById: request.requestedBy?.id,
+        enterpriseId: request.enterprise?.id,
+        subsidiaryId: request.subsidiary?.id,
         employeeTransports: passengers.map((p) => ({
           id: p.id.startsWith('new-') ? undefined : p.id,
           employeeId: p.employeeId,
-          departure: p.departureAddress,
-          arrival: p.arrivalAddress,
           note: p.note,
           startTime: scheduledDateTime,
-          status: TransportStatus.PENDING,
+          departureAddress: p.departureAddress,
+          arrivalAddress: p.arrivalAddress,
         })),
       };
-
-     /* const response = await demandeService.updateTransportRequest(id, updatedRequest);*/
+      await demandeService.updateTransportRequest(id, updateDto);
       toast.success('Demande mise à jour avec succès');
       navigate(`/transport/${id}`);
     } catch (error: any) {
@@ -205,26 +238,30 @@ export function EditTransportRequest() {
   const handleSelectEmployee = (employeeId: string) => {
     const employee = availableEmployees.find((emp) => emp.id === employeeId);
     if (!employee) return;
+    setSelectedEmployee(employee);
 
+    // Find home and office addresses
     const homeAddress = employee.addresses?.find(
-      (addr) => addr.address.addressType === 'HOME'
+      (addr) => addr.address?.addressType === 'HOME'
     )?.address;
     const workAddress = employee.addresses?.find(
-      (addr) => addr.address.addressType === 'OFFICE'
+      (addr) => addr.address?.addressType === 'OFFICE'
     )?.address;
 
+    // Set based on direction
     const departureAddress =
       direction === TransportDirection.HOMETOOFFICE ? homeAddress : workAddress;
     const arrivalAddress =
       direction === TransportDirection.HOMETOOFFICE ? workAddress : homeAddress;
 
     setNewPassenger({
+      ...newPassenger,
       employeeId,
       fullName: employee.fullName,
       phone: employee.phone,
       email: employee.email,
-      departureAddress: departureAddress || { formattedAddress: '' },
-      arrivalAddress: arrivalAddress || { formattedAddress: '' },
+      departureAddress: departureAddress || undefined,
+      arrivalAddress: arrivalAddress || undefined,
       direction,
     });
   };
@@ -235,8 +272,8 @@ export function EditTransportRequest() {
       return;
     }
 
-    if (!newPassenger.departureAddress?.formattedAddress || !newPassenger.arrivalAddress?.formattedAddress) {
-      toast.error('Veuillez spécifier les adresses de départ et d’arrivée');
+    if (!newPassenger.departureAddress || !newPassenger.arrivalAddress) {
+      toast.error("Veuillez spécifier les adresses de départ et d'arrivée");
       return;
     }
 
@@ -416,9 +453,25 @@ export function EditTransportRequest() {
               <Card className="border-dashed mb-4">
                 <CardContent className="p-4 space-y-4">
                   <div className="space-y-4">
+                    {/* Subsidiary filter dropdown */}
+                    <div className="space-y-2">
+                      <Label>Filtrer par filiale</Label>
+                      <Select value={selectedSubsidiaryId} onValueChange={setSelectedSubsidiaryId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Filtrer par filiale..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Toutes les filiales</SelectItem>
+                          {subsidiaries.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {/* Employee select dropdown */}
                     <div className="space-y-2">
                       <Label>Sélectionner un employé</Label>
-                      <Select onValueChange={handleSelectEmployee}>
+                      <Select onValueChange={handleSelectEmployee} value={newPassenger.employeeId || ''}>
                         <SelectTrigger>
                           <SelectValue placeholder="Sélectionner un employé..." />
                         </SelectTrigger>
@@ -431,62 +484,50 @@ export function EditTransportRequest() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Nom complet</Label>
-                        <Input
-                          value={newPassenger.fullName}
-                          onChange={(e) =>
-                            setNewPassenger({ ...newPassenger, fullName: e.target.value })
-                          }
-                          placeholder="Nom du passager"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Téléphone</Label>
-                        <Input
-                          value={newPassenger.phone}
-                          onChange={(e) =>
-                            setNewPassenger({ ...newPassenger, phone: e.target.value })
-                          }
-                          placeholder="Numéro de téléphone"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Email</Label>
-                        <Input
-                          value={newPassenger.email}
-                          onChange={(e) =>
-                            setNewPassenger({ ...newPassenger, email: e.target.value })
-                          }
-                          placeholder="Adresse email"
-                        />
-                      </div>
-                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Adresse de départ</Label>
-                        <AddressInput
-                          value={newPassenger.departureAddress?.formattedAddress || ''}
-                          onChange={(address) =>
-                            setNewPassenger({
-                              ...newPassenger,
-                              departureAddress: address as any,
-                            })
-                          }
-                        />
+                        <Select
+                          value={newPassenger.departureAddress?.id || ''}
+                          onValueChange={(addressId) => {
+                            const selected = selectedEmployee?.addresses?.find(a => a.address.id === addressId);
+                            setNewPassenger({ ...newPassenger, departureAddress: selected?.address });
+                          }}
+                          disabled={!selectedEmployee}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner une adresse de départ..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectedEmployee?.addresses?.map((a) => (
+                              <SelectItem key={a.address.id} value={a.address.id}>
+                                {a.address.addressType}: {a.address.formattedAddress}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label>Adresse d'arrivée</Label>
-                        <AddressInput
-                          value={newPassenger.arrivalAddress?.formattedAddress || ''}
-                          onChange={(address) =>
-                            setNewPassenger({
-                              ...newPassenger,
-                              arrivalAddress: address as any,
-                            })
-                          }
-                        />
+                        <Select
+                          value={newPassenger.arrivalAddress?.id || ''}
+                          onValueChange={(addressId) => {
+                            const selected = selectedEmployee?.addresses?.find(a => a.address.id === addressId);
+                            setNewPassenger({ ...newPassenger, arrivalAddress: selected?.address });
+                          }}
+                          disabled={!selectedEmployee}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionner une adresse d'arrivée..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectedEmployee?.addresses?.map((a) => (
+                              <SelectItem key={a.address.id} value={a.address.id}>
+                                {a.address.addressType}: {a.address.formattedAddress}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                     <div className="flex justify-end">
@@ -522,7 +563,8 @@ export function EditTransportRequest() {
                     </TableCell>
                     <TableCell className="p-2">
                       <AddressInput
-                        value={passenger.departureAddress.formattedAddress}
+                        label="Adresse de départ"
+                        value={passenger.departureAddress}
                         onChange={(address) =>
                           updatePassengerAddress(passenger.id, 'departureAddress', address as any)
                         }
@@ -530,7 +572,8 @@ export function EditTransportRequest() {
                     </TableCell>
                     <TableCell className="p-2">
                       <AddressInput
-                        value={passenger.arrivalAddress.formattedAddress}
+                        label="Adresse d'arrivée"
+                        value={passenger.arrivalAddress}
                         onChange={(address) =>
                           updatePassengerAddress(passenger.id, 'arrivalAddress', address as any)
                         }
