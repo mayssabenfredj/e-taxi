@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Route, Euro, AlertCircle, CheckCircle, MapPin } from 'lucide-react';
-import { SelectedPassenger, RouteEstimation, RecurringDateTime } from '@/types/demande';
+import { SelectedPassenger, RouteEstimation, RecurringDateTime, GroupRoute } from '@/types/demande';
 
 interface ConfirmationViewProps {
   isCalculating: boolean;
@@ -18,6 +18,7 @@ interface ConfirmationViewProps {
   selectedPassengers: SelectedPassenger[];
   routeEstimations: RouteEstimation[];
   totalPrice: number;
+  groupRoute: GroupRoute | null;
   setShowConfirmation: (show: boolean) => void;
   handleSubmit: () => void;
 }
@@ -34,6 +35,7 @@ export function ConfirmationView({
   selectedPassengers,
   routeEstimations,
   totalPrice,
+  groupRoute,
   setShowConfirmation,
   handleSubmit,
 }: ConfirmationViewProps) {
@@ -135,6 +137,7 @@ export function ConfirmationView({
                     </p>
                   </div>
                 </div>
+                <h4 className="font-medium mb-2">Estimations individuelles</h4>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -178,16 +181,61 @@ export function ConfirmationView({
                         <TableCell>{routeEstimations[idx]?.distance || '-'}</TableCell>
                         <TableCell>{routeEstimations[idx]?.duration || '-'}</TableCell>
                         <TableCell>
-                          <span className="font-medium text-etaxi-yellow">{routeEstimations[idx]?.price.toFixed(2)}€</span>
+                          <span className="font-medium text-etaxi-yellow">
+                            {routeEstimations[idx]?.price.toFixed(2) || '0.00'} TND
+                          </span>
                         </TableCell>
                       </TableRow>
                     ))}
                     <TableRow>
-                      <TableCell colSpan={6} className="text-right font-bold">Total</TableCell>
-                      <TableCell className="font-bold text-etaxi-yellow">{totalPrice.toFixed(2)}€</TableCell>
+                      <TableCell colSpan={6} className="text-right font-bold">
+                        Total individuel
+                      </TableCell>
+                      <TableCell className="font-bold text-etaxi-yellow">
+                        {routeEstimations.reduce((sum, est) => sum + est.price, 0).toFixed(2)} TND
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
+                <h4 className="font-medium mt-4 mb-2">Trajet groupé</h4>
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                  {groupRoute ? (
+                    <>
+                      <p className="text-sm font-medium">
+                        Point de départ :{' '}
+                        <span className="text-etaxi-yellow">{groupRoute.origin}</span>
+                      </p>
+                      {groupRoute.points.length > 2 && (
+                        <div className="text-sm mt-2">
+                          Points intermédiaires :
+                          <ul className="list-disc pl-5">
+                            {groupRoute.points.slice(1, -1).map((point, idx) => (
+                              <li key={idx}>{point}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <p className="text-sm mt-2">
+                        Point d'arrivée :{' '}
+                        <span className="text-etaxi-yellow">{groupRoute.destination}</span>
+                      </p>
+                      <p className="text-sm mt-2">
+                        Itinéraire : {groupRoute.points.join(' → ')}
+                      </p>
+                      <p className="text-sm mt-2">
+                        Distance totale : {groupRoute.totalDistance}
+                      </p>
+                      <p className="text-sm mt-2">
+                        Durée estimée : {groupRoute.totalDuration}
+                      </p>
+                      <p className="text-sm mt-2 font-bold text-etaxi-yellow">
+                        Prix total estimé : {totalPrice.toFixed(2)} TND
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-red-500">Impossible de calculer le trajet groupé</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
             <Card>
@@ -203,12 +251,12 @@ export function ConfirmationView({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <Euro className="h-5 w-5 text-etaxi-yellow" />
-                        <span className="font-medium">Prix total estimé:</span>
+                        <span className="font-medium">Prix total groupé estimé:</span>
                       </div>
-                      <span className="text-xl font-bold text-etaxi-yellow">{totalPrice.toFixed(2)}€</span>
+                      <span className="text-xl font-bold text-etaxi-yellow">{totalPrice.toFixed(2)} TND</span>
                     </div>
                     <div className="text-sm text-muted-foreground mt-2">
-                      <p>Basé sur {selectedPassengers.length} passager(s) et les adresses fournies</p>
+                      <p>Basé sur {selectedPassengers.length} passager(s) et un trajet optimisé</p>
                     </div>
                   </div>
                   <div className="text-sm text-muted-foreground">

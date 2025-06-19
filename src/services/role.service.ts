@@ -4,7 +4,6 @@ export const roleService = {
   async getAllRoles(): Promise<any[]> {
     try {
       const response = await apiClient.get(`/users/roles`);
-      console.log('rolee*** : ',response.data);
 
       return response.data;
     } catch (error: any) {

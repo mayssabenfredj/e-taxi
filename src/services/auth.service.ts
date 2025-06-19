@@ -4,17 +4,14 @@ import apiClient from "./apiClient";
 export const authService = {
   login: async (email: string, password: string): Promise<LoginResponse> => {
     try {
-      console.log("[authService] Login Request:", { email, password });
-      console.log("Hii");
+     
       const response = await apiClient.post<LoginResponse>("/auth/login", {
         email,
         password,
       });
-      console.log("[authService] Raw API Response:", response);
-      console.log("[authService] Response Data:", response.data);
+      
       if (response.data.access_token) {
         authService.setTokens(response.data.access_token);
-        console.log("[authService] Token stored successfully");
       } else {
         console.warn("[authService] No access_token in response");
       }
@@ -28,7 +25,6 @@ export const authService = {
   logout: async (): Promise<void> => {
     try {
       const token = authService.getStoredToken();
-      console.log("[authService] Token before logout:", token);
       await apiClient.post("/auth/logout");
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
@@ -40,7 +36,6 @@ export const authService = {
         token,
         newPassword,
       });
-      console.log("[authService] Reset Password Response:", response);
       return response.data;
     } catch (error: any) {
       console.error("[authService] Reset Password Error:", error);

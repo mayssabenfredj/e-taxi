@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -23,185 +22,139 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { AddressInput } from '../shared/AddressInput';
-import { ArrowLeft, Save, User, Clock, Calendar, MapPin, Phone, Mail, Home, Briefcase, Plus, UserPlus, X } from 'lucide-react';
+import { ArrowLeft, Save, UserPlus, Clock, Calendar, Home, Briefcase, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface Address {
-  id: string;
-  label: string;
-  street: string;
-  city: string;
-  postalCode: string;
-  country: string;
-  latitude?: number;
-  longitude?: number;
-}
+import { demandeService } from '@/services/demande.service';
+import {
+  TransportRequestResponse,
+  EmployeeTransportDto,
+  TransportType,
+  TransportStatus,
+  TransportDirection,
+  Employee,
+} from '@/types/demande';
+import { format, parseISO } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { useEmployees } from '@/hooks/useEmployees';
 
 interface Passenger {
   id: string;
-  name: string;
+  employeeId: string;
+  fullName: string;
   phone: string;
   email: string;
-  departureAddress: string;
-  arrivalAddress: string;
-  homeAddress?: string;
-  workAddress?: string;
-  isHomeToWork?: boolean;
-}
-
-interface TransportRequest {
-  id: string;
-  reference: string;
-  type: 'immediate' | 'scheduled';
-  requestType: 'private' | 'public';
-  status: 'pending' | 'approved' | 'dispatched' | 'in_progress' | 'completed' | 'cancelled';
-  scheduledDate: string;
-  scheduledTime: string;
-  requestedBy: string;
-  enterprise: string;
-  subsidiary?: string;
-  passengers: Passenger[];
+  departureAddress: any;
+  arrivalAddress: any;
+  direction: TransportDirection;
   note?: string;
-  createdAt: string;
-  isHomeToWorkTrip?: boolean;
 }
 
 export function EditTransportRequest() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const [request, setRequest] = useState<TransportRequest | null>(null);
-  const [isHomeToWorkTrip, setIsHomeToWorkTrip] = useState(true);
+  const [request, setRequest] = useState<TransportRequestResponse | null>(null);
+  const [direction, setDirection] = useState<TransportDirection>(TransportDirection.HOMETOOFFICE);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [note, setNote] = useState('');
-  const [transportType, setTransportType] = useState<'private' | 'public'>('public');
+  const [type, setType] = useState<TransportType>(TransportType.SCHEDULED);
   const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [showAddPassengerForm, setShowAddPassengerForm] = useState(false);
   const [newPassenger, setNewPassenger] = useState<Partial<Passenger>>({
-    name: '',
+    fullName: '',
     phone: '',
     email: '',
-    departureAddress: '',
-    arrivalAddress: ''
+    departureAddress: { formattedAddress: '' } as any,
+    arrivalAddress: { formattedAddress: '' } as any,
+    direction: TransportDirection.HOMETOOFFICE,
   });
 
-  // Liste des employés disponibles pour la sélection
-  const employees = [
-    {
-      id: 'emp1',
-      name: 'Jean Dupont',
-      phone: '+33 6 12 34 56 78',
-      email: 'jean.dupont@email.com',
-      homeAddress: '15 Rue du Louvre, 75001 Paris',
-      workAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris'
-    },
-    {
-      id: 'emp2',
-      name: 'Marie Martin',
-      phone: '+33 6 98 76 54 32',
-      email: 'marie.martin@email.com',
-      homeAddress: '25 Rue de Rivoli, 75004 Paris',
-      workAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris'
-    },
-    {
-      id: 'emp3',
-      name: 'Pierre Durand',
-      phone: '+33 6 55 55 55 55',
-      email: 'pierre.durand@email.com',
-      homeAddress: '8 Avenue Montaigne, 75008 Paris',
-      workAddress: 'La Défense, 92800 Puteaux'
-    },
-    {
-      id: 'emp4',
-      name: 'Sophie Leclerc',
-      phone: '+33 6 11 22 33 44',
-      email: 'sophie.leclerc@email.com',
-      homeAddress: '12 Boulevard Saint-Germain, 75005 Paris',
-      workAddress: 'Opéra, 75009 Paris'
-    }
-  ];
+  // Utiliser le hook useEmployees pour charger les employés
+  const { employees: availableEmployees, loading: employeesLoading } = useEmployees({
+    enterpriseId: request?.enterpriseId, // Utiliser l'enterpriseId de la demande
+    roleFilter: 'all',
+    subsidiaryFilter: 'all',
+    statusFilter: 'ENABLED', // Ne charger que les employés actifs
+    skip: 0,
+    take: 100, // Charger jusqu'à 100 employés (ajustez selon besoin)
+  });
 
-  // Simuler le chargement des données
+  // Charger la demande
   useEffect(() => {
-    const loadRequest = () => {
-      // Données fictives pour la démonstration
-      const mockRequest: TransportRequest = {
-        id: id || '1',
-        reference: 'TR-2024-001',
-        type: 'scheduled',
-        requestType: 'public',
-        status: 'pending',
-        scheduledDate: '2024-01-15',
-        scheduledTime: '09:00',
-        requestedBy: 'Marie Dubois',
-        enterprise: 'TechCorp SARL',
-        subsidiary: 'TechCorp Paris',
-        passengers: [
-          {
-            id: '1',
-            name: 'Jean Dupont',
-            phone: '+33 6 12 34 56 78',
-            email: 'jean.dupont@techcorp.fr',
-            departureAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris',
-            arrivalAddress: 'Aéroport Charles de Gaulle, 95700 Roissy',
-            homeAddress: '15 Rue du Louvre, 75001 Paris',
-            workAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris',
-            isHomeToWork: true
-          },
-          {
-            id: '2',
-            name: 'Marie Martin',
-            phone: '+33 6 98 76 54 32',
-            email: 'marie.martin@techcorp.fr',
-            departureAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris',
-            arrivalAddress: 'Aéroport Charles de Gaulle, 95700 Roissy',
-            homeAddress: '25 Rue de Rivoli, 75004 Paris',
-            workAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris',
-            isHomeToWork: true
-          }
-        ],
-        note: 'Transport pour réunion client importante',
-        createdAt: '2024-01-10 14:30',
-        isHomeToWorkTrip: true
-      };
-
-      setRequest(mockRequest);
-      setScheduledDate(mockRequest.scheduledDate);
-      setScheduledTime(mockRequest.scheduledTime);
-      setNote(mockRequest.note || '');
-      setTransportType(mockRequest.requestType);
-      setPassengers(mockRequest.passengers);
-      setIsHomeToWorkTrip(mockRequest.isHomeToWorkTrip || true);
-      setIsLoading(false);
+    const fetchRequest = async () => {
+      if (!id) {
+        toast.error('ID de la demande non spécifié');
+        setIsLoading(false);
+        return;
+      }
+      try {
+        setIsLoading(true);
+        const requestData = await demandeService.getTransportRequestById(id);
+        setRequest(requestData);
+        setDirection(requestData.direction || TransportDirection.HOMETOOFFICE);
+        setScheduledDate(
+          requestData.scheduledDate ? format(parseISO(requestData.scheduledDate), 'yyyy-MM-dd') : ''
+        );
+        setScheduledTime(
+          requestData.scheduledDate ? format(parseISO(requestData.scheduledDate), 'HH:mm') : ''
+        );
+        setNote(requestData.note || '');
+        setType(requestData.type || TransportType.SCHEDULED);
+        setPassengers(
+          requestData.employeeTransports.map((et: EmployeeTransportDto) => ({
+            id: et.id,
+            employeeId: et.employeeId,
+            fullName: et.employee?.fullName || 'Non spécifié',
+            phone: et.employee?.phone || '',
+            email: et.employee?.email || '',
+            departureAddress: et.departure || { formattedAddress: 'Non spécifié' },
+            arrivalAddress: et.arrival || { formattedAddress: 'Non spécifié' },
+            direction: requestData.direction || TransportDirection.HOMETOOFFICE,
+            note: et.note || '',
+          }))
+        );
+      } catch (error: any) {
+        toast.error(`Erreur lors du chargement de la demande : ${error.message || 'Erreur inconnue'}`);
+      } finally {
+        setIsLoading(false);
+      }
     };
-
-    // Simuler un délai de chargement
-    setTimeout(loadRequest, 500);
+    fetchRequest();
   }, [id]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!scheduledDate || !scheduledTime || passengers.length === 0) {
-      toast.error('Veuillez remplir tous les champs obligatoires');
+      toast.error('Veuillez remplir tous les champs obligatoires (date, heure, au moins un passager)');
       return;
     }
 
-    // Mise à jour de la demande
-    if (request) {
-      const updatedRequest = {
+    if (!request || !id) return;
+
+    try {
+      const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
+      const updatedRequest: Partial<TransportRequestResponse> = {
         ...request,
-        scheduledDate,
-        scheduledTime,
-        requestType: transportType,
+        type,
+        direction,
+        scheduledDate: scheduledDateTime,
         note,
-        passengers,
-        isHomeToWorkTrip
+        employeeTransports: passengers.map((p) => ({
+          id: p.id.startsWith('new-') ? undefined : p.id,
+          employeeId: p.employeeId,
+          departure: p.departureAddress,
+          arrival: p.arrivalAddress,
+          note: p.note,
+          startTime: scheduledDateTime,
+          status: TransportStatus.PENDING,
+        })),
       };
 
-      // Ici, vous feriez l'appel API pour mettre à jour la demande
-      console.log('Demande mise à jour:', updatedRequest);
+     /* const response = await demandeService.updateTransportRequest(id, updatedRequest);*/
       toast.success('Demande mise à jour avec succès');
       navigate(`/transport/${id}`);
+    } catch (error: any) {
+      toast.error(`Erreur lors de la mise à jour de la demande : ${error.message || 'Erreur inconnue'}`);
     }
   };
 
@@ -209,92 +162,115 @@ export function EditTransportRequest() {
     navigate(`/transport/${id}`);
   };
 
-  const updatePassengerAddress = (passengerId: string, field: 'departureAddress' | 'arrivalAddress', value: string) => {
-    setPassengers(prev => 
-      prev.map(passenger => 
-        passenger.id === passengerId 
-          ? { ...passenger, [field]: value }
-          : passenger
+  const updatePassengerAddress = (
+    passengerId: string,
+    field: 'departureAddress' | 'arrivalAddress',
+    value: any
+  ) => {
+    setPassengers((prev) =>
+      prev.map((passenger) =>
+        passenger.id === passengerId ? { ...passenger, [field]: value } : passenger
       )
     );
   };
 
   const handleToggleTripDirection = () => {
-    setIsHomeToWorkTrip(!isHomeToWorkTrip);
-    
-    // Mettre à jour les adresses de tous les passagers
-    setPassengers(prev => 
-      prev.map(passenger => {
-        // Inverser les adresses de départ et d'arrivée en fonction des adresses domicile/travail
-        const departureAddress = !isHomeToWorkTrip ? passenger.homeAddress || passenger.departureAddress : passenger.workAddress || passenger.departureAddress;
-        const arrivalAddress = !isHomeToWorkTrip ? passenger.workAddress || passenger.arrivalAddress : passenger.homeAddress || passenger.arrivalAddress;
-        
+    const newDirection =
+      direction === TransportDirection.HOMETOOFFICE
+        ? TransportDirection.OFFICETOHOME
+        : TransportDirection.HOMETOOFFICE;
+    setDirection(newDirection);
+
+    // Mettre à jour les adresses des passagers
+    setPassengers((prev) =>
+      prev.map((passenger) => {
+        const employee = availableEmployees.find((emp) => emp.id === passenger.employeeId);
+        const homeAddress = employee?.addresses?.find(
+          (addr) => addr.address.addressType === 'HOME'
+        )?.address || passenger.departureAddress;
+        const workAddress = employee?.addresses?.find(
+          (addr) => addr.address.addressType === 'OFFICE'
+        )?.address || passenger.arrivalAddress;
+
         return {
           ...passenger,
-          departureAddress,
-          arrivalAddress,
-          isHomeToWork: !isHomeToWorkTrip
+          departureAddress: newDirection === TransportDirection.HOMETOOFFICE ? homeAddress : workAddress,
+          arrivalAddress: newDirection === TransportDirection.HOMETOOFFICE ? workAddress : homeAddress,
+          direction: newDirection,
         };
       })
     );
   };
 
   const handleSelectEmployee = (employeeId: string) => {
-    const employee = employees.find(emp => emp.id === employeeId);
+    const employee = availableEmployees.find((emp) => emp.id === employeeId);
     if (!employee) return;
 
-    // Déterminer les adresses de départ et d'arrivée en fonction du type de trajet
-    const departureAddress = isHomeToWorkTrip ? employee.homeAddress : employee.workAddress;
-    const arrivalAddress = isHomeToWorkTrip ? employee.workAddress : employee.homeAddress;
-    
+    const homeAddress = employee.addresses?.find(
+      (addr) => addr.address.addressType === 'HOME'
+    )?.address;
+    const workAddress = employee.addresses?.find(
+      (addr) => addr.address.addressType === 'OFFICE'
+    )?.address;
+
+    const departureAddress =
+      direction === TransportDirection.HOMETOOFFICE ? homeAddress : workAddress;
+    const arrivalAddress =
+      direction === TransportDirection.HOMETOOFFICE ? workAddress : homeAddress;
+
     setNewPassenger({
-      name: employee.name,
+      employeeId,
+      fullName: employee.fullName,
       phone: employee.phone,
       email: employee.email,
-      departureAddress,
-      arrivalAddress,
-      homeAddress: employee.homeAddress,
-      workAddress: employee.workAddress,
-      isHomeToWork: isHomeToWorkTrip
+      departureAddress: departureAddress || { formattedAddress: '' },
+      arrivalAddress: arrivalAddress || { formattedAddress: '' },
+      direction,
     });
   };
 
   const handleAddPassenger = () => {
-    if (!newPassenger.name || !newPassenger.phone) {
-      toast.error('Veuillez remplir au moins le nom et le téléphone');
+    if (!newPassenger.fullName || !newPassenger.phone || !newPassenger.employeeId) {
+      toast.error('Veuillez remplir le nom, le téléphone et sélectionner un employé');
+      return;
+    }
+
+    if (!newPassenger.departureAddress?.formattedAddress || !newPassenger.arrivalAddress?.formattedAddress) {
+      toast.error('Veuillez spécifier les adresses de départ et d’arrivée');
       return;
     }
 
     const passenger: Passenger = {
       id: `new-${Date.now()}`,
-      name: newPassenger.name || '',
-      phone: newPassenger.phone || '',
+      employeeId: newPassenger.employeeId!,
+      fullName: newPassenger.fullName!,
+      phone: newPassenger.phone!,
       email: newPassenger.email || '',
-      departureAddress: newPassenger.departureAddress || '',
-      arrivalAddress: newPassenger.arrivalAddress || '',
-      homeAddress: newPassenger.homeAddress,
-      workAddress: newPassenger.workAddress,
-      isHomeToWork: isHomeToWorkTrip
+      departureAddress: newPassenger.departureAddress!,
+      arrivalAddress: newPassenger.arrivalAddress!,
+      direction: newPassenger.direction || TransportDirection.HOMETOOFFICE,
+      note: newPassenger.note,
     };
 
-    setPassengers(prev => [...prev, passenger]);
+    setPassengers((prev) => [...prev, passenger]);
     setNewPassenger({
-      name: '',
+      fullName: '',
       phone: '',
       email: '',
-      departureAddress: '',
-      arrivalAddress: ''
+      departureAddress: { formattedAddress: '' } as any,
+      arrivalAddress: { formattedAddress: '' } as any,
+      direction: TransportDirection.HOMETOOFFICE,
     });
     setShowAddPassengerForm(false);
     toast.success('Passager ajouté avec succès');
   };
 
   const handleRemovePassenger = (passengerId: string) => {
-    setPassengers(prev => prev.filter(p => p.id !== passengerId));
+    setPassengers((prev) => prev.filter((p) => p.id !== passengerId));
     toast.success('Passager supprimé');
   };
 
-  if (isLoading) {
+  if (isLoading || employeesLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-etaxi-yellow"></div>
@@ -306,48 +282,25 @@ export function EditTransportRequest() {
     return (
       <div className="text-center p-8">
         <p>Demande non trouvée</p>
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/transport')}
-          className="mt-4"
-        >
+        <Button variant="outline" onClick={() => navigate('/transport')} className="mt-4">
           Retour aux demandes
         </Button>
       </div>
     );
   }
 
-  const commonAddresses = [
-    'Aéroport Charles de Gaulle, 95700 Roissy',
-    'Gare de Lyon, 75012 Paris',
-    'La Défense, 92800 Puteaux',
-    'Opéra, 75009 Paris',
-    'Châtelet-Les Halles, 75001 Paris',
-    'Siège social - 15 Rue du Louvre, 75001 Paris',
-    'Centre de conférences - 101 Avenue des Champs-Élysées, 75008 Paris'
-  ];
-
   return (
-    <div className="space-y-4 max-w-7xl">
+    <div className="space-y-4 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/transport/${id}`)}
-          >
+          <Button variant="outline" size="sm" onClick={() => navigate(`/transport/${id}`)}>
             <ArrowLeft className="h-4 w-4 mr-1" />
             Retour
           </Button>
-          
           <h2 className="text-xl font-bold">Modifier la demande - {request.reference}</h2>
         </div>
-        
         <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            onClick={handleCancel}
-          >
+          <Button variant="outline" onClick={handleCancel}>
             Annuler
           </Button>
           <Button
@@ -359,7 +312,6 @@ export function EditTransportRequest() {
           </Button>
         </div>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Informations générales */}
         <Card className="lg:col-span-1">
@@ -375,52 +327,60 @@ export function EditTransportRequest() {
                 onChange={(e) => setScheduledDate(e.target.value)}
               />
             </div>
-            
             <div className="space-y-2">
-              <Label>{isHomeToWorkTrip ? "Heure d'arrivée" : "Heure de départ"}</Label>
+              <Label>{direction === TransportDirection.HOMETOOFFICE ? "Heure d'arrivée" : "Heure de départ"}</Label>
               <Input
                 type="time"
                 value={scheduledTime}
                 onChange={(e) => setScheduledTime(e.target.value)}
               />
             </div>
-            
             <div className="space-y-2">
               <Label>Type de transport</Label>
               <Select
-                value={transportType}
-                onValueChange={(value: 'private' | 'public') => setTransportType(value)}
+                value={type}
+                onValueChange={(value: TransportType) => setType(value)}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="public">Public</SelectItem>
-                  <SelectItem value="private">Privé</SelectItem>
+                  <SelectItem value={TransportType.SCHEDULED}>Programmé</SelectItem>
+                  <SelectItem value={TransportType.IMMEDIATE}>Immédiat</SelectItem>
+                  <SelectItem value={TransportType.RECURRING}>Récurrent</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Direction de trajet */}
             <div className="flex items-center justify-between space-x-4 p-3 border rounded-md">
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Direction du trajet</Label>
                 <div className="text-sm text-muted-foreground">
-                  {isHomeToWorkTrip 
-                    ? "Domicile → Travail (heure d'arrivée)" 
+                  {direction === TransportDirection.HOMETOOFFICE
+                    ? "Domicile → Travail (heure d'arrivée)"
                     : "Travail → Domicile (heure de départ)"}
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <Home className={`h-4 w-4 ${isHomeToWorkTrip ? 'text-etaxi-yellow' : 'text-muted-foreground'}`} />
-                <Switch 
-                  checked={!isHomeToWorkTrip}
+                <Home
+                  className={`h-4 w-4 ${
+                    direction === TransportDirection.HOMETOOFFICE
+                      ? 'text-etaxi-yellow'
+                      : 'text-muted-foreground'
+                  }`}
+                />
+                <Switch
+                  checked={direction === TransportDirection.OFFICETOHOME}
                   onCheckedChange={handleToggleTripDirection}
                 />
-                <Briefcase className={`h-4 w-4 ${!isHomeToWorkTrip ? 'text-etaxi-yellow' : 'text-muted-foreground'}`} />
+                <Briefcase
+                  className={`h-4 w-4 ${
+                    direction === TransportDirection.OFFICETOHOME
+                      ? 'text-etaxi-yellow'
+                      : 'text-muted-foreground'
+                  }`}
+                />
               </div>
             </div>
-            
             <div className="space-y-2">
               <Label>Note</Label>
               <Textarea
@@ -432,18 +392,23 @@ export function EditTransportRequest() {
             </div>
           </CardContent>
         </Card>
-
         {/* Passagers */}
         <Card className="lg:col-span-2">
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-lg">Passagers ({passengers.length})</CardTitle>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setShowAddPassengerForm(!showAddPassengerForm)}
               className="text-xs"
             >
-              {showAddPassengerForm ? 'Annuler' : <><UserPlus className="h-3 w-3 mr-1" /> Ajouter</>}
+              {showAddPassengerForm ? (
+                'Annuler'
+              ) : (
+                <>
+                  <UserPlus className="h-3 w-3 mr-1" /> Ajouter
+                </>
+              )}
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -458,116 +423,72 @@ export function EditTransportRequest() {
                           <SelectValue placeholder="Sélectionner un employé..." />
                         </SelectTrigger>
                         <SelectContent>
-                          {employees.map(emp => (
+                          {availableEmployees.map((emp) => (
                             <SelectItem key={emp.id} value={emp.id}>
-                              {emp.name} - {emp.email}
+                              {emp.fullName} - {emp.email}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                    
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label>Nom complet</Label>
                         <Input
-                          value={newPassenger.name}
-                          onChange={(e) => setNewPassenger({...newPassenger, name: e.target.value})}
+                          value={newPassenger.fullName}
+                          onChange={(e) =>
+                            setNewPassenger({ ...newPassenger, fullName: e.target.value })
+                          }
                           placeholder="Nom du passager"
                         />
                       </div>
-                      
                       <div className="space-y-2">
                         <Label>Téléphone</Label>
                         <Input
                           value={newPassenger.phone}
-                          onChange={(e) => setNewPassenger({...newPassenger, phone: e.target.value})}
+                          onChange={(e) =>
+                            setNewPassenger({ ...newPassenger, phone: e.target.value })
+                          }
                           placeholder="Numéro de téléphone"
                         />
                       </div>
-                      
                       <div className="space-y-2">
                         <Label>Email</Label>
                         <Input
                           value={newPassenger.email}
-                          onChange={(e) => setNewPassenger({...newPassenger, email: e.target.value})}
+                          onChange={(e) =>
+                            setNewPassenger({ ...newPassenger, email: e.target.value })
+                          }
                           placeholder="Adresse email"
                         />
                       </div>
                     </div>
-                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Adresse de départ</Label>
-                        <Select
-                          value={newPassenger.departureAddress}
-                          onValueChange={(value) => setNewPassenger({...newPassenger, departureAddress: value})}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner une adresse" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {newPassenger.homeAddress && isHomeToWorkTrip && (
-                              <SelectItem value={newPassenger.homeAddress}>
-                                <div className="flex items-center">
-                                  <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                  {newPassenger.homeAddress}
-                                </div>
-                              </SelectItem>
-                            )}
-                            {newPassenger.workAddress && !isHomeToWorkTrip && (
-                              <SelectItem value={newPassenger.workAddress}>
-                                <div className="flex items-center">
-                                  <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                  {newPassenger.workAddress}
-                                </div>
-                              </SelectItem>
-                            )}
-                            {commonAddresses.map((address) => (
-                              <SelectItem key={address} value={address}>
-                                {address}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <AddressInput
+                          value={newPassenger.departureAddress?.formattedAddress || ''}
+                          onChange={(address) =>
+                            setNewPassenger({
+                              ...newPassenger,
+                              departureAddress: address as any,
+                            })
+                          }
+                        />
                       </div>
-                      
                       <div className="space-y-2">
                         <Label>Adresse d'arrivée</Label>
-                        <Select
-                          value={newPassenger.arrivalAddress}
-                          onValueChange={(value) => setNewPassenger({...newPassenger, arrivalAddress: value})}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner une adresse" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {newPassenger.workAddress && isHomeToWorkTrip && (
-                              <SelectItem value={newPassenger.workAddress}>
-                                <div className="flex items-center">
-                                  <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                  {newPassenger.workAddress}
-                                </div>
-                              </SelectItem>
-                            )}
-                            {newPassenger.homeAddress && !isHomeToWorkTrip && (
-                              <SelectItem value={newPassenger.homeAddress}>
-                                <div className="flex items-center">
-                                  <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                  {newPassenger.homeAddress}
-                                </div>
-                              </SelectItem>
-                            )}
-                            {commonAddresses.map((address) => (
-                              <SelectItem key={address} value={address}>
-                                {address}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <AddressInput
+                          value={newPassenger.arrivalAddress?.formattedAddress || ''}
+                          onChange={(address) =>
+                            setNewPassenger({
+                              ...newPassenger,
+                              arrivalAddress: address as any,
+                            })
+                          }
+                        />
                       </div>
                     </div>
-                    
                     <div className="flex justify-end">
                       <Button
                         onClick={handleAddPassenger}
@@ -581,7 +502,6 @@ export function EditTransportRequest() {
                 </CardContent>
               </Card>
             )}
-            
             <Table>
               <TableHeader>
                 <TableRow>
@@ -596,75 +516,25 @@ export function EditTransportRequest() {
                   <TableRow key={passenger.id}>
                     <TableCell className="p-2">
                       <div className="text-xs">
-                        <div className="font-medium">{passenger.name}</div>
+                        <div className="font-medium">{passenger.fullName}</div>
                         <div className="text-muted-foreground">{passenger.phone}</div>
                       </div>
                     </TableCell>
                     <TableCell className="p-2">
-                      <Select
-                        value={passenger.departureAddress}
-                        onValueChange={(value) => updatePassengerAddress(passenger.id, 'departureAddress', value)}
-                      >
-                        <SelectTrigger className="text-xs h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {passenger.isHomeToWork && passenger.homeAddress && (
-                            <SelectItem value={passenger.homeAddress} className="text-xs">
-                              <div className="flex items-center">
-                                <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                {passenger.homeAddress}
-                              </div>
-                            </SelectItem>
-                          )}
-                          {!passenger.isHomeToWork && passenger.workAddress && (
-                            <SelectItem value={passenger.workAddress} className="text-xs">
-                              <div className="flex items-center">
-                                <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                {passenger.workAddress}
-                              </div>
-                            </SelectItem>
-                          )}
-                          {commonAddresses.map((address) => (
-                            <SelectItem key={address} value={address} className="text-xs">
-                              {address}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <AddressInput
+                        value={passenger.departureAddress.formattedAddress}
+                        onChange={(address) =>
+                          updatePassengerAddress(passenger.id, 'departureAddress', address as any)
+                        }
+                      />
                     </TableCell>
                     <TableCell className="p-2">
-                      <Select
-                        value={passenger.arrivalAddress}
-                        onValueChange={(value) => updatePassengerAddress(passenger.id, 'arrivalAddress', value)}
-                      >
-                        <SelectTrigger className="text-xs h-8">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {!passenger.isHomeToWork && passenger.homeAddress && (
-                            <SelectItem value={passenger.homeAddress} className="text-xs">
-                              <div className="flex items-center">
-                                <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                {passenger.homeAddress}
-                              </div>
-                            </SelectItem>
-                          )}
-                          {passenger.isHomeToWork && passenger.workAddress && (
-                            <SelectItem value={passenger.workAddress} className="text-xs">
-                              <div className="flex items-center">
-                                <Briefcase className="h-3 w-3 mr-1 text-etaxi-yellow" />
-                                {passenger.workAddress}
-                              </div>
-                            </SelectItem>
-                          )}
-                          {commonAddresses.map((address) => (
-                            <SelectItem key={address} value={address} className="text-xs">
-                              {address}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <AddressInput
+                        value={passenger.arrivalAddress.formattedAddress}
+                        onChange={(address) =>
+                          updatePassengerAddress(passenger.id, 'arrivalAddress', address as any)
+                        }
+                      />
                     </TableCell>
                     <TableCell className="p-2">
                       <Button

@@ -28,66 +28,71 @@ export function GroupTransportPage() {
   const [historyTotal, setHistoryTotal] = useState(0);
 
   useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        const query: GetTransportRequestsQueryDto = {
-          page: Math.floor(requestsSkip / requestsTake) + 1,
-          limit: requestsTake,
-        };
-        const response = await demandeService.getTransportRequests(query);
-        console.log("responsseeee ***", response);
-        setRequests(response.data.map((req) => ({
+  const fetchRequests = async () => {
+    try {
+      const query: GetTransportRequestsQueryDto = {
+        page: Math.floor(requestsSkip / requestsTake) + 1,
+        limit: requestsTake,
+      };
+      const response = await demandeService.getTransportRequests(query);
+      console.log("fetching requests ", response.data);
+      setRequests(
+        response.data.map((req) => ({
           id: req.id,
-          requestedBy: req.requestedById || 'Unknown',
+          requestedBy: req.requestedBy?.fullName || 'Inconnu',
           passengerCount: req.employeeTransports.length,
-          departureLocation: req.employeeTransports[0]?.departureAddress?.formattedAddress || 'Unknown',
-          arrivalLocation: req.employeeTransports[0]?.arrivalAddress?.formattedAddress || 'Unknown',
+          departureLocation: req.employeeTransports[0]?.departure?.formattedAddress || 'Non spécifié',
+          arrivalLocation: req.employeeTransports[0]?.arrival?.formattedAddress || 'Non spécifié',
           scheduledDate: req.scheduledDate || new Date().toISOString(),
-          status: (req.status || 'pending').toLowerCase() as TransportRequest['status'],
-          note: req.note,
-        })));
-        setRequestsTotal(response.total);
-      } catch (error) {
-        toast.error('Failed to load transport requests');
-      }
-    };
+          status: (req.status || 'PENDING').toLowerCase() as TransportRequest['status'],
+          note: req.note || '',
+        }))
+      );
+      console.log("fetching requests ", response.total);
+      setRequestsTotal(response.total);
+    } catch (error) {
+      toast.error('Échec du chargement des demandes de transport');
+    }
+  };
 
-    const fetchHistory = async () => {
-      try {
-        const response = await demandeService.getTransportRequests({
-          page: Math.floor(historySkip / historyTake) + 1,
-          limit: historyTake,
-          status: 'COMPLETED' as any, // Adjust based on actual API
-        });
-        setHistory(response.data.map((req) => ({
+  const fetchHistory = async () => {
+    try {
+      const response = await demandeService.getTransportRequests({
+        page: Math.floor(historySkip / historyTake) + 1,
+        limit: historyTake,
+        status: 'COMPLETED' as any, // Ajuster selon l'API
+      });
+      setHistory(
+        response.data.map((req) => ({
           id: req.id,
           requestId: req.id,
           reference: req.reference || `TR-${req.id}`,
           type: 'group',
-          requestedBy: req.requestedById || 'Unknown',
+          requestedBy: req.requestedBy?.fullName || 'Inconnu',
           passengerCount: req.employeeTransports.length,
-          departureLocation: req.employeeTransports[0]?.departureAddress?.formattedAddress || 'Unknown',
-          arrivalLocation: req.employeeTransports[0]?.arrivalAddress?.formattedAddress || 'Unknown',
+          departureLocation: req.employeeTransports[0]?.departure?.formattedAddress || 'Non spécifié',
+          arrivalLocation: req.employeeTransports[0]?.arrival?.formattedAddress || 'Non spécifié',
           scheduledDate: req.scheduledDate || new Date().toISOString(),
           completedDate: req.updatedAt || new Date().toISOString(),
           status: (req.status === 'COMPLETED' ? 'completed' : 'cancelled') as TransportHistory['status'],
-          taxiCount: req.employeeTransports.length, // Adjust based on actual data
-          courses: [], // Placeholder; adjust based on actual API response
-          totalCost: 0, // Placeholder; adjust based on actual API response
-          note: req.note,
-        })));
-        setHistoryTotal(response.total);
-      } catch (error) {
-        toast.error('Failed to load transport history');
-      }
-    };
-
-    if (activeTab === 'requests') {
-      fetchRequests();
-    } else {
-      fetchHistory();
+          taxiCount: req.employeeTransports.length, // Ajuster selon les données réelles
+          courses: [], // Placeholder; ajuster selon la réponse de l'API
+          totalCost: 0, // Placeholder; ajuster selon la réponse de l'API
+          note: req.note || '',
+        }))
+      );
+      setHistoryTotal(response.total);
+    } catch (error) {
+      toast.error('Échec du chargement de l\'historique des transports');
     }
-  }, [activeTab, requestsSkip, requestsTake, historySkip, historyTake]);
+  };
+
+  if (activeTab === 'requests') {
+    fetchRequests();
+  } else {
+    fetchHistory();
+  }
+}, [activeTab, requestsSkip, requestsTake, historySkip, historyTake]);
 
   return (
     <div className="space-y-6">

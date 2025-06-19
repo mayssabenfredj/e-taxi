@@ -146,17 +146,6 @@ export function RequestsTab({
       sortable: true,
     },
     {
-      header: 'Trajet',
-      accessor: 'departureLocation' as string,
-      render: (request: TransportRequest) => (
-        <div className="text-sm">
-          <div>De: {request.departureLocation}</div>
-          <div>Vers: {request.arrivalLocation}</div>
-        </div>
-      ),
-      sortable: true,
-    },
-    {
       header: 'Date prévue',
       accessor: 'scheduledDate' as string,
       render: (request: TransportRequest) =>

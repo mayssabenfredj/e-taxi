@@ -1,27 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { 
-  ArrowLeft, 
-  Edit, 
-  Navigation, 
-  Users, 
-  Calendar, 
-  MapPin, 
-  Phone, 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
+  ArrowLeft,
+  Edit,
+  Navigation,
+  Users,
+  Calendar,
+  MapPin,
+  Phone,
   Mail,
   FileText,
   Car,
-  X
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { TransportRequestResponse, EmployeeTransportDto, TransportStatus, TransportType } from '@/types/demande';
+import { TransportRequestResponse, EmployeeTransportDto, TransportStatus, TransportType, TransportDirection } from '@/types/demande';
 import { demandeService } from '@/services/demande.service';
 import { AddressDto } from '@/types/employee';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export function TransportRequestDetails() {
   const { id } = useParams<{ id: string }>();
@@ -32,13 +44,17 @@ export function TransportRequestDetails() {
 
   useEffect(() => {
     const fetchRequest = async () => {
-      if (!id) return;
+      if (!id) {
+        toast.error('ID de la demande non spécifié');
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         const response = await demandeService.getTransportRequestById(id);
         setRequest(response);
-      } catch (error) {
-        toast.error('Erreur lors du chargement de la demande');
+      } catch (error: any) {
+        toast.error(`Erreur lors du chargement de la demande : ${error.message || 'Erreur inconnue'}`);
       } finally {
         setLoading(false);
       }
@@ -48,36 +64,71 @@ export function TransportRequestDetails() {
 
   const getStatusColor = (status?: TransportStatus) => {
     switch (status) {
-      case TransportStatus.PENDING: return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
-      case TransportStatus.APPROVED: return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100';
-      case TransportStatus.DISPATCHED: return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100';
-      case TransportStatus.IN_PROGRESS: return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100';
-      case TransportStatus.COMPLETED: return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
-      case TransportStatus.CANCELLED: return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100';
+      case TransportStatus.PENDING:
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100';
+      case TransportStatus.APPROVED:
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100';
+      case TransportStatus.DISPATCHED:
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-100';
+      case TransportStatus.IN_PROGRESS:
+        return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-100';
+      case TransportStatus.COMPLETED:
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100';
+      case TransportStatus.CANCELLED:
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
+      case TransportStatus.REJECTED:
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100';
+      case TransportStatus.ASSIGNED:
+        return 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-100';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100';
     }
   };
 
   const getStatusLabel = (status?: TransportStatus) => {
     switch (status) {
-      case TransportStatus.PENDING: return 'En attente';
-      case TransportStatus.APPROVED: return 'Approuvé';
-      case TransportStatus.DISPATCHED: return 'Dispatché';
-      case TransportStatus.IN_PROGRESS: return 'En cours';
-      case TransportStatus.COMPLETED: return 'Terminé';
-      case TransportStatus.CANCELLED: return 'Annulé';
-      case TransportStatus.REJECTED: return 'Rejeté';
-      case TransportStatus.ASSIGNED: return 'Assigné';
-      default: return status || 'Inconnu';
+      case TransportStatus.PENDING:
+        return 'En attente';
+      case TransportStatus.APPROVED:
+        return 'Approuvé';
+      case TransportStatus.DISPATCHED:
+        return 'Dispatché';
+      case TransportStatus.IN_PROGRESS:
+        return 'En cours';
+      case TransportStatus.COMPLETED:
+        return 'Terminé';
+      case TransportStatus.CANCELLED:
+        return 'Annulé';
+      case TransportStatus.REJECTED:
+        return 'Rejeté';
+      case TransportStatus.ASSIGNED:
+        return 'Assigné';
+      default:
+        return status || 'Inconnu';
     }
   };
 
   const getTypeLabel = (type?: TransportType) => {
     switch (type) {
-      case TransportType.IMMEDIATE: return 'Immédiat';
-      case TransportType.SCHEDULED: return 'Programmé';
-      case TransportType.RECURRING: return 'Récurrent';
-      default: return type || 'Inconnu';
+      case TransportType.IMMEDIATE:
+        return 'Immédiat';
+      case TransportType.SCHEDULED:
+        return 'Programmé';
+      case TransportType.RECURRING:
+        return 'Récurrent';
+      default:
+        return type || 'Inconnu';
+    }
+  };
+
+  const getDirectionLabel = (direction?: TransportDirection) => {
+    switch (direction) {
+      case TransportDirection.HOMETOOFFICE:
+        return 'Domicile → Travail';
+      case TransportDirection.OFFICETOHOME:
+        return 'Travail → Domicile';
+      default:
+        return direction || 'Non spécifié';
     }
   };
 
@@ -97,23 +148,30 @@ export function TransportRequestDetails() {
   const handleApprove = async () => {
     if (!request || !id) return;
     try {
-      const updatedRequest = { ...request, status: TransportStatus.APPROVED };
-      setRequest(updatedRequest);
+      /*const updatedRequest = await demandeService.updateTransportRequest(id, {
+        ...request,
+        status: TransportStatus.APPROVED,
+      });
+      setRequest(updatedRequest);*/
       toast.success('Demande approuvée avec succès');
-    } catch (error) {
-      toast.error('Erreur lors de l\'approbation de la demande');
+    } catch (error: any) {
+      toast.error(`Erreur lors de l'approbation de la demande : ${error.message || 'Erreur inconnue'}`);
     }
   };
 
   const handleCancel = async () => {
     if (!request || !id) return;
     try {
-      const updatedRequest = { ...request, status: TransportStatus.CANCELLED };
-      setRequest(updatedRequest);
-      toast.success('Demande annulée');
+      /*const updatedRequest = await demandeService.updateTransportRequest(id, {
+        ...request,
+        status: TransportStatus.CANCELLED,
+      });*/
+      console.log(request);
+      /*setRequest(updatedRequest);*/
+      toast.success('Demande annulée avec succès');
       setShowCancelDialog(false);
-    } catch (error) {
-      toast.error('Erreur lors de l\'annulation de la demande');
+    } catch (error: any) {
+      toast.error(`Erreur lors de l'annulation de la demande : ${error.message || 'Erreur inconnue'}`);
     }
   };
 
@@ -121,71 +179,60 @@ export function TransportRequestDetails() {
     if (!request || request.status === TransportStatus.CANCELLED || request.status === TransportStatus.COMPLETED) {
       return false;
     }
-    
     const scheduledTime = new Date(request.scheduledDate || '').getTime();
     const currentTime = new Date().getTime();
     const thirtyMinutesInMs = 30 * 60 * 1000;
-    
-    return currentTime < (scheduledTime - thirtyMinutesInMs);
+    return currentTime < scheduledTime - thirtyMinutesInMs;
   };
 
   const formatAddress = (address?: AddressDto) => {
-    if (!address) return 'Non spécifié';
-    const parts = [
-      address.street,
-      address.buildingNumber,
-      address.complement,
-      address.postalCode,
-      address.cityId,
-      address.regionId,
-      address.countryId
-    ].filter(Boolean);
-    return parts.join(', ');
+    if (!address || !address.formattedAddress) return 'Non spécifié';
+    return address.formattedAddress;
   };
 
   // Group passengers by departure address
-  const passengersByDeparture = request?.employeeTransports.reduce((groups, transport) => {
-    const departure = formatAddress(transport.departureAddress);
-    if (!groups[departure]) {
-      groups[departure] = [];
-    }
-    groups[departure].push(transport);
-    return groups;
-  }, {} as Record<string, EmployeeTransportDto[]>) || {};
+  const passengersByDeparture =
+    request?.employeeTransports.reduce((groups, transport) => {
+      const departure = formatAddress(transport.departure);
+      if (!groups[departure]) {
+        groups[departure] = [];
+      }
+      groups[departure].push(transport);
+      return groups;
+    }, {} as Record<string, EmployeeTransportDto[]>) || {};
 
   if (loading) {
-    return <div>Chargement...</div>;
+    return <div className="flex justify-center py-12">Chargement...</div>;
   }
 
   if (!request) {
-    return <div>Demande non trouvée</div>;
+    return <div className="flex justify-center py-12">Demande non trouvée</div>;
   }
 
   return (
-    <div className="space-y-4 max-w-7xl">
+    <div className="space-y-4 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-2 sm:space-x-4 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(-1)} // Changed to navigate(-1) for going back
+            onClick={() => navigate('/transport/group')}
             className="flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             <span className="hidden sm:inline">Retour</span>
           </Button>
-          
           <div className="flex items-center space-x-2 min-w-0 flex-1">
             <Car className="h-5 w-5 text-etaxi-yellow flex-shrink-0" />
             <h2 className="text-lg sm:text-xl font-bold truncate">
-              <span className="hidden sm:inline">Détails - </span>{request.reference || 'N/A'}
+              <span className="hidden sm:inline">Détails - </span>
+              {request.reference || 'N/A'}
             </h2>
             <Badge className={getStatusColor(request.status)}>
               {getStatusLabel(request.status)}
             </Badge>
           </div>
         </div>
-
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {(request.status === TransportStatus.PENDING || request.status === TransportStatus.APPROVED) && (
             <Button variant="outline" size="sm" onClick={handleEdit} className="flex-1 sm:flex-none">
@@ -193,9 +240,8 @@ export function TransportRequestDetails() {
               <span className="hidden sm:inline">Modifier</span>
             </Button>
           )}
-          
           {request.status === TransportStatus.PENDING && (
-            <Button 
+            <Button
               size="sm"
               className="bg-green-600 hover:bg-green-700 text-white flex-1 sm:flex-none"
               onClick={handleApprove}
@@ -204,7 +250,6 @@ export function TransportRequestDetails() {
               <span className="sm:hidden">✓</span>
             </Button>
           )}
-          
           {(request.status === TransportStatus.APPROVED || request.status === TransportStatus.PENDING) && (
             <Button
               size="sm"
@@ -215,7 +260,6 @@ export function TransportRequestDetails() {
               <span className="hidden sm:inline">Dispatcher</span>
             </Button>
           )}
-          
           {canCancel() && (
             <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
               <AlertDialogTrigger asChild>
@@ -228,13 +272,15 @@ export function TransportRequestDetails() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Annuler la demande</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Êtes-vous sûr de vouloir annuler cette demande de transport ? 
-                    Cette action est irréversible.
+                    Êtes-vous sûr de vouloir annuler cette demande de transport ? Cette action est irréversible.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Retour</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
+                  <AlertDialogAction
+                    onClick={handleCancel}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
                     Confirmer l'annulation
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -243,7 +289,6 @@ export function TransportRequestDetails() {
           )}
         </div>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <Card className="bg-card border-border">
           <CardHeader className="pb-3">
@@ -261,27 +306,42 @@ export function TransportRequestDetails() {
                 </Badge>
               </div>
             </div>
-            
+            <div>
+              <p className="text-xs text-muted-foreground">Direction</p>
+              <div className="flex space-x-1 mt-1">
+                <Badge variant="outline" className="text-xs">
+                  {getDirectionLabel(request.direction)}
+                </Badge>
+              </div>
+            </div>
             <div>
               <p className="text-xs text-muted-foreground">Date</p>
               <div className="flex items-center space-x-1 mt-1">
                 <Calendar className="h-3 w-3 text-muted-foreground" />
                 <span className="text-xs">
-                  {request.scheduledDate ? new Date(request.scheduledDate).toLocaleString('fr-FR') : 'Non spécifié'}
+                  {request.scheduledDate
+                    ? format(new Date(request.scheduledDate), 'dd/MM/yyyy HH:mm', { locale: fr })
+                    : 'Non spécifié'}
                 </span>
               </div>
             </div>
-            
             <div>
               <p className="text-xs text-muted-foreground">Entreprise</p>
               <div>
-                <p className="text-xs font-medium">{request.enterpriseId || 'Non spécifié'}</p>
-                {request.subsidiaryId && (
-                  <p className="text-xs text-muted-foreground">{request.subsidiaryId}</p>
+                <p className="text-xs font-medium">{request.enterprise?.name || 'Non spécifié'}</p>
+                {request.enterprise?.address?.formattedAddress && (
+                  <p className="text-xs text-muted-foreground">
+                    {request.enterprise.address.formattedAddress}
+                  </p>
                 )}
               </div>
             </div>
-            
+            <div>
+              <p className="text-xs text-muted-foreground">Demandé par</p>
+              <div>
+                <p className="text-xs font-medium">{request.requestedBy?.fullName || 'Non spécifié'}</p>
+              </div>
+            </div>
             {request.note && (
               <div>
                 <p className="text-xs text-muted-foreground">Note</p>
@@ -290,7 +350,6 @@ export function TransportRequestDetails() {
             )}
           </CardContent>
         </Card>
-
         <Card className="lg:col-span-3 bg-card border-border">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between">
@@ -308,32 +367,40 @@ export function TransportRequestDetails() {
                     <div className="flex items-center space-x-2 p-2 bg-muted rounded text-sm">
                       <MapPin className="h-4 w-4 text-green-500 flex-shrink-0" />
                       <span className="font-medium flex-1 truncate">{departure}</span>
-                      <Badge variant="secondary" className="text-xs flex-shrink-0">{transports.length}</Badge>
+                      <Badge variant="secondary" className="text-xs flex-shrink-0">
+                        {transports.length}
+                      </Badge>
                     </div>
-                    
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 ml-2 sm:ml-6">
                       {transports.map((transport) => (
-                        <div key={transport.employeeId} className="border rounded p-2 text-xs bg-card">
-                          <div className="font-medium mb-1 truncate">{transport.employeeId}</div>
-                          
+                        <div
+                          key={transport.employeeId}
+                          className="border rounded p-2 text-xs bg-card"
+                        >
+                          <div className="font-medium mb-1 truncate">
+                            {transport.employee?.fullName || 'Non spécifié'}
+                          </div>
                           <div className="space-y-1 text-muted-foreground">
                             <div className="flex items-center space-x-1">
                               <Phone className="h-3 w-3 flex-shrink-0" />
-                              <span className="truncate">Non disponible</span>
+                              <span className="truncate">
+                                {transport.employee?.phone || 'Non spécifié'}
+                              </span>
                             </div>
                             <div className="flex items-center space-x-1">
                               <Mail className="h-3 w-3 flex-shrink-0" />
-                              <span className="truncate">Non disponible</span>
+                              <span className="truncate">
+                                {transport.employee?.email || 'Non spécifié'}
+                              </span>
                             </div>
                           </div>
-                          
                           <div className="mt-2 pt-2 border-t">
                             <div className="flex items-center space-x-1 text-red-600 mb-1">
                               <MapPin className="h-3 w-3 flex-shrink-0" />
                               <span className="font-medium text-xs">Vers:</span>
                             </div>
                             <p className="text-xs bg-red-50 dark:bg-red-950/20 p-1 rounded border border-red-200 dark:border-red-800 truncate">
-                              {formatAddress(transport.arrivalAddress)}
+                              {formatAddress(transport.arrival)}
                             </p>
                           </div>
                         </div>
