@@ -3,6 +3,7 @@ import {
   CreateTransportRequestDto,
   GetTransportRequestsQueryDto,
   TransportRequestResponse,
+  UpdateTransportRequestDto,
 } from "@/types/demande";
 
 export class DemandeService {
@@ -90,6 +91,12 @@ export class DemandeService {
     } catch (error) {
       throw new Error(`Health check failed: ${error.message}`);
     }
+  }
+
+  async updateTransportRequest(id: string, data: UpdateTransportRequestDto) {
+    console.log('PATCH updateTransportRequest data:', data);
+    const response = await apiClient.patch(`/Demande/transport-requests/${id}`, data);
+    return response.data;
   }
 }
 
