@@ -14,7 +14,6 @@ export class SubsidiaryService {
   static async createSubsidiary(data: CreateSubsidiary): Promise<Subsidiary> {
     try {
       const response = await apiClient.post<Subsidiary>("/subsidiary", data);
-      console.log("Subsidiary created:", response); // Debugging log
       return response.data;
     } catch (error) {
       throw new Error(
@@ -30,7 +29,6 @@ export class SubsidiaryService {
     query: SubsidiaryQueryParams = {}
   ): Promise<{ data: Subsidiary[]; total: number }> {
     try {
-      console.log("Fetching subsidiaries with:", query); // Debugging log
       const response = await apiClient.get<{
         success: boolean;
         data: Subsidiary[];
@@ -46,7 +44,6 @@ export class SubsidiaryService {
           take: query.take ?? 10,
         },
       });
-      console.log("Subsidiaries fetched:", response.data); // Debugging log
       return { data: response.data.data, total: response.data.meta.total };
     } catch (error: any) {
       throw new Error(
@@ -77,7 +74,6 @@ export class SubsidiaryService {
     data: UpdateSubsidiary
   ): Promise<Subsidiary> {
     try {
-      console.log("Updating subsidiary with data:", data); // Debugging log
       const response = await apiClient.put<Subsidiary>(
         `/subsidiary/${id}`,
         data

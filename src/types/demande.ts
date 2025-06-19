@@ -23,6 +23,10 @@ export enum TransportStatus {
   CANCELLED = "CANCELLED",
   REJECTED = "REJECTED",
 }
+export enum TransportDirection {
+  HOMETOOFFICE = "HOMETOOFFICE",
+  OFFICETOHOME = "OFFICETOHOME",
+}
 
 export enum AddressType {
   HOME = "HOME",
@@ -49,6 +53,7 @@ export interface CreateTransportRequestDto {
   priority?: RequestPriority;
   note?: string;
   scheduledDate?: string;
+  direction?: string;
   requestedById?: string;
   enterpriseId?: string;
   subsidiaryId?: string;
@@ -65,6 +70,38 @@ export interface GetTransportRequestsQueryDto {
   subsidiaryId?: string;
 }
 
+export interface EnterpriseDto {
+  id: string;
+  name: string;
+  phone?: string;
+  address?: AddressDto;
+}
+
+export interface RequestedByDto {
+  id: string;
+  fullName: string;
+  firstName?: string | null;
+  lastName?: string | null;
+}
+
+export interface EmployeeTransportDto {
+  id: string;
+  transportRequestId: string;
+  employeeId: string;
+  note?: string | null;
+  startTime: string;
+  estimatedArrival?: string | null;
+  actualArrival?: string | null;
+  status: TransportStatus;
+  departure?: AddressDto;
+  arrival?: AddressDto;
+  rideId?: string | null;
+  virtualTaxiId?: string | null;
+  employee?: Employee;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface TransportRequestResponse {
   id: string;
   reference?: string;
@@ -72,11 +109,14 @@ export interface TransportRequestResponse {
   priority?: RequestPriority;
   status?: TransportStatus;
   note?: string;
+  direction?: TransportDirection;
   scheduledDate?: string;
   createdAt: string;
   updatedAt: string;
   requestedById?: string;
+  requestedBy?: RequestedByDto;
   enterpriseId?: string;
+  enterprise?: EnterpriseDto;
   subsidiaryId?: string;
   employeeTransports: EmployeeTransportDto[];
 }
@@ -150,6 +190,16 @@ export interface RouteEstimation {
   distance: string;
   duration: string;
   price: number;
+  departureAddress?: string;
+  arrivalAddress?: string;
+}
+
+export interface GroupRoute {
+  totalDistance: string; // en km
+  totalDuration: string; // en format "Xh Ymin"
+  points: string[]; // Liste des points dans l'ordre (départ, intermédiaires, arrivée)
+  origin: string; // Point de départ
+  destination: string; // Point d'arrivée
 }
 
 export interface DraftData {

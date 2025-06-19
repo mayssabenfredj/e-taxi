@@ -57,7 +57,6 @@ class EmployeeService {
 
   async createEmployee(data: CreateEmployee): Promise<Employee> {
     try {
-      console.log("data", data);
 
       // Prepare payload
       const payload: CreateEmployee = {
@@ -86,9 +85,7 @@ class EmployeeService {
         })),
       };
 
-      console.log("payload", payload);
       const response = await apiClient.post(`/users`, payload);
-      console.log("response employee ****", response.data);
       const employee = response.data;
       return {
         ...employee,
@@ -164,7 +161,6 @@ class EmployeeService {
     data: CreateMultipleUsersDto
   ): Promise<Employee[]> {
     try {
-      console.log("bulk data", data);
 
       // Prepare payload
       const payload: CreateMultipleUsersDto = {
@@ -196,9 +192,7 @@ class EmployeeService {
         continueOnError: data.continueOnError,
       };
 
-      console.log("bulk payload", payload);
       const response = await apiClient.post(`/users/bulk`, payload);
-      console.log("bulk response", response.data);
       const employees = response.data;
       return employees.map((employee: any) => ({
         ...employee,
