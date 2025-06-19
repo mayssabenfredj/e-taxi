@@ -5,6 +5,7 @@ import {
   Employee,
   GetEmployeesPagination,
   CreateEmployee,
+  CreateMultipleUsersDto,
 } from "@/types/employee";
 
 interface UseEmployeesProps {
@@ -40,8 +41,7 @@ export const useEmployees = ({
         setLoading(true);
         const query: GetEmployeesPagination = {
           enterpriseId,
-          subsidiaryId:
-            subsidiaryFilter !== "all" ? subsidiaryFilter : undefined,
+          subsidiaryId: subsidiaryFilter !== "all" ? subsidiaryFilter : undefined,
           roleName: roleFilter !== "all" ? roleFilter : undefined,
           skip,
           take,
@@ -123,13 +123,27 @@ export const useEmployees = ({
     return updatedEmployee;
   };
 
-  // Import employees from CSV
-  const importEmployees = (importedEmployees: Employee[]) => {
-    setEmployees((prev) => [...importedEmployees, ...prev]);
-    setTotal((prev) => prev + importedEmployees.length);
-    toast.success(
-      `${importedEmployees.length} employé(s) importé(s) avec succès !`
-    );
+  // Import employees from Excel
+  const importEmployees = async (importedEmployees: CreateEmployee[]) => {
+    try {
+      const payload: CreateMultipleUsersDto = {
+        users: importedEmployees,
+        continueOnError: true,
+      };
+      const newEmployees = await EmployeeService.createMultipleEmployees(payload);
+      setEmployees((prev) => [...newEmployees, ...prev]);
+      setTotal((prev) => prev + newEmployees.length);
+      toast.success(
+        `${newEmployees.length} employé${newEmployees.length > 1 ? 's' : ''} importé${newEmployees.length > 1 ? 's' : ''} avec succès !`
+      );
+    } catch (error: any) {
+      toast.error(
+        `Erreur lors de l'importation des employés : ${
+          error.message || "Une erreur est survenue."
+        }`
+      );
+      throw error;
+    }
   };
 
   // Apply client-side status filter

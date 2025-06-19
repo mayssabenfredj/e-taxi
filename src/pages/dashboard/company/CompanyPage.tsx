@@ -612,13 +612,13 @@ export function CompanyPage() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-left">
               <Building2 className="h-5 w-5" />
-              <span>Filiales ({user?.subsidiary?.length || 0})</span>
+              <span>Filiales ({company.subsidiaries.length || 0})</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {user?.subsidiary && user.subsidiary.length > 0 ? (
+            {company.subsidiaries && company.subsidiaries.length > 0 ? (
               <div className="space-y-3">
-                {user.subsidiary.map((subsidiary) => (
+                {company.subsidiaries.map((subsidiary) => (
                   <div key={subsidiary.id} className="p-3 border rounded-lg">
                     <div className="font-medium text-sm text-left">{subsidiary.name}</div>
                     <div className="flex items-start space-x-1 mt-1 text-left">

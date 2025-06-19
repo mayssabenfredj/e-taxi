@@ -116,3 +116,8 @@ export interface GetEmployeesPagination {
   roleName?: string;
   includeAllData?: boolean;
 }
+
+export interface CreateMultipleUsersDto {
+  users: CreateEmployee[];
+  continueOnError: boolean;
+}

@@ -18,7 +18,9 @@ export interface SubsidiaryQueryParams {
 }
 export interface Admin {
   id: string;
-  name?: string; // Optional, as API response may not include name
+  email?: string; 
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface Subsidiary {

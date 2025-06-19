@@ -3,7 +3,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import SubsidiaryService from '@/services/subsidiarie.service';
-import { Subsidiary, CreateSubsidiary, UpdateSubsidiary, EntityStatus, FormData, Manager } from '@/types/subsidiary';
+import { Subsidiary, CreateSubsidiary, UpdateSubsidiary, EntityStatus, FormData, Admin,  } from '@/types/subsidiary';
 import { Address, AddressType } from '@/types/addresse';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -38,20 +38,7 @@ export function SubsidariesPage() {
     enterpriseId: enterpriseId || '',
   });
 
-  const savedAddresses: Address[] = [
-    {
-      id: 'saved1',
-      label: 'Siège social',
-      street: '101 Avenue des Champs-Élysées',
-      postalCode: '75008',
-      city: { id: 'city1', name: 'Paris', postalCode: '75008', regionId: 'region1' },
-      country: { id: 'country1', name: 'France', code: 'FR' },
-      addressType: AddressType.OFFICE,
-      isVerified: true,
-      isExact: true,
-      manuallyEntered: false,
-    },
-  ];
+  
 
   // Fetch subsidiaries with pagination and filters
   const fetchSubsidiaries = async () => {
@@ -89,7 +76,8 @@ export function SubsidariesPage() {
         adminIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
         managerIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
         managerNames: sub.admins
-          ? sub.admins.map((admin: { name?: string }) => admin.name || 'Admin sans nom')
+          ? sub.admins.map((admin: Admin) => `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || 'Admin sans nom'
+    )
           : [],
       }));
       setSubsidiaries(mappedData);

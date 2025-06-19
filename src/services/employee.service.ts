@@ -3,6 +3,7 @@ import {
   GetEmployeesPagination,
   CreateEmployee,
   UpdateEmployee,
+  CreateMultipleUsersDto,
 } from "@/types/employee";
 import apiClient from "./apiClient";
 
@@ -41,23 +42,22 @@ class EmployeeService {
       const response = await apiClient.get(`/users/${id}`);
       const employee = response.data;
       return {
-       ...employee,
-        status: employee.enabled? "ENABLED" : "DISABLED",
+        ...employee,
+        status: employee.enabled ? "ENABLED" : "DISABLED",
         roles: employee.roles || [],
         roleIds: employee.roleIds || [],
         addresses: employee.addresses || [],
       };
-    }catch (error: any) {
+    } catch (error: any) {
       throw new Error(
         error.response?.data?.message || "Failed to fetch employee"
       );
     }
-
   }
 
   async createEmployee(data: CreateEmployee): Promise<Employee> {
     try {
-     console.log("data",data)
+      console.log("data", data);
 
       // Prepare payload
       const payload: CreateEmployee = {
@@ -109,7 +109,7 @@ class EmployeeService {
     try {
       const response = await apiClient.delete(`/users/${id}`);
       console.log("response", response);
-      return response
+      return response;
     } catch (error: any) {
       console.error("error", error);
       throw new Error(
@@ -118,25 +118,20 @@ class EmployeeService {
     }
   }
 
-  async updateEmployee(
-    id: string,
-    data: UpdateEmployee
-  )
-  {
+  async updateEmployee(id: string, data: UpdateEmployee) {
     try {
       console.log("data", data);
       const response = await apiClient.put(`/users/${id}`, data);
       console.log("response", response);
       const employee = response.data;
       return {
-       ...employee,
-        status: employee.enabled? "ENABLED" : "DISABLED",
+        ...employee,
+        status: employee.enabled ? "ENABLED" : "DISABLED",
         roles: employee.roles || [],
         roleIds: employee.roleIds || [],
         addresses: employee.addresses || [],
       };
-    }
-    catch (error: any) {
+    } catch (error: any) {
       throw new Error(
         error.response?.data?.message || "Failed to update employee"
       );
@@ -161,6 +156,61 @@ class EmployeeService {
     } catch (error: any) {
       throw new Error(
         error.response?.data?.message || "Failed to update employee status"
+      );
+    }
+  }
+
+  async createMultipleEmployees(
+    data: CreateMultipleUsersDto
+  ): Promise<Employee[]> {
+    try {
+      console.log("bulk data", data);
+
+      // Prepare payload
+      const payload: CreateMultipleUsersDto = {
+        users: data.users.map((user) => ({
+          ...user,
+          addresses: user.addresses?.map((addr) => ({
+            address: {
+              street: addr.address.street,
+              postalCode: addr.address.postalCode,
+              cityId: addr.address.cityId,
+              countryId: addr.address.countryId,
+              buildingNumber: addr.address.buildingNumber,
+              complement: addr.address.complement,
+              regionId: addr.address.regionId,
+              latitude: addr.address.latitude,
+              longitude: addr.address.longitude,
+              placeId: addr.address.placeId,
+              formattedAddress: addr.address.formattedAddress,
+              isVerified: addr.address.isVerified,
+              isExact: addr.address.isExact,
+              manuallyEntered: addr.address.manuallyEntered,
+              addressType: addr.address.addressType,
+              notes: addr.address.notes,
+            },
+            isDefault: addr.isDefault,
+            label: addr.label,
+          })),
+        })),
+        continueOnError: data.continueOnError,
+      };
+
+      console.log("bulk payload", payload);
+      const response = await apiClient.post(`/users/bulk`, payload);
+      console.log("bulk response", response.data);
+      const employees = response.data;
+      return employees.map((employee: any) => ({
+        ...employee,
+        status: employee.enabled ? "ENABLED" : "DISABLED",
+        roles: employee.roles || [],
+        roleIds: employee.roleIds || [],
+        addresses: employee.addresses || [],
+      }));
+    } catch (error: any) {
+      throw new Error(
+        error.response?.data?.message ||
+          `Failed to create multiple employees: ${error.message}`
       );
     }
   }

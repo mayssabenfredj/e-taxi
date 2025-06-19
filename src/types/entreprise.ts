@@ -86,6 +86,7 @@ export interface Enterprise {
   updatedAt: string;
   deletedAt?: string | null;
   adminId: string;
+  subsidiaries?: any[];
   address?: Address | null;
   admin: {
     id: string;
