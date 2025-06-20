@@ -517,7 +517,7 @@ const calculateRoutes = async () => {
             <ArrowLeft className="h-4 w-4 mr-1" />
             Retour
           </Button>
-          <h2 className="text-2xl font-bold">Nouvelle demande de transport de groupe</h2>
+          <h2 className="text-2xl font-bold">Nouvelle demande de transport </h2>
         </div>
         <div className="flex space-x-2">
           <Button variant="outline" onClick={handleSaveDraft}>

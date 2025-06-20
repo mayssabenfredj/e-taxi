@@ -10,6 +10,7 @@ import Index from './pages/Index';
 import { AuthPage } from './pages/auth/AuthPage';
 import { ForgotPasswordPage } from './pages/auth/ForgetPasswordPage';
 import { UpdatePasswordPage } from './pages/auth/UpdatePasswordPage';
+import { LandingPage } from './pages/LandingPage';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
                 {/* Public routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<AuthPage />} />
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/update-password/:token" element={<UpdatePasswordPage />} />
                 <Route path="/confirm-account/:token" element={<ConfirmAccount />} />
