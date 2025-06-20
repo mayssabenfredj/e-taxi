@@ -51,10 +51,10 @@ export function RequestsTab({
   };
 
   const handleDispatchRequest = (request: TransportRequestResponse) => {
-    if (request.status !== TransportStatus.APPROVED) {
+    /*if (request.status !== TransportStatus.APPROVED) {
       toast.error('Seules les demandes approuvées peuvent être dispatchées');
       return;
-    }
+    }*/
     navigate(`/transport/${request.id}/group-dispatch`);
   };
 
@@ -223,7 +223,7 @@ export function RequestsTab({
       >
         <Copy className="h-4 w-4" />
       </Button>
-      {request.status === TransportStatus.APPROVED && (
+      
         <Button
           size="sm"
           variant="ghost"
@@ -236,7 +236,7 @@ export function RequestsTab({
         >
           <Navigation className="h-4 w-4" />
         </Button>
-      )}
+     
       {(request.status === TransportStatus.PENDING || request.status === TransportStatus.APPROVED) && (
         <AlertDialog>
           <AlertDialogTrigger asChild>

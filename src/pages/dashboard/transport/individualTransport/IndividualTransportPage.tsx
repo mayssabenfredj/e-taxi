@@ -33,20 +33,23 @@ export function IndividualTransportPage() {
   const [loading, setLoading] = useState(false);
 
   const fetchRequests = async () => {
-    setLoading(true);
-    try {
-      const response = await demandeService.getTransportRequests({
-        page: skip / take + 1,
-        limit: take,
-      });
-      setRequests(response.data.filter(req => req.employeeTransports.length === 1));
-      setTotalRequests(response.total);
-    } catch (error) {
-      toast.error('Erreur lors du chargement des demandes');
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    const response = await demandeService.getTransportRequests({
+      page: skip / take + 1,
+      limit: take,
+    });
+    console.log("responsssseee ////////", response);
+
+    const responsesFiltered = response.data.filter(req => req.employeeTransports.length === 1);
+    setRequests(responsesFiltered);
+    setTotalRequests(response.pagination.total); // Fixed typo: pagignation -> pagination
+  } catch (error) {
+    toast.error('Erreur lors du chargement des demandes');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -459,7 +462,7 @@ export function IndividualTransportPage() {
             Brouillons
           </Button>
           <Button
-            onClick={() => navigate('/transport/create')}
+            onClick={() => navigate('/transport/create-group')}
             className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -585,6 +588,7 @@ export function IndividualTransportPage() {
                 selected={selectedDates}
                 onSelect={handleDateSelect}
                 className="rounded-md border"
+                disabled={(date) => date < new Date()}
               />
             </div>
             <div>

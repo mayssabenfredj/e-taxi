@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Users, History } from 'lucide-react';
+import { Users, History, Navigation } from 'lucide-react';
 import { Header } from '@/components/transport/groupTransport/Header';
 import { RequestsTab } from '@/components/transport/groupTransport/RequestsTab';
 import { HistoryTab } from '@/components/transport/groupTransport/HistoryTab';
 import { DuplicateDialog } from '@/components/transport/groupTransport/DuplicateDialog';
 import { HistoryDetailsDialog } from '@/components/transport/groupTransport/HistoryDetailsDialog';
-import { TransportRequest, TransportHistory, DuplicateSchedule, GetTransportRequestsQueryDto, TransportRequestResponse } from '@/types/demande';
+import { GroupTransportDispatchTab } from '@/components/transport/groupTransport/GroupTransportDispatchTab';
+import { TransportRequestResponse, TransportHistory, DuplicateSchedule, GetTransportRequestsQueryDto } from '@/types/demande';
 import { demandeService } from '@/services/demande.service';
 import { toast } from 'sonner';
 
 export function GroupTransportPage() {
-  const [activeTab, setActiveTab] = useState<'requests' | 'history'>('requests');
+  const [activeTab, setActiveTab] = useState<'requests' | 'history' | 'dispatch'>('requests');
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<TransportRequestResponse | null>(null);
   const [duplicateSchedules, setDuplicateSchedules] = useState<DuplicateSchedule[]>([]);
@@ -27,18 +28,21 @@ export function GroupTransportPage() {
   const [requestsTotal, setRequestsTotal] = useState(0);
   const [historyTotal, setHistoryTotal] = useState(0);
 
-  useEffect(() => {
-  const fetchRequests = async () => {
+  const fetchRequests = async (resetPagination: boolean = false) => {
     try {
+      if (resetPagination) {
+        setRequestsSkip(0); // Reset to first page
+      }
       const query: GetTransportRequestsQueryDto = {
         page: Math.floor(requestsSkip / requestsTake) + 1,
         limit: requestsTake,
       };
       const response = await demandeService.getTransportRequests(query);
       console.log("fetching requests ", response.data);
-      setRequests(response.data.filter(req => req.employeeTransports.length != 1));
-      console.log("fetching requests ", response.total);
-      setRequestsTotal(response.total);
+      const responsesFiltred = response.data.filter(req => req.employeeTransports.length !== 1)
+      setRequests(responsesFiltred);
+      console.log("fetching requests ", requests.length);
+      setRequestsTotal(response.pagination.total);
     } catch (error) {
       toast.error('Échec du chargement des demandes de transport');
     }
@@ -70,27 +74,32 @@ export function GroupTransportPage() {
           note: req.note || '',
         }))
       );
-      setHistoryTotal(response.total);
+      setHistoryTotal(response.pagination.total);
     } catch (error) {
       toast.error('Échec du chargement de l\'historique des transports');
     }
   };
 
-  if (activeTab === 'requests') {
-    fetchRequests();
-  } else {
-    fetchHistory();
-  }
-}, [activeTab, requestsSkip, requestsTake, historySkip, historyTake]);
+  useEffect(() => {
+    if (activeTab === 'requests') {
+      fetchRequests();
+    } else if (activeTab === 'history') {
+      fetchHistory();
+    }
+  }, [activeTab, requestsSkip, requestsTake, historySkip, historyTake]);
 
   return (
     <div className="space-y-6">
       <Header />
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'requests' | 'history')}>
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'requests' | 'history' | 'dispatch')}>
         <TabsList>
           <TabsTrigger value="requests" className="flex items-center space-x-2">
             <Users className="h-4 w-4" />
             <span>Demandes ({requestsTotal})</span>
+          </TabsTrigger>
+          <TabsTrigger value="dispatch" className="flex items-center space-x-2">
+            <Navigation className="h-4 w-4" />
+            <span>Dispatch</span>
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center space-x-2">
             <History className="h-4 w-4" />
@@ -108,6 +117,9 @@ export function GroupTransportPage() {
             setSelectedRequest={setSelectedRequest}
             setDuplicateDialogOpen={setDuplicateDialogOpen}
           />
+        </TabsContent>
+        <TabsContent value="dispatch">
+          <GroupTransportDispatchTab />
         </TabsContent>
         <TabsContent value="history">
           <HistoryTab
@@ -131,6 +143,7 @@ export function GroupTransportPage() {
         setDuplicateSchedules={setDuplicateSchedules}
         selectedDates={selectedDates}
         setSelectedDates={setSelectedDates}
+        onDuplicateSuccess={() => fetchRequests(true)} // Pass fetchRequests with resetPagination
       />
       <HistoryDetailsDialog
         open={historyDetailsOpen}

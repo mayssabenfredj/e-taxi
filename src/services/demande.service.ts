@@ -19,7 +19,7 @@ export class DemandeService {
         "/Demande/transport-requests",
         data
       );
-      console.log("demandeess" , response.data);
+      console.log("demandeess", response.data);
       return response.data;
     } catch (error) {
       throw new Error(`Failed to create transport request: ${error.message}`);
@@ -62,15 +62,15 @@ export class DemandeService {
    */
   async getTransportRequests(query: GetTransportRequestsQueryDto): Promise<{
     data: TransportRequestResponse[];
-    total: number;
-    page: number;
-    limit: number;
+    pagination: { total: number; page: number; limit: number };
   }> {
     try {
       const response = await apiClient.get("/Demande/transport-requests", {
         params: query,
       });
-      return response.data;
+      // Ensure the response matches the expected structure
+      const { data, pagination } = response.data;
+      return { data, pagination };
     } catch (error) {
       throw new Error(`Failed to get transport requests: ${error.message}`);
     }
@@ -94,10 +94,35 @@ export class DemandeService {
   }
 
   async updateTransportRequest(id: string, data: UpdateTransportRequestDto) {
-    console.log('PATCH updateTransportRequest data:', data);
-    const response = await apiClient.patch(`/Demande/transport-requests/${id}`, data);
+    console.log("PATCH updateTransportRequest data:", data);
+    const response = await apiClient.patch(
+      `/Demande/transport-requests/${id}`,
+      data
+    );
     return response.data;
   }
+
+  /**
+   * Duplicate a transport request with new scheduled dates
+   */
+  async duplicateTransport(
+    id: string,
+    scheduledDates: string[]
+  ): Promise<TransportRequestResponse[]> {
+    try {
+      const response = await apiClient.post(
+        `/Demande/transport-requests/${id}/duplicate`,
+        { scheduledDates }
+      );
+      console.log("duplicateTransport", response);
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        `Failed to duplicate transport request: ${error.message}`
+      );
+    }
+  }
 }
+
 
 export const demandeService = new DemandeService();

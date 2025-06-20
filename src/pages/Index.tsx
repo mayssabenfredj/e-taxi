@@ -11,7 +11,7 @@ const Index = () => {
   useEffect(() => {
     // If not loading and not authenticated, redirect to login
     if (!isLoading && !isAuthenticated) {
-      navigate('/auth');
+      navigate('/');
     }
   }, [isLoading, isAuthenticated, navigate]);
 

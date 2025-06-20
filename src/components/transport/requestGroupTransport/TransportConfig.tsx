@@ -131,6 +131,7 @@ export function TransportConfig({
                 selected={recurringDates.map((rd) => rd.date)}
                 onSelect={handleRecurringDateChange}
                 className="rounded-md border text-sm"
+                disabled={(date) => date < new Date()}
               />
               {recurringDates.length > 0 && (
                 <div className="space-y-2">

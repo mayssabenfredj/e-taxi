@@ -6,6 +6,8 @@ import { Car, Users, MapPin, Clock, Navigation, ArrowLeft, Plus, X, ChevronDown,
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
+import { demandeService } from '@/services/demande.service';
+import { TransportRequestResponse, EmployeeTransportDto } from '@/types/demande';
 
 interface Passenger {
   id: string;
@@ -26,13 +28,16 @@ interface VirtualTaxi {
 }
 
 export function GroupTransportDispatchPage() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useLanguage();
   
   const [draggedPassenger, setDraggedPassenger] = useState<Passenger | null>(null);
   const [hasDraftChanges, setHasDraftChanges] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [transportRequest, setTransportRequest] = useState<TransportRequestResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const dragRef = useRef<HTMLDivElement>(null);
 
   // Detect mobile device
@@ -46,61 +51,42 @@ export function GroupTransportDispatchPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Mock data for the group transport request
-  const transportRequest = {
-    id: id || '1',
-    reference: 'TR-2024-001',
-    type: 'group',
-    status: 'approved',
-    scheduledDate: '2024-01-15 09:00',
-    enterprise: 'TechCorp SARL',
-    requestedBy: 'Marie Dubois',
-    passengers: [
-      {
-        id: '1',
-        name: 'Jean Dupont',
-        phone: '+33 6 12 34 56 78',
-        email: 'jean.dupont@techcorp.fr',
-        departureAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris',
-        arrivalAddress: 'Aéroport Charles de Gaulle, 95700 Roissy'
-      },
-      {
-        id: '2',
-        name: 'Marie Martin',
-        phone: '+33 6 98 76 54 32',
-        email: 'marie.martin@techcorp.fr',
-        departureAddress: 'Siège social - 15 Rue du Louvre, 75001 Paris',
-        arrivalAddress: 'Aéroport Charles de Gaulle, 95700 Roissy'
-      },
-      {
-        id: '3',
-        name: 'Pierre Durand',
-        phone: '+33 7 11 22 33 44',
-        email: 'pierre.durand@techcorp.fr',
-        departureAddress: 'La Défense, 92800 Puteaux',
-        arrivalAddress: 'Gare de Lyon, 75012 Paris'
-      },
-      {
-        id: '4',
-        name: 'Sophie Lefebvre',
-        phone: '+33 6 45 67 89 01',
-        email: 'sophie.lefebvre@techcorp.fr',
-        departureAddress: 'La Défense, 92800 Puteaux',
-        arrivalAddress: 'Gare de Lyon, 75012 Paris'
-      },
-      {
-        id: '5',
-        name: 'Marc Rousseau',
-        phone: '+33 6 11 22 33 44',
-        email: 'marc.rousseau@techcorp.fr',
-        departureAddress: 'Opéra, 75009 Paris',
-        arrivalAddress: 'Centre de conférences - 101 Avenue des Champs-Élysées, 75008 Paris'
+  // Fetch transport request data
+  useEffect(() => {
+    if (!id) {
+      setError('ID de la demande non spécifié');
+      setLoading(false);
+      return;
+    }
+
+    const fetchTransportRequest = async () => {
+      try {
+        setLoading(true);
+        const response = await demandeService.getTransportRequestById(id);
+        setTransportRequest(response);
+      } catch (err) {
+        setError('Échec du chargement de la demande de transport');
+        toast.error('Échec du chargement de la demande de transport');
+      } finally {
+        setLoading(false);
       }
-    ] as Passenger[]
-  };
+    };
+
+    fetchTransportRequest();
+  }, [id]);
+
+  // Map employeeTransports to Passenger interface
+  const passengers: Passenger[] = transportRequest?.employeeTransports.map((emp: EmployeeTransportDto) => ({
+    id: emp.id,
+    name: emp.employee?.fullName || 'Inconnu',
+    phone: emp.employee?.phone || 'Non spécifié',
+    email: emp.employee?.email || 'Non spécifié',
+    departureAddress: emp.departure?.formattedAddress || 'Non spécifié',
+    arrivalAddress: emp.arrival?.formattedAddress || 'Non spécifié',
+  })) || [];
 
   // Calculate number of virtual taxis needed
-  const taxiCount = Math.ceil(transportRequest.passengers.length / 4);
+  const taxiCount = Math.ceil(passengers.length / 4);
   
   const [virtualTaxis, setVirtualTaxis] = useState<VirtualTaxi[]>(
     Array.from({ length: taxiCount }, (_, index) => ({
@@ -113,8 +99,24 @@ export function GroupTransportDispatchPage() {
     }))
   );
 
+  // Load draft if exists
+  useEffect(() => {
+    const draft = localStorage.getItem(`groupDispatchDraft-${id}`);
+    if (draft) {
+      try {
+        const parsedDraft = JSON.parse(draft);
+        if (parsedDraft.taxis) {
+          setVirtualTaxis(parsedDraft.taxis);
+          setHasDraftChanges(true);
+        }
+      } catch (error) {
+        console.error('Error loading dispatch draft:', error);
+      }
+    }
+  }, [id]);
+
   // Group passengers by departure address
-  const passengersByDeparture = transportRequest.passengers.reduce((groups, passenger) => {
+  const passengersByDeparture = passengers.reduce((groups, passenger) => {
     const departure = passenger.departureAddress;
     if (!groups[departure]) {
       groups[departure] = [];
@@ -132,6 +134,21 @@ export function GroupTransportDispatchPage() {
     }
     return groups;
   }, {} as Record<string, Passenger[]>);
+
+  // Save draft function
+  const saveDraft = () => {
+    const draftData = {
+      transportRequestId: id,
+      taxis: virtualTaxis.filter(taxi => taxi.assignedPassengers.length > 0 || taxi.status !== 'available'),
+      passengerCount: passengers.length,
+      lastModified: new Date().toISOString(),
+      reference: transportRequest?.reference || `TR-${id}`,
+    };
+    
+    localStorage.setItem(`groupDispatchDraft-${id}`, JSON.stringify(draftData));
+    setHasDraftChanges(true);
+    toast.success('Brouillon sauvegardé automatiquement');
+  };
 
   // Mobile-friendly assignment function
   const assignPassengerToTaxi = (passenger: Passenger, taxiId: string) => {
@@ -155,7 +172,6 @@ export function GroupTransportDispatchPage() {
           : t
       );
       
-      // Sort taxis: full ones at bottom, empty ones at top
       return newTaxis.sort((a, b) => {
         const aIsFull = a.assignedPassengers.length >= a.capacity;
         const bIsFull = b.assignedPassengers.length >= b.capacity;
@@ -166,8 +182,7 @@ export function GroupTransportDispatchPage() {
       });
     });
 
-    setHasDraftChanges(true);
-    toast.success(`${passenger.name} assigné au ${taxi.name}`);
+    saveDraft(); // Auto-save draft
   };
 
   // Desktop drag and drop handlers
@@ -206,7 +221,6 @@ export function GroupTransportDispatchPage() {
         return taxi;
       });
       
-      // Sort taxis: full ones at bottom, empty ones at top
       return newTaxis.sort((a, b) => {
         const aIsFull = a.assignedPassengers.length >= a.capacity;
         const bIsFull = b.assignedPassengers.length >= b.capacity;
@@ -216,8 +230,8 @@ export function GroupTransportDispatchPage() {
         return 0;
       });
     });
-    
-    setHasDraftChanges(true);
+
+    saveDraft(); // Auto-save draft
   };
 
   const addVirtualTaxi = () => {
@@ -233,6 +247,7 @@ export function GroupTransportDispatchPage() {
     
     setVirtualTaxis(prev => [newTaxi, ...prev]);
     toast.success(`Taxi virtuel #${newTaxiNumber} ajouté`);
+    saveDraft(); // Auto-save draft
   };
 
   const removeVirtualTaxi = (taxiId: string) => {
@@ -242,8 +257,14 @@ export function GroupTransportDispatchPage() {
       return;
     }
     
+    if (virtualTaxis.length <= 1) {
+      toast.error('Au moins un taxi virtuel est requis');
+      return;
+    }
+
     setVirtualTaxis(prev => prev.filter(t => t.id !== taxiId));
     toast.success('Taxi virtuel supprimé');
+    saveDraft(); // Auto-save draft
   };
 
   const toggleTaxiCollapse = (taxiId: string) => {
@@ -254,9 +275,10 @@ export function GroupTransportDispatchPage() {
           : taxi
       )
     );
+    saveDraft(); // Auto-save draft
   };
 
-  const createCourse = () => {
+  const createCourse = async () => {
     const assignedTaxis = virtualTaxis.filter(taxi => taxi.assignedPassengers.length > 0);
     
     if (assignedTaxis.length === 0) {
@@ -264,41 +286,53 @@ export function GroupTransportDispatchPage() {
       return;
     }
 
-    // Check if all passengers are assigned
     const totalAssignedPassengers = assignedTaxis.reduce((sum, taxi) => sum + taxi.assignedPassengers.length, 0);
-    const allPassengersAssigned = totalAssignedPassengers === transportRequest.passengers.length;
+    const allPassengersAssigned = totalAssignedPassengers === passengers.length;
 
     if (allPassengersAssigned) {
-      setVirtualTaxis(prevTaxis => 
-        prevTaxis.map(taxi => 
-          taxi.assignedPassengers.length > 0 
-            ? { ...taxi, status: 'dispatched' as const }
-            : taxi
-        )
-      );
-      
-      setHasDraftChanges(false);
-      toast.success(`Course créée avec ${assignedTaxis.length} taxi(s)`);
-      navigate('/transport/history');
+      try {
+        // Update transport request with assigned taxis
+        const updateData = {
+          employeeTransports: assignedTaxis.flatMap(taxi =>
+            taxi.assignedPassengers.map(passenger => ({
+              id: passenger.id,
+              virtualTaxiId: taxi.id,
+            }))
+          ),
+          status: 'DISPATCHED', // Adjust based on your API's status values
+        };
+
+        await demandeService.updateTransportRequest(id!, updateData);
+
+        setVirtualTaxis(prevTaxis => 
+          prevTaxis.map(taxi => 
+            taxi.assignedPassengers.length > 0 
+              ? { ...taxi, status: 'dispatched' as const }
+              : taxi
+          )
+        );
+        
+        saveDraft(); // Save draft before navigating
+        setHasDraftChanges(false);
+        toast.success(`Course créée avec ${assignedTaxis.length} taxi(s)`);
+        navigate('/transport/history');
+      } catch (err) {
+        toast.error('Échec de la création de la course');
+      }
     } else {
       toast.error('Tous les passagers doivent être assignés avant de créer la course');
     }
   };
 
-  const saveDraft = () => {
-    // Save current state as draft
-    const draftData = {
-      transportRequestId: transportRequest.id,
-      virtualTaxis: virtualTaxis.filter(taxi => taxi.assignedPassengers.length > 0),
-      savedAt: new Date().toISOString()
-    };
-    
-    localStorage.setItem(`dispatch-draft-${transportRequest.id}`, JSON.stringify(draftData));
-    setHasDraftChanges(false);
-    toast.success('Brouillon sauvegardé');
-  };
-
   const allPassengersAssigned = Object.keys(unassignedPassengersByDeparture).length === 0;
+
+  if (loading) {
+    return <div className="text-center py-6">Chargement...</div>;
+  }
+
+  if (error || !transportRequest) {
+    return <div className="text-center py-6 text-red-500">{error || 'Aucune donnée disponible'}</div>;
+  }
 
   return (
     <div className="space-y-4 max-w-7xl">
@@ -316,7 +350,7 @@ export function GroupTransportDispatchPage() {
           </Button>
           
           <h2 className="text-lg sm:text-xl font-bold truncate">
-            <span className="hidden sm:inline">Dispatch Groupe - </span>{transportRequest.reference}
+            <span className="hidden sm:inline">Dispatch Groupe - </span>{transportRequest.reference || `TR-${id}`}
           </h2>
         </div>
 
@@ -338,19 +372,25 @@ export function GroupTransportDispatchPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <span className="truncate">{new Date(transportRequest.scheduledDate).toLocaleString('fr-FR')}</span>
+              <span className="truncate">
+                {transportRequest.scheduledDate
+                  ? new Date(transportRequest.scheduledDate).toLocaleString('fr-FR')
+                  : 'Non spécifié'}
+              </span>
             </div>
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <span>{transportRequest.passengers.length} passagers</span>
+              <span>{passengers.length} passagers</span>
             </div>
             <div className="flex items-center space-x-2">
               <Car className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <span>{virtualTaxis.length} taxi(s)</span>
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <div className="font-medium truncate">{transportRequest.enterprise}</div>
-              <div className="text-muted-foreground text-xs truncate">Par: {transportRequest.requestedBy}</div>
+              <div className="font-medium truncate">{transportRequest.enterprise?.name || 'Non spécifié'}</div>
+              <div className="text-muted-foreground text-xs truncate">
+                Par: {transportRequest.requestedBy?.fullName || 'Inconnu'}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -465,8 +505,8 @@ export function GroupTransportDispatchPage() {
                       <span className="text-xs text-muted-foreground">
                         {taxi.assignedPassengers.length}/{taxi.capacity}
                       </span>
-                      {taxi.assignedPassengers.length > 0 && (
-                        <>
+                      <>
+                        {taxi.assignedPassengers.length > 0 && (
                           <Button
                             size="sm"
                             variant="ghost"
@@ -475,17 +515,18 @@ export function GroupTransportDispatchPage() {
                           >
                             {taxi.isCollapsed ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => removeVirtualTaxi(taxi.id)}
-                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                            disabled={taxi.assignedPassengers.length > 0}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </>
-                      )}
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeVirtualTaxi(taxi.id)}
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                          disabled={virtualTaxis.length <= 1 || taxi.assignedPassengers.length > 0}
+                          title={virtualTaxis.length <= 1 ? 'Au moins un taxi requis' : ''}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </>
                     </div>
                   </div>
 

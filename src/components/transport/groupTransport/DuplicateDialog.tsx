@@ -5,10 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, X } from 'lucide-react';
-import { TransportRequestResponse, DuplicateSchedule, CreateTransportRequestDto, TransportDirection, TransportType, RequestPriority } from '@/types/demande';
+import { TransportRequestResponse, DuplicateSchedule } from '@/types/demande';
 import { toast } from 'sonner';
 import { demandeService } from '@/services/demande.service';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 
 interface DuplicateDialogProps {
   open: boolean;
@@ -19,6 +19,7 @@ interface DuplicateDialogProps {
   setDuplicateSchedules: React.Dispatch<React.SetStateAction<DuplicateSchedule[]>>;
   selectedDates: Date[];
   setSelectedDates: React.Dispatch<React.SetStateAction<Date[]>>;
+  onDuplicateSuccess: () => void; // New prop for callback
 }
 
 export function DuplicateDialog({
@@ -30,8 +31,10 @@ export function DuplicateDialog({
   setDuplicateSchedules,
   selectedDates,
   setSelectedDates,
+  onDuplicateSuccess,
 }: DuplicateDialogProps) {
-  console.log("Selected Requesst", selectedRequest);
+  console.log("Selected Request", selectedRequest);
+
   const handleDateSelect = (dates: Date[] | undefined) => {
     if (dates) {
       setSelectedDates(dates);
@@ -70,46 +73,15 @@ export function DuplicateDialog({
       return;
     }
 
-    if (!selectedRequest.employeeTransports || !Array.isArray(selectedRequest.employeeTransports)) {
-      toast.error('Les données des transports des employés sont manquantes ou invalides');
-      return;
-    }
-
     try {
-      for (const schedule of duplicateSchedules) {
-        const scheduledDateTime = parseISO(
-          `${format(schedule.date, 'yyyy-MM-dd')}T${schedule.time}:00.000Z`
-        );
+      const scheduledDates = duplicateSchedules.map((schedule) =>
+        new Date(`${format(schedule.date, 'yyyy-MM-dd')}T${schedule.time}:00.000Z`).toISOString()
+      );
 
-        const createRequest: CreateTransportRequestDto = {
-          reference: `${selectedRequest.id}-copy-${Date.now()}`,
-          type: selectedRequest.type || TransportType.SCHEDULED,
-          priority: selectedRequest.priority || RequestPriority.NORMAL,
-          note: selectedRequest.note || undefined,
-          scheduledDate: scheduledDateTime.toISOString(),
-          direction: selectedRequest.direction as TransportDirection, // Assuming `direction` in DTO
-          requestedById: selectedRequest.requestedById,
-          enterpriseId: selectedRequest.enterpriseId,
-          subsidiaryId: selectedRequest.subsidiaryId,
-          employeeTransports: selectedRequest.employeeTransports.map((et) => ({
-            employeeId: et.employeeId,
-            note: et.note || undefined,
-            startTime: scheduledDateTime.toISOString(),
-            estimatedArrival: undefined,
-            departureId: et.departure?.id,
-            arrivalId: et.arrival?.id,
-            departureAddress: et.departure || undefined,
-            arrivalAddress: et.arrival || undefined,
-          })),
-        };
-
-        // Log the createRequest object to verify its structure
-        console.log('Transport Request Data:', JSON.stringify(createRequest, null, 2));
-
-        await demandeService.createTransportRequest(createRequest);
-      }
+      await demandeService.duplicateTransport(selectedRequest.id, scheduledDates);
 
       toast.success(`${duplicateSchedules.length} demande(s) de groupe dupliquée(s) avec succès`);
+      onDuplicateSuccess(); // Call the callback to refresh data
       setOpen(false);
       setSelectedRequest(null);
       setDuplicateSchedules([]);
@@ -133,6 +105,7 @@ export function DuplicateDialog({
               selected={selectedDates}
               onSelect={handleDateSelect}
               className="rounded-md border"
+              disabled={(date) => date < new Date()}
             />
           </div>
           <div>
