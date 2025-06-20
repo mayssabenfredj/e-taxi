@@ -1,8 +1,17 @@
 import { CreateEnterpriseDto, EnterpriseResponse, EntityStatus, SignUpEntrepriseDto, UpdateEnterpriseDto } from "@/types/entreprise";
 import apiClient from "./apiClient";
+import { AxiosResponse } from "axios";
 
+interface CreateEnterpriseResponse {
+  success: boolean;
+  error?: string;
+  data?: any; // Replace 'any' with a more specific type if possible
+}
 export const entrepriseService = {
-  async createEnterprise(dto: SignUpEntrepriseDto, file?: File) {
+  async createEnterprise(
+    dto: SignUpEntrepriseDto,
+    file?: File
+  ): Promise<CreateEnterpriseResponse> {
     const formData = new FormData();
     formData.append("titre", dto.titre);
     formData.append("email", dto.email);
@@ -13,13 +22,27 @@ export const entrepriseService = {
       formData.append("file", file);
     }
     try {
-      const response = await apiClient.post("/entreprise", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      return response;
-    } catch (error) {
-      console.log("Error creating enterprise:", error);
-      console.log(error.response.message);
+      const response: AxiosResponse = await apiClient.post(
+        "/entreprise",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      // Assuming the API returns a response with success/error fields
+      return {
+        success: response.status >= 200 && response.status < 300,
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error("Error creating enterprise:", error);
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          "Erreur lors de la création du compte",
+      };
     }
   },
 
@@ -66,7 +89,8 @@ export const entrepriseService = {
     file?: File
   ): Promise<any> {
     try {
-     
+      console.log("dto:", dto);
+      console.log("file:", file);
       const formData = new FormData();
       formData.append("titre", dto.titre || "");
       formData.append("email", dto.email || "");
@@ -147,6 +171,7 @@ export const entrepriseService = {
       const response = await apiClient.patch(`/entreprise/${id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      console.log("response:", response);
       return response;
     } catch (error) {
       console.error(`Error updating enterprise with id ${id}:`, error);
@@ -167,16 +192,22 @@ export const entrepriseService = {
   },
   async getLogoImage(path: string): Promise<string> {
     try {
+      console.log("Fetching logo for path:", path);
       const fullUrl = `/entreprise/logo/${path}`;
-     
+      console.log(
+        "Full logo request URL:",
+        `${apiClient.defaults.baseURL}${fullUrl}`
+      );
       const response = await apiClient.get(fullUrl, {
         responseType: "json", // Expect JSON response
       });
+      console.log("Logo response data:", response.data);
       const { base64, contentType } = response.data.data;
       if (!base64 || !contentType) {
         throw new Error("Invalid logo response: missing base64 or contentType");
       }
       const dataUrl = `data:${contentType};base64,${base64}`;
+      console.log("Generated data URL length:", dataUrl.length);
       return dataUrl;
     } catch (error) {
       console.error(

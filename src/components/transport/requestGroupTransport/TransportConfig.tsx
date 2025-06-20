@@ -170,8 +170,8 @@ export function TransportConfig({
                 <TableBody>
                   {selectedPassengers.map((passenger) => {
                     const employeeAddresses = passenger.addresses?.map((addr) => ({
-                      id: addr.address.id || 'none', // Use the address UUID, fallback to 'none'
-                      formattedAddress: addr.address.formattedAddress || 'Adresse non spécifiée',
+                      id: addr.address.id ||  addr.address.street || 'none', // Use the address UUID, fallback to 'none'
+                      formattedAddress: addr.address.formattedAddress || addr.address.street || 'Adresse non spécifiée',
                     })) || [];
                     const addressOptions = employeeAddresses.length > 0 ? employeeAddresses : [{ id: 'none', formattedAddress: 'Aucune adresse disponible' }];
 
