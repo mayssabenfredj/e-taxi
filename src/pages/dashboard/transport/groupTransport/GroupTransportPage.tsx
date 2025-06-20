@@ -10,6 +10,7 @@ import { GroupTransportDispatchTab } from '@/components/transport/groupTransport
 import { TransportRequestResponse, TransportHistory, DuplicateSchedule, GetTransportRequestsQueryDto } from '@/types/demande';
 import { demandeService } from '@/services/demande.service';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function GroupTransportPage() {
   const [activeTab, setActiveTab] = useState<'requests' | 'history' | 'dispatch'>('requests');
@@ -27,6 +28,7 @@ export function GroupTransportPage() {
   const [historyTake, setHistoryTake] = useState(10);
   const [requestsTotal, setRequestsTotal] = useState(0);
   const [historyTotal, setHistoryTotal] = useState(0);
+  const { user } = useAuth(); // Get user from AuthContext
 
   const fetchRequests = async (resetPagination: boolean = false) => {
     try {
@@ -37,6 +39,16 @@ export function GroupTransportPage() {
         page: Math.floor(requestsSkip / requestsTake) + 1,
         limit: requestsTake,
       };
+      console.log("userrrssss : ***",user)
+      if (user) {
+        const userRoles = user.roles.map((r) => r.role.name); // Assuming role has a 'name' property
+        if (userRoles.includes('ADMIN_ENTREPRISE') && user.enterpriseId) {
+          query.enterpriseId = user.enterpriseId;
+        } else if (userRoles.includes('ADMIN_FILIALE') && user.enterpriseId && user.subsidiaryId) {
+          query.enterpriseId = user.enterpriseId;
+          query.subsidiaryId = user.subsidiaryId;
+        }
+      }
       const response = await demandeService.getTransportRequests(query);
       console.log("fetching requests ", response.data);
       const responsesFiltred = response.data.filter(req => req.employeeTransports.length !== 1)

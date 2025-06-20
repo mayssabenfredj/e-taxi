@@ -12,8 +12,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Car, Plus, Eye, Copy, Navigation, Calendar as CalendarIcon, X, AlertTriangle, History, Star, MapPin, Clock, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { TransportRequestResponse, TransportStatus, DuplicateSchedule, TransportHistory, CreateTransportRequestDto } from '@/types/demande';
+import { TransportRequestResponse, TransportStatus, DuplicateSchedule, TransportHistory, CreateTransportRequestDto, GetTransportRequestsQueryDto } from '@/types/demande';
 import { demandeService } from '@/services/demande.service';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function IndividualTransportPage() {
   const navigate = useNavigate();
@@ -31,25 +32,40 @@ export function IndividualTransportPage() {
   const [skip, setSkip] = useState(0);
   const [take, setTake] = useState(10);
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth(); 
 
-  const fetchRequests = async () => {
-  setLoading(true);
-  try {
-    const response = await demandeService.getTransportRequests({
-      page: skip / take + 1,
-      limit: take,
-    });
-    console.log("responsssseee ////////", response);
+  
+ const fetchRequests = async () => {
+    setLoading(true);
+    try {
+      const query: GetTransportRequestsQueryDto = {
+        page: skip / take + 1,
+        limit: take,
+      };
 
-    const responsesFiltered = response.data.filter(req => req.employeeTransports.length === 1);
-    setRequests(responsesFiltered);
-    setTotalRequests(response.pagination.total); // Fixed typo: pagignation -> pagination
-  } catch (error) {
-    toast.error('Erreur lors du chargement des demandes');
-  } finally {
-    setLoading(false);
-  }
-};
+      // Add enterpriseId and subsidiaryId based on user role
+      if (user) {
+        const userRoles = user.roles.map((r) => r.role.name); // Assuming role has a 'name' property
+        if (userRoles.includes('ADMIN_ENTREPRISE') && user.enterpriseId) {
+          query.enterpriseId = user.enterpriseId;
+        } else if (userRoles.includes('ADMIN_FILIALE') && user.enterpriseId && user.subsidiaryId) {
+          query.enterpriseId = user.enterpriseId;
+          query.subsidiaryId = user.subsidiaryId;
+        }
+      }
+
+      const response = await demandeService.getTransportRequests(query);
+      console.log("responsssseee ////////", response);
+
+      const responsesFiltered = response.data.filter(req => req.employeeTransports.length === 1);
+      setRequests(responsesFiltered);
+      setTotalRequests(response.pagination.total);
+    } catch (error) {
+      toast.error('Erreur lors du chargement des demandes');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchHistory = async () => {
     setLoading(true);
