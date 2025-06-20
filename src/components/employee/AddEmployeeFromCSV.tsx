@@ -49,34 +49,34 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
     const exampleSubsidiary = subsidiaries[0]?.name || 'TechCorp Paris';
     const data = [
       {
-        firstName: 'Jean',
-        lastName: 'Dupont',
+        primerNombre: 'Jean',
+        apellido: 'Dupont',
         email: 'jean.dupont@example.com',
-        phone: '+33612345678',
-        role: exampleRole,
-        subsidiary: exampleSubsidiary,
-        homeAddress: '123 Rue Exemple, 75001 Paris',
-        workAddress: '456 Boulevard Travail, 75002 Paris'
+        telefono: '+33612345678',
+        rol: exampleRole,
+        filial: exampleSubsidiary,
+        direccionDomicilio: '123 Rue Exemple, 75001 Paris',
+        direccionTrabajo: '456 Boulevard Travail, 75002 Paris'
       },
       {
-        firstName: 'Marie',
-        lastName: 'Martin',
+        primerNombre: 'Marie',
+        apellido: 'Martin',
         email: 'marie.martin@example.com',
-        phone: '+33698765432',
-        role: exampleAdminRole,
-        subsidiary: subsidiaries[1]?.name || exampleSubsidiary,
-        homeAddress: '789 Avenue Maison, 69001 Lyon',
-        workAddress: '101 Rue Bureau, 69002 Lyon'
+        telefono: '+33698765432',
+        rol: exampleAdminRole,
+        filial: subsidiaries[1]?.name || exampleSubsidiary,
+        direccionDomicilio: '789 Avenue Maison, 69001 Lyon',
+        direccionTrabajo: '101 Rue Bureau, 69002 Lyon'
       },
       {
-        firstName: 'Pierre',
-        lastName: 'Durand',
+        primerNombre: 'Pierre',
+        apellido: 'Durand',
         email: 'pierre.durand@example.com',
-        phone: '+33711223344',
-        role: exampleRole,
-        subsidiary: exampleSubsidiary,
-        homeAddress: '321 Chemin Domicile, 13001 Marseille',
-        workAddress: '654 Route Office, 13002 Marseille'
+        telefono: '+33711223344',
+        rol: exampleRole,
+        filial: exampleSubsidiary,
+        direccionDomicilio: '321 Chemin Domicile, 13001 Marseille',
+        direccionTrabajo: '654 Route Office, 13002 Marseille'
       }
     ];
 
@@ -94,20 +94,20 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
   const validateEmployee = (employee: any): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
 
-    if (!employee.firstName?.toString().trim()) errors.push('Prénom manquant');
-    if (!employee.lastName?.toString().trim()) errors.push('Nom manquant');
+    if (!employee.primerNombre?.toString().trim()) errors.push('Prénom manquant');
+    if (!employee.apellido?.toString().trim()) errors.push('Nom manquant');
     if (!employee.email?.toString().trim()) errors.push('Email manquant');
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email.toString())) errors.push('Email invalide');
-    if (!employee.phone?.toString().trim()) errors.push('Téléphone manquant');
+    if (!employee.telefono?.toString().trim()) errors.push('Téléphone manquant');
 
-    const role = roles.find((r) => r.name === employee.role?.toString());
+    const role = roles.find((r) => r.name === employee.rol?.toString());
     if (!role) errors.push('Rôle inexistant');
     
-    const subsidiary = subsidiaries.find((s) => s.name === employee.subsidiary?.toString());
+    const subsidiary = subsidiaries.find((s) => s.name === employee.filial?.toString());
     if (!subsidiary) errors.push('Filiale inexistante');
 
-    if (!employee.homeAddress?.toString().trim()) errors.push('Adresse domicile manquante');
-    if (!employee.workAddress?.toString().trim()) errors.push('Adresse travail manquante');
+    if (!employee.direccionDomicilio?.toString().trim()) errors.push('Adresse domicile manquante');
+    if (!employee.direccionTrabajo?.toString().trim()) errors.push('Adresse travail manquante');
 
     return { isValid: errors.length === 0, errors };
   };
@@ -126,7 +126,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
       }
 
       const headers = Object.keys(json[0]);
-      const requiredColumns = ['firstName', 'lastName', 'email', 'phone', 'role', 'subsidiary', 'homeAddress', 'workAddress'];
+      const requiredColumns = ['primerNombre', 'apellido', 'email', 'telefono', 'rol', 'filial', 'direccionDomicilio', 'direccionTrabajo'];
       const missingColumns = requiredColumns.filter(col => !headers.includes(col));
       
       if (missingColumns.length > 0) {
@@ -137,14 +137,14 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
       const employees: ExcelEmployee[] = json.map((employee: any) => {
         const validation = validateEmployee(employee);
         return {
-          firstName: employee.firstName?.toString() || '',
-          lastName: employee.lastName?.toString() || '',
+          firstName: employee.primerNombre?.toString() || '',
+          lastName: employee.apellido?.toString() || '',
           email: employee.email?.toString() || '',
-          phone: employee.phone?.toString() || '',
-          role: employee.role?.toString() || '',
-          subsidiary: employee.subsidiary?.toString() || '',
-          homeAddress: employee.homeAddress?.toString() || '',
-          workAddress: employee.workAddress?.toString() || '',
+          phone: employee.telefono?.toString() || '',
+          role: employee.rol?.toString() || '',
+          subsidiary: employee.filial?.toString() || '',
+          homeAddress: employee.direccionDomicilio?.toString() || '',
+          workAddress: employee.direccionTrabajo?.toString() || '',
           isValid: validation.isValid,
           errors: validation.errors
         };
@@ -274,15 +274,9 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
       };
     });
 
-    // Log the formatted employees array
-    console.log('Formatted Employees:', formattedEmployees);
-
     onEmployeesImported(formattedEmployees);
-    
     resetState();
     onOpenChange(false);
-    
-    toast.success(`${validEmployees.length} employé${validEmployees.length > 1 ? 's' : ''} importé${validEmployees.length > 1 ? 's' : ''} avec succès`);
   };
 
   const resetState = () => {
@@ -301,14 +295,14 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
   const invalidEmployeesCount = parsedEmployees.length - validEmployeesCount;
 
   const columns = [
-    'firstName',
-    'lastName',
+    'primerNombre',
+    'apellido',
     'email',
-    'phone',
-    'role',
-    'subsidiary',
-    'homeAddress',
-    'workAddress'
+    'telefono',
+    'rol',
+    'filial',
+    'direccionDomicilio',
+    'direccionTrabajo'
   ];
 
   return (

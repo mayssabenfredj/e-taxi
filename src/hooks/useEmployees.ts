@@ -28,6 +28,13 @@ export const useEmployees = ({
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter); // Define local statusFilter state
+
+  // Sync localStatusFilter with the prop statusFilter
+  useEffect(() => {
+    setLocalStatusFilter(statusFilter);
+  }, [statusFilter]);
 
   // Fetch employees
   useEffect(() => {
@@ -41,7 +48,8 @@ export const useEmployees = ({
         setLoading(true);
         const query: GetEmployeesPagination = {
           enterpriseId,
-          subsidiaryId: subsidiaryFilter !== "all" ? subsidiaryFilter : undefined,
+          subsidiaryId:
+            subsidiaryFilter !== "all" ? subsidiaryFilter : undefined,
           roleName: roleFilter !== "all" ? roleFilter : undefined,
           skip,
           take,
@@ -62,7 +70,7 @@ export const useEmployees = ({
       }
     };
     fetchEmployees();
-  }, [enterpriseId, skip, take, roleFilter, subsidiaryFilter]);
+  }, [enterpriseId, skip, take, roleFilter, subsidiaryFilter, refreshTrigger]);
 
   // Create employee
   const createEmployee = async (employeeData: CreateEmployee) => {
@@ -97,6 +105,7 @@ export const useEmployees = ({
     setEmployees((prev) => [newEmployee, ...prev]);
     setTotal((prev) => prev + 1);
     toast.success("Employé ajouté avec succès !");
+    setRefreshTrigger((prev) => prev + 1); // Trigger re-fetch
     return newEmployee;
   };
 
@@ -106,12 +115,12 @@ export const useEmployees = ({
     setEmployees((prev) => prev.filter((emp) => emp.id !== id));
     setTotal((prev) => prev - 1);
     toast.success("Employé supprimé avec succès !");
+    setRefreshTrigger((prev) => prev + 1); // Trigger re-fetch
   };
 
   // Toggle employee status
   const toggleEmployeeStatus = async (id: string, currentStatus: string) => {
     const enabled = currentStatus !== "ENABLED";
-    console.log(enabled);
     const updatedEmployee = await EmployeeService.updateEmployeeStatus(
       id,
       enabled
@@ -120,6 +129,7 @@ export const useEmployees = ({
       prev.map((emp) => (emp.id === id ? updatedEmployee : emp))
     );
     toast.success(`Employé ${enabled ? "activé" : "désactivé"} avec succès !`);
+    setRefreshTrigger((prev) => prev + 1); // Trigger re-fetch
     return updatedEmployee;
   };
 
@@ -130,11 +140,15 @@ export const useEmployees = ({
         users: importedEmployees,
         continueOnError: true,
       };
-      const newEmployees = await EmployeeService.createMultipleEmployees(payload);
-      setEmployees((prev) => [...newEmployees, ...prev]);
-      setTotal((prev) => prev + newEmployees.length);
+      const newEmployees = await EmployeeService.createMultipleEmployees(
+        payload
+      );
+      setLocalStatusFilter("all"); // Reset filter to show all employees
+      setRefreshTrigger((prev) => prev + 1); // Trigger re-fetch
       toast.success(
-        `${newEmployees.length} employé${newEmployees.length > 1 ? 's' : ''} importé${newEmployees.length > 1 ? 's' : ''} avec succès !`
+        `${newEmployees.length} employé${
+          newEmployees.length > 1 ? "s" : ""
+        } importé${newEmployees.length > 1 ? "s" : ""} avec succès !`
       );
     } catch (error: any) {
       toast.error(
@@ -148,7 +162,7 @@ export const useEmployees = ({
 
   // Apply client-side status filter
   const filteredEmployees = employees.filter((employee) => {
-    return statusFilter === "all" || employee.status === statusFilter;
+    return localStatusFilter === "all" || employee.status === localStatusFilter;
   });
 
   return {
@@ -159,5 +173,6 @@ export const useEmployees = ({
     deleteEmployee,
     toggleEmployeeStatus,
     importEmployees,
+    setStatusFilter: setLocalStatusFilter, // Expose the local setStatusFilter
   };
 };
