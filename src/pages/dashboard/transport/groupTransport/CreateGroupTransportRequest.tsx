@@ -14,7 +14,7 @@ import { demandeService } from '@/services/demande.service';
 import { CreateTransportRequestDto, TransportType, SelectedPassenger, RecurringDateTime, RouteEstimation, DraftData, TransportDirection, GroupRoute } from '@/types/demande';
 import { ConfirmationView } from '@/components/transport/requestGroupTransport/ConfirmationView';
 import { Loader } from '@googlemaps/js-api-loader'; // Google Maps API loader
-import { Employee } from '@/types/employee';
+import { CreateEmployee, Employee } from '@/types/employee';
 
 export function CreateGroupTransportRequest() {
   const navigate = useNavigate();
@@ -67,7 +67,7 @@ export function CreateGroupTransportRequest() {
   }, []);
 
   // Fetch employees using useEmployees hook
-  const { employees, total, loading } = useEmployees({
+  const { employees, total, loading  ,importEmployees} = useEmployees({
     enterpriseId,
     roleFilter: 'all',
     subsidiaryFilter,
@@ -465,29 +465,9 @@ const calculateRoutes = async () => {
     saveDraftData();
   };
 
-  const handleEmployeesImported = (importedEmployees: Employee[]) => {
-    const newPassengers = importedEmployees.map((emp) => {
-      const homeAddress = emp.addresses?.find((addr) => addr.address.addressType === 'HOME');
-      const workAddress = emp.addresses?.find((addr) => addr.address.addressType === 'OFFICE');
-      const departureAddressId = isHomeToWorkTrip
-        ? homeAddress?.address.id || 'none'
-        : workAddress?.address.id || 'none';
-      const arrivalAddressId = isHomeToWorkTrip
-        ? workAddress?.address.id || 'none'
-        : homeAddress?.address.id || 'none';
-      return {
-        ...emp,
-        subsidiaryName: emp.subsidiary?.name || subsidiaries.find((sub) => sub.id === emp.subsidiaryId)?.name || 'Non spécifié',
-        departureAddressId,
-        arrivalAddressId,
-        isHomeToWork: isHomeToWorkTrip,
-        note: '',
-      };
-    });
-    setSelectedEmployees((prev) => [...prev, ...newPassengers.map((p) => p.id)]);
-    setSelectedPassengers((prev) => [...prev, ...newPassengers]);
-    toast.success(`${newPassengers.length} employé(s) ajouté(s) à la demande`);
-    saveDraftData();
+  const handleEmployeesImported = async (employees: CreateEmployee[]) => {
+    await importEmployees(employees);
+    setCsvImportOpen(false);
   };
 
   const handleShowConfirmation = () => {
