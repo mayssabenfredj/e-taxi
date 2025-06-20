@@ -7,12 +7,15 @@ import { HistoryTab } from '@/components/transport/groupTransport/HistoryTab';
 import { DuplicateDialog } from '@/components/transport/groupTransport/DuplicateDialog';
 import { HistoryDetailsDialog } from '@/components/transport/groupTransport/HistoryDetailsDialog';
 import { GroupTransportDispatchTab } from '@/components/transport/groupTransport/GroupTransportDispatchTab';
-import { TransportRequestResponse, TransportHistory, DuplicateSchedule, GetTransportRequestsQueryDto } from '@/types/demande';
+import { TransportRequestResponse, TransportHistory, DuplicateSchedule, GetTransportRequestsQueryDto, TransportStatus } from '@/types/demande';
 import { demandeService } from '@/services/demande.service';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRolesAndSubsidiaries, Subsidiary } from '@/hooks/useRolesAndSubsidiaries'; // Adjust import path as needed
 
 export function GroupTransportPage() {
+  const { user } = useAuth(); // Get user from AuthContext
+  const { subsidiaries, loading: subsidiariesLoading, error: subsidiariesError } = useRolesAndSubsidiaries(user?.enterpriseId); // Fetch subsidiaries
   const [activeTab, setActiveTab] = useState<'requests' | 'history' | 'dispatch'>('requests');
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<TransportRequestResponse | null>(null);
@@ -28,45 +31,77 @@ export function GroupTransportPage() {
   const [historyTake, setHistoryTake] = useState(10);
   const [requestsTotal, setRequestsTotal] = useState(0);
   const [historyTotal, setHistoryTotal] = useState(0);
-  const { user } = useAuth(); // Get user from AuthContext
+  const [selectedSubsidiary, setSelectedSubsidiary] = useState<string | null>(null); // Track selected subsidiary for filtering
+  const [selectedStatus, setSelectedStatus] = useState<TransportStatus | null>(null); // Track selected status for filtering
+  const [loading, setLoading] = useState(false); // Add loading state
 
-  const fetchRequests = async (resetPagination: boolean = false) => {
+ const fetchRequests = async (resetPagination: boolean = false) => {
+    setLoading(true);
     try {
       if (resetPagination) {
-        setRequestsSkip(0); // Reset to first page
+        setRequestsSkip(0);
       }
       const query: GetTransportRequestsQueryDto = {
         page: Math.floor(requestsSkip / requestsTake) + 1,
         limit: requestsTake,
       };
-      console.log("userrrssss : ***",user)
+
       if (user) {
-        const userRoles = user.roles.map((r) => r.role.name); // Assuming role has a 'name' property
+        const userRoles = user.roles.map((r) => r.role.name);
         if (userRoles.includes('ADMIN_ENTREPRISE') && user.enterpriseId) {
           query.enterpriseId = user.enterpriseId;
+          if (selectedSubsidiary) {
+            query.subsidiaryId = selectedSubsidiary;
+          }
         } else if (userRoles.includes('ADMIN_FILIALE') && user.enterpriseId && user.subsidiaryId) {
           query.enterpriseId = user.enterpriseId;
           query.subsidiaryId = user.subsidiaryId;
+          if (selectedStatus) {
+            query.status = selectedStatus;
+          }
         }
       }
+
       const response = await demandeService.getTransportRequests(query);
-      console.log("fetching requests ", response.data);
-      const responsesFiltred = response.data.filter(req => req.employeeTransports.length !== 1)
-      setRequests(responsesFiltred);
-      console.log("fetching requests ", requests.length);
+      console.log("fetching requests", response.data);
+      const responsesFiltered: TransportRequestResponse[] = response.data.filter(req => req.employeeTransports.length !== 1); // Corrected declaration
+      setRequests(responsesFiltered);
+      console.log("fetching requests filtered", responsesFiltered);
+      console.log("fetching requests filtered length", responsesFiltered.length);
       setRequestsTotal(response.pagination.total);
     } catch (error) {
       toast.error('Échec du chargement des demandes de transport');
+      console.error('Fetch requests error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchHistory = async () => {
     try {
-      const response = await demandeService.getTransportRequests({
+      const query: GetTransportRequestsQueryDto = {
         page: Math.floor(historySkip / historyTake) + 1,
         limit: historyTake,
-        status: 'COMPLETED' as any, // Ajuster selon l'API
-      });
+        status: 'COMPLETED' as any, // Adjust according to API
+      };
+
+      if (user) {
+        const userRoles = user.roles.map((r) => r.role.name);
+        if (userRoles.includes('ADMIN_ENTREPRISE') && user.enterpriseId) {
+          query.enterpriseId = user.enterpriseId;
+          if (selectedSubsidiary) {
+            query.subsidiaryId = selectedSubsidiary; // Filter by selected subsidiary
+          }
+        } else if (userRoles.includes('ADMIN_FILIALE') && user.enterpriseId && user.subsidiaryId) {
+          query.enterpriseId = user.enterpriseId;
+          query.subsidiaryId = user.subsidiaryId;
+          if (selectedStatus) {
+            query.status = selectedStatus; // Filter by selected status
+          }
+        }
+      }
+
+      const response = await demandeService.getTransportRequests(query);
       setHistory(
         response.data.map((req) => ({
           id: req.id,
@@ -80,9 +115,9 @@ export function GroupTransportPage() {
           scheduledDate: req.scheduledDate || new Date().toISOString(),
           completedDate: req.updatedAt || new Date().toISOString(),
           status: (req.status === 'COMPLETED' ? 'completed' : 'cancelled') as TransportHistory['status'],
-          taxiCount: req.employeeTransports.length, // Ajuster selon les données réelles
-          courses: [], // Placeholder; ajuster selon la réponse de l'API
-          totalCost: 0, // Placeholder; ajuster selon la réponse de l'API
+          taxiCount: req.employeeTransports.length, // Adjust according to actual data
+          courses: [], // Placeholder; adjust according to API response
+          totalCost: 0, // Placeholder; adjust according to API response
           note: req.note || '',
         }))
       );
@@ -93,12 +128,49 @@ export function GroupTransportPage() {
   };
 
   useEffect(() => {
+    if (subsidiariesError) {
+      toast.error(subsidiariesError);
+    }
     if (activeTab === 'requests') {
       fetchRequests();
     } else if (activeTab === 'history') {
       fetchHistory();
     }
-  }, [activeTab, requestsSkip, requestsTake, historySkip, historyTake]);
+  }, [activeTab, requestsSkip, requestsTake, historySkip, historyTake, selectedSubsidiary, selectedStatus, subsidiariesError]);
+
+  // Function to handle subsidiary filter change
+  const handleSubsidiaryFilterChange = (subsidiaryId: string | null) => {
+    setSelectedSubsidiary(subsidiaryId);
+    setRequestsSkip(0); // Reset pagination when filter changes
+  };
+
+  // Function to handle status filter change
+  const handleStatusFilterChange = (status: TransportStatus | null) => {
+    setSelectedStatus(status);
+    setRequestsSkip(0); // Reset pagination when filter changes
+  };
+
+  // Define filter options for subsidiaries
+  const subsidiaryFilterOptions = [
+    { label: 'Toutes les filiales', value: null },
+    ...subsidiaries.map((sub) => ({
+      label: sub.name,
+      value: sub.id,
+    })),
+  ];
+
+  // Define filter options for status
+  const statusFilterOptions = [
+    { label: 'Tous les statuts', value: null },
+    { label: 'En attente', value: TransportStatus.PENDING },
+    { label: 'Approuvée', value: TransportStatus.APPROVED },
+    { label: 'Rejetée', value: TransportStatus.REJECTED },
+    { label: 'Terminée', value: TransportStatus.COMPLETED },
+    { label: 'Annulée', value: TransportStatus.CANCELLED },
+    { label: 'Dispatchée', value: TransportStatus.DISPATCHED },
+    { label: 'Assignée', value: TransportStatus.ASSIGNED },
+    { label: 'En cours', value: TransportStatus.IN_PROGRESS },
+  ];
 
   return (
     <div className="space-y-6">
@@ -128,6 +200,9 @@ export function GroupTransportPage() {
             setTake={setRequestsTake}
             setSelectedRequest={setSelectedRequest}
             setDuplicateDialogOpen={setDuplicateDialogOpen}
+            filterOptions={user?.roles.some((r) => r.role.name === 'ADMIN_ENTREPRISE') ? subsidiaryFilterOptions : statusFilterOptions}
+            onFilterChange={user?.roles.some((r) => r.role.name === 'ADMIN_ENTREPRISE') ? handleSubsidiaryFilterChange : handleStatusFilterChange}
+            isLoading={subsidiariesLoading || loading} // Include general loading state
           />
         </TabsContent>
         <TabsContent value="dispatch">
