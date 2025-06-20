@@ -150,7 +150,6 @@ export const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
       onPageChange={onPageChange}
       onFilterChange={onFilterChange}
       actions={getActions}
-      emptyMessage="Aucune filiale trouvée"
     />
   );
 };

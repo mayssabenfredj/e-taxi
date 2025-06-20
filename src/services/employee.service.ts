@@ -159,7 +159,7 @@ class EmployeeService {
 
   async createMultipleEmployees(
     data: CreateMultipleUsersDto
-  ): Promise<Employee[]> {
+  ): Promise<any> {
     try {
 
       // Prepare payload
@@ -194,13 +194,7 @@ class EmployeeService {
 
       const response = await apiClient.post(`/users/bulk`, payload);
       const employees = response.data;
-      return employees.map((employee: any) => ({
-        ...employee,
-        status: employee.enabled ? "ENABLED" : "DISABLED",
-        roles: employee.roles || [],
-        roleIds: employee.roleIds || [],
-        addresses: employee.addresses || [],
-      }));
+    
     } catch (error: any) {
       throw new Error(
         error.response?.data?.message ||

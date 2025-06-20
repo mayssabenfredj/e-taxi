@@ -10,6 +10,7 @@ import { FormData, Manager, Subsidiary } from '@/types/subsidiary';
 import { SelectMultiple } from '@/components/ui/select-multiple';
 import EmployeeService from '@/services/employee.service';
 import { toast } from 'sonner';
+import validator from 'validator';
 
 interface SubsidiaryFormProps {
   editingSubsidiary: Subsidiary | null;
@@ -24,37 +25,46 @@ const SubsidiaryForm: React.FC<SubsidiaryFormProps> = ({
   editingSubsidiary,
   formData,
   setFormData,
+  managers,
   onSubmit,
   onCancel,
 }) => {
-  const [managers, setManagers] = useState<Manager[]>([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
 
-  // Fetch managers with role ADMIN_FILIAL, include=false, status=ENABLED
-  useEffect(() => {
-    const fetchManagers = async () => {
-      setLoadingManagers(true);
-      try {
-        const query = {
-          roleName: 'ADMIN_FILIAL',
-          includeAllData: false,
-        };
-        const { data } = await EmployeeService.getAllEmployees(query);
-        console.log('Fetched managers:', data);
-        const mappedManagers: Manager[] = data.map((employee) => ({
-          id: employee.id,
-          name: employee.fullName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Sans nom',
-        }));
-        setManagers(mappedManagers);
-      } catch (error) {
-        toast.error('Erreur lors du chargement des managers');
-        console.error(error);
-      } finally {
-        setLoadingManagers(false);
-      }
-    };
-    fetchManagers();
-  }, []);
+  // Validate phone number: must start with +216 and be 12 characters long
+  const validatePhone = (phone: string): boolean => {
+    return phone.startsWith('+216') && phone.length === 12 && validator.isMobilePhone(phone, 'any');
+  };
+
+  // Handle form submission with validation
+  const handleSubmit = async () => {
+    if (!formData.name) {
+      toast.error('Le nom de la filiale est requis');
+      return;
+    }
+    if (!formData.email) {
+      toast.error("L'email est requis");
+      return;
+    }
+    if (!validator.isEmail(formData.email)) {
+      toast.error('Veuillez entrer un email valide');
+      return;
+    }
+    if (!formData.phone) {
+      toast.error('Le numéro de téléphone est requis');
+      return;
+    }
+    if (!validatePhone(formData.phone)) {
+      toast.error('Le numéro de téléphone doit commencer par +216 et contenir exactement 12 chiffres (ex: +21658063156)');
+      return;
+    }
+    if (!formData.address) {
+      toast.error("L'adresse est requise");
+      return;
+    }
+
+    await onSubmit();
+  };
 
   return (
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto my-4 mx-4">
@@ -65,39 +75,53 @@ const SubsidiaryForm: React.FC<SubsidiaryFormProps> = ({
       </DialogHeader>
       <div className="space-y-4 p-1">
         <div>
-          <Label>Nom *</Label>
+          <Label>
+            Nom <span className="text-red-500">*</span>
+          </Label>
           <Input
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             placeholder="Nom de la filiale"
             className="h-9 text-sm bg-background border-border"
+            required
           />
         </div>
 
-        <AddressInput
-          label="Adresse"
-          value={formData.address as Address}
-          onChange={(address) => setFormData({ ...formData, address })}
-        />
+        <div>
+          <Label>
+          </Label>
+          <AddressInput
+            label="Adresse"
+            value={formData.address as Address}
+            onChange={(address) => setFormData({ ...formData, address: address as Address })}
+            required
+          />
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <Label>Téléphone</Label>
+            <Label>
+              Téléphone <span className="text-red-500">*</span>
+            </Label>
             <Input
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="+1234567890"
+              placeholder="+21658063156"
               className="h-9 text-sm bg-background border-border"
+              required
             />
           </div>
           <div>
-            <Label>Email</Label>
+            <Label>
+              Email <span className="text-red-500">*</span>
+            </Label>
             <Input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               placeholder="contact@filiale.com"
               className="h-9 text-sm bg-background border-border"
+              required
             />
           </div>
         </div>
@@ -150,7 +174,7 @@ const SubsidiaryForm: React.FC<SubsidiaryFormProps> = ({
             Annuler
           </Button>
           <Button
-            onClick={onSubmit}
+            onClick={handleSubmit}
             className="bg-etaxi-yellow hover:bg-yellow-500 text-black h-9 text-sm"
           >
             {editingSubsidiary ? 'Modifier' : 'Créer'}

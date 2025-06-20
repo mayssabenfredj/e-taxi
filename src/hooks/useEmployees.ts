@@ -140,16 +140,10 @@ export const useEmployees = ({
         users: importedEmployees,
         continueOnError: true,
       };
-      const newEmployees = await EmployeeService.createMultipleEmployees(
-        payload
-      );
+      await EmployeeService.createMultipleEmployees(payload);
       setLocalStatusFilter("all"); // Reset filter to show all employees
       setRefreshTrigger((prev) => prev + 1); // Trigger re-fetch
-      toast.success(
-        `${newEmployees.length} employé${
-          newEmployees.length > 1 ? "s" : ""
-        } importé${newEmployees.length > 1 ? "s" : ""} avec succès !`
-      );
+      toast.success(`Importation terminée !`);
     } catch (error: any) {
       toast.error(
         `Erreur lors de l'importation des employés : ${
