@@ -21,18 +21,18 @@ export function EmployeesPage() {
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [employeeStatusFilter, setEmployeeStatusFilter] = useState<string>('all'); // Renamed to avoid conflict
   const [skip, setSkip] = useState(0);
   const [take, setTake] = useState(10);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
-  const { employees, total, loading, createEmployee, deleteEmployee, toggleEmployeeStatus, importEmployees } = useEmployees({
+  const { employees, total, loading, createEmployee, deleteEmployee, toggleEmployeeStatus, importEmployees, setStatusFilter } = useEmployees({
     enterpriseId,
     roleFilter,
     subsidiaryFilter,
-    statusFilter,
+    statusFilter: employeeStatusFilter, // Use renamed state
     skip,
     take,
   });
@@ -65,7 +65,7 @@ export function EmployeesPage() {
   const clearFilters = () => {
     setRoleFilter('all');
     setSubsidiaryFilter('all');
-    setStatusFilter('all');
+    setEmployeeStatusFilter('all'); // Use renamed setter
     setSkip(0);
   };
 
@@ -75,8 +75,14 @@ export function EmployeesPage() {
   };
 
   const handleFilterChange = (filters: Record<string, string>) => {
-    setStatusFilter(filters.status || 'all');
+    setEmployeeStatusFilter(filters.status || 'all'); // Use renamed setter
     setSkip(0);
+  };
+
+  const handleEmployeesImported = async (employees: CreateEmployee[]) => {
+    await importEmployees(employees);
+    setEmployeeStatusFilter('all'); // Reset status filter to show all employees
+    setCsvImportOpen(false);
   };
 
   if (!enterpriseId) {
@@ -121,10 +127,10 @@ export function EmployeesPage() {
         setRoleFilter={setRoleFilter}
         subsidiaryFilter={subsidiaryFilter}
         setSubsidiaryFilter={setSubsidiaryFilter}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
+        statusFilter={employeeStatusFilter} // Use renamed state
+        setStatusFilter={setEmployeeStatusFilter} // Use renamed setter
         clearFilters={clearFilters}
-        hasActiveFilters={roleFilter !== 'all' || subsidiaryFilter !== 'all' || statusFilter !== 'all'}
+        hasActiveFilters={roleFilter !== 'all' || subsidiaryFilter !== 'all' || employeeStatusFilter !== 'all'}
       />
 
       <EmployeeTable
@@ -153,7 +159,7 @@ export function EmployeesPage() {
       <AddEmployeeFromCSV
         open={csvImportOpen}
         onOpenChange={setCsvImportOpen}
-        onEmployeesImported={importEmployees}
+        onEmployeesImported={handleEmployeesImported}
       />
 
       <EmployeeDialogs

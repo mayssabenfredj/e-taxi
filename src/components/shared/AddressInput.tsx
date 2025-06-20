@@ -38,11 +38,12 @@ import { SavedAddressSelector } from './address/SavedAddressSelector';
 import { CoordinatesInput } from './address/CoordinatesInput';
 import { MapPicker } from '../shared/MapPicker';
 import { ManualAddressForm } from './address/ManualAddressForm';
+import { AddressDto } from '@/types/employee';
 
 interface AddressInputProps {
   label: string;
-  value?: Address | null;
-  onChange: (address: Address | null) => void;
+  value?: Address | AddressDto | null;
+  onChange: (address: Address | AddressDto | null) => void;
   savedAddresses?: Address[];
   required?: boolean;
   showMapPicker?: boolean;
@@ -141,7 +142,7 @@ export function AddressInput({
                 <TabsContent value="saved" className="p-2">
                   <SavedAddressSelector
                     savedAddresses={savedAddresses}
-                    selectedAddress={value}
+          selectedAddress={value && 'id' in value ? value as Address : undefined}
                     onSelect={handleAddressSelect}
                   />
                 </TabsContent>

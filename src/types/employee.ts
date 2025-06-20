@@ -21,6 +21,7 @@ export interface AddressDto {
   manuallyEntered?: boolean;
   addressType?: string;
   notes?: string;
+  label?: string;
 }
 
 export interface UserAddressDto {

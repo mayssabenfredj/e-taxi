@@ -8,12 +8,13 @@ import { Building2, Phone, Mail, Globe, Edit, Save, X, MapPin, Users, Upload } f
 import { toast } from 'sonner';
 import { AddressDto, Enterprise, EntityStatus, UpdateEnterpriseDto } from '@/types/entreprise';
 import { useAuth } from '@/contexts/AuthContext';
-import { AddressType, City, Country, Region } from '@/types/addresse';
+import { AddressType, City, Country, Region, Address } from '@/types/addresse';
 import { entrepriseService } from '@/services/entreprise.service';
 import { addressService } from '@/services/address.service';
+import { AddressInput } from '@/components/shared/AddressInput';
 
 export function CompanyPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [company, setCompany] = useState<Enterprise | null>(null);
   const [editedCompany, setEditedCompany] = useState<UpdateEnterpriseDto | null>(null);
@@ -47,6 +48,12 @@ export function CompanyPage() {
     fetchAddressData();
   }, []);
 
+  // Helper pour convertir Address en AddressDto
+  function toAddressDto(address: Address): AddressDto {
+    const { id, createdAt, updatedAt, deletedAt, city, region, country, ...rest } = address;
+    return { ...rest };
+  }
+
   // Initialize company and editedCompany
   useEffect(() => {
     if (user?.enterprise) {
@@ -61,27 +68,7 @@ export function CompanyPage() {
         matriculeFiscal: user.enterprise.taxId || undefined,
         status: user.enterprise.status || undefined,
         logoUrl: user.enterprise.logoUrl || undefined,
-        address: user.enterprise.address
-          ? {
-              label: user.enterprise.address.label || undefined,
-              street: user.enterprise.address.street || undefined,
-              buildingNumber: user.enterprise.address.buildingNumber || undefined,
-              complement: user.enterprise.address.complement || undefined,
-              postalCode: user.enterprise.address.postalCode || undefined,
-              cityId: user.enterprise.address.cityId || undefined,
-              regionId: user.enterprise.address.regionId || undefined,
-              countryId: user.enterprise.address.countryId || undefined,
-              latitude: user.enterprise.address.latitude || undefined,
-              longitude: user.enterprise.address.longitude || undefined,
-              placeId: user.enterprise.address.placeId || undefined,
-              formattedAddress: user.enterprise.address.formattedAddress || undefined,
-              isVerified: user.enterprise.address.isVerified || undefined,
-              isExact: user.enterprise.address.isExact || undefined,
-              manuallyEntered: user.enterprise.address.manuallyEntered || undefined,
-              addressType: user.enterprise.address.addressType || undefined,
-              notes: user.enterprise.address.notes || undefined,
-            }
-          : undefined,
+        address: user.enterprise.address ? toAddressDto(user.enterprise.address) : undefined,
       });
     }
   }, [user]);
@@ -122,10 +109,8 @@ export function CompanyPage() {
   useEffect(() => {
     if (logoFile) {
       const previewUrl = URL.createObjectURL(logoFile);
-      console.log('Set logo preview:', previewUrl);
       setLogoPreview(previewUrl);
       return () => {
-        console.log('Revoking preview URL:', previewUrl);
         URL.revokeObjectURL(previewUrl);
       };
     } else {
@@ -143,13 +128,19 @@ export function CompanyPage() {
 
   const handleInputChange = (
     field: keyof UpdateEnterpriseDto | keyof AddressDto,
-    value: string | EntityStatus | AddressType | number | boolean | undefined | File,
+    value: string | EntityStatus | AddressType | number | boolean | undefined | File | AddressDto,
     isAddressField: boolean = false
   ) => {
     setEditedCompany((prev) => {
       if (!prev) return prev;
 
       if (isAddressField) {
+        if (field === 'address' && value && typeof value === 'object') {
+          return {
+            ...prev,
+            address: value as AddressDto,
+          };
+        }
         const currentAddress = prev.address || {};
         if (field === 'countryId') {
           return {
@@ -203,21 +194,22 @@ export function CompanyPage() {
   const handleSave = async () => {
     if (!editedCompany || !company) return;
 
+    // Convert Address to AddressDto for backend
+    let addressDto = undefined;
+    if (editedCompany.address) {
+      if ('id' in editedCompany.address) {
+        addressDto = toAddressDto(editedCompany.address as Address);
+      } else {
+        addressDto = editedCompany.address;
+      }
+    }
+
     const cleanedDto: UpdateEnterpriseDto = Object.entries(editedCompany).reduce(
       (acc, [key, value]) => {
         if (value !== undefined && value !== '' && !(typeof value === 'object' && Object.keys(value).length === 0 && key !== 'address')) {
           if (key === 'address') {
-            const cleanedAddress = Object.entries(value).reduce(
-              (addrAcc, [addrKey, addrValue]) => {
-                if (addrValue !== undefined && addrValue !== '') {
-                  (addrAcc as Record<keyof AddressDto, any>)[addrKey as keyof AddressDto] = addrValue;
-                }
-                return addrAcc;
-              },
-              {} as AddressDto
-            );
-            if (Object.keys(cleanedAddress).length > 0) {
-              acc.address = cleanedAddress;
+            if (addressDto) {
+              acc.address = addressDto;
             }
           } else {
             acc[key as keyof UpdateEnterpriseDto] = value;
@@ -234,32 +226,8 @@ export function CompanyPage() {
       const response = await entrepriseService.update(company.id, cleanedDto, logoFile);
       console.log('Update response:', response.data);
       if (response.status === 200) {
-        setCompany({
-          ...company,
-          name: cleanedDto.titre || company.name,
-          mobile: cleanedDto.mobile || company.mobile,
-          phone: cleanedDto.phone || company.phone,
-          email: cleanedDto.email || company.email,
-          industry: cleanedDto.secteurActivite || company.industry,
-          taxId: cleanedDto.matriculeFiscal || company.taxId,
-          status: cleanedDto.status || company.status,
-          logoUrl: response.data.logoUrl || company.logoUrl,
-          address: cleanedDto.address
-            ? {
-                ...company.address,
-                ...cleanedDto.address,
-                city: cleanedDto.address.cityId
-                  ? cities.find((c) => c.id === cleanedDto.address.cityId) || company.address?.city
-                  : company.address?.city,
-                region: cleanedDto.address.regionId
-                  ? regions.find((r) => r.id === cleanedDto.address.regionId) || company.address?.region
-                  : company.address?.region,
-                country: cleanedDto.address.countryId
-                  ? countries.find((c) => c.id === cleanedDto.address.countryId) || company.address?.country
-                  : company.address?.country,
-              }
-            : company.address,
-        });
+        // Refresh user data after update
+        await refreshUser();
         setIsEditing(false);
         setLogoFile(null);
         setLogoPreview(null);
@@ -288,27 +256,7 @@ export function CompanyPage() {
             matriculeFiscal: company.taxId || undefined,
             status: company.status || undefined,
             logoUrl: company.logoUrl || undefined,
-            address: company.address
-              ? {
-                  label: company.address.label || undefined,
-                  street: company.address.street || undefined,
-                  buildingNumber: company.address.buildingNumber || undefined,
-                  complement: company.address.complement || undefined,
-                  postalCode: company.address.postalCode || undefined,
-                  cityId: company.address.cityId || undefined,
-                  regionId: company.address.regionId || undefined,
-                  countryId: company.address.countryId || undefined,
-                  latitude: company.address.latitude || undefined,
-                  longitude: company.address.longitude || undefined,
-                  placeId: company.address.placeId || undefined,
-                  formattedAddress: company.address.formattedAddress || undefined,
-                  isVerified: company.address.isVerified || undefined,
-                  isExact: company.address.isExact || undefined,
-                  manuallyEntered: company.address.manuallyEntered || undefined,
-                  addressType: company.address.addressType || undefined,
-                  notes: company.address.notes || undefined,
-                }
-              : undefined,
+            address: company.address ? toAddressDto(company.address) : undefined,
           }
         : null
     );
@@ -358,26 +306,27 @@ export function CompanyPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-left">
-             {logoUrl ? (
-              <img
+             {isEditing && logoPreview ? (
+                <img
+                  src={logoPreview}
+                  alt="Preview Logo"
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+              ) : logoUrl ? (
+                <img
                   src={logoUrl}
                   alt="Company Logo"
-                  className="w-10 h-10 rounded-full  object-cover"
-                  onError={(e) => {
-                    console.error('Image load error:', e);
-                    setLogoUrl(null);
-                  }}
-              />):(
+                  className="w-10 h-10 rounded-full object-cover"
+                  onError={() => setLogoUrl(null)}
+                />
+              ) : (
                 <Building2 className="h-5 w-5" />
-              )
-}
+              )}
               <span>Informations générales</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center">
-            
-
             {isEditing && (
               <>
                 <input
@@ -439,107 +388,36 @@ export function CompanyPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="md:col-span-2 text-left">
-                <Label htmlFor="formattedAddress">Adresse</Label>
-                {isEditing ? (
-                  <Input
-                    id="formattedAddress"
-                    value={editedCompany?.address?.formattedAddress || ''}
-                    onChange={(e) => handleInputChange('formattedAddress', e.target.value, true)}
-                  />
-                ) : (
-                  <p className="font-medium text-left">{company.address?.formattedAddress || 'N/A'}</p>
-                )}
-              </div>
-
-              <div className="text-left">
-                <Label htmlFor="postalCode">Code postal</Label>
-                {isEditing ? (
-                  <Input
-                    id="postalCode"
-                    value={editedCompany?.address?.postalCode || ''}
-                    onChange={(e) => handleInputChange('postalCode', e.target.value, true)}
-                  />
-                ) : (
-                  <p className="font-medium text-left">{company.address?.postalCode || 'N/A'}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="text-left">
-                <Label htmlFor="countryId">Pays</Label>
-                {isEditing ? (
-                  isLoading ? (
-                    <p>Loading countries...</p>
-                  ) : countries.length === 0 ? (
-                    <p className="text-red-500">No countries available</p>
-                  ) : (
-                    <select
-                      id="countryId"
-                      value={editedCompany?.address?.countryId || ''}
-                      onChange={(e) => handleInputChange('countryId', e.target.value, true)}
-                      className="w-full border rounded-md p-2"
-                    >
-                      <option value="">Sélectionner un pays</option>
-                      {countries.map((country) => (
-                        <option key={country.id} value={country.id}>
-                          {country.name}
-                        </option>
-                      ))}
-                    </select>
-                  )
-                ) : (
-                  <p className="font-medium text-left">{company.address?.country?.name || 'N/A'}</p>
-                )}
-              </div>
-
-              <div className="text-left">
-                <Label htmlFor="regionId">Région</Label>
-                {isEditing ? (
-                  <select
-                    id="regionId"
-                    value={editedCompany?.address?.regionId || ''}
-                    onChange={(e) => handleInputChange('regionId', e.target.value, true)}
-                    className="w-full border rounded-md p-2"
-                    disabled={!editedCompany?.address?.countryId}
-                  >
-                    <option value="">Sélectionner une région</option>
-                    {filteredRegions(editedCompany?.address?.countryId).map((region) => (
-                      <option key={region.id} value={region.id}>
-                        {region.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="font-medium text-left">{company.address?.region?.name || 'N/A'}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="text-left">
-                <Label htmlFor="cityId">Ville</Label>
-                {isEditing ? (
-                  <select
-                    id="cityId"
-                    value={editedCompany?.address?.cityId || ''}
-                    onChange={(e) => handleInputChange('cityId', e.target.value, true)}
-                    className="w-full border rounded-md p-2"
-                    disabled={!editedCompany?.address?.regionId}
-                  >
-                    <option value="">Sélectionner une ville</option>
-                    {filteredCities(editedCompany?.address?.regionId).map((city) => (
-                      <option key={city.id} value={city.id}>
-                        {city.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <p className="font-medium text-left">{company.address?.city?.name || 'N/A'}</p>
-                )}
-              </div>
+            <div className="text-left">
+              <Label>Adresse</Label>
+              {isEditing ? (
+                <AddressInput
+                  label="Adresse de l'entreprise"
+                  value={editedCompany?.address || null}
+                  onChange={(address) => {
+                    if (address && 'id' in address) {
+                      // C'est un Address complet, on convertit proprement
+                      const dto = toAddressDto(address as Address);
+                      // Forcer le typage de addressType si besoin
+                      if (dto.addressType && typeof dto.addressType === 'string') {
+                        // @ts-ignore
+                        dto.addressType = dto.addressType as AddressType;
+                      }
+                      handleInputChange('address', dto, true);
+                    } else if (address) {
+                      // C'est déjà un AddressDto
+                      handleInputChange('address', address as AddressDto, true);
+                    } else {
+                      handleInputChange('address', undefined, true);
+                    }
+                  }}
+                  required={true}
+                  showMapPicker={true}
+                  showSavedAddresses={false}
+                />
+              ) : (
+                <p className="font-medium text-left">{company.address?.formattedAddress || 'N/A'}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
