@@ -1,3 +1,4 @@
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { TableWithPagination } from '@/components/ui/table-with-pagination';
 import { Eye, Copy, Navigation, X, AlertTriangle } from 'lucide-react';
@@ -16,7 +17,10 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { TransportRequestResponse, TransportStatus } from '@/types/demande';
 import { demandeService } from '@/services/demande.service';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+
+
 
 interface RequestsTabProps {
   requests: TransportRequestResponse[];
@@ -27,6 +31,9 @@ interface RequestsTabProps {
   setTake: (take: number) => void;
   setSelectedRequest: (request: TransportRequestResponse | null) => void;
   setDuplicateDialogOpen: (open: boolean) => void;
+  filterOptions: { label: string; value: string | null }[]; // Added filterOptions
+  onFilterChange: (value: string | null) => void; // Added onFilterChange
+  isLoading: boolean; // Added isLoading
 }
 
 export function RequestsTab({
@@ -38,6 +45,9 @@ export function RequestsTab({
   setTake,
   setSelectedRequest,
   setDuplicateDialogOpen,
+  filterOptions,
+  onFilterChange,
+  isLoading,
 }: RequestsTabProps) {
   const navigate = useNavigate();
 
@@ -60,7 +70,7 @@ export function RequestsTab({
 
   const handleCancelRequest = async (request: TransportRequestResponse) => {
     if (!request.scheduledDate) {
-      toast.error('La date prévue est manquante, impossible d\'annuler');
+      toast.error("La date prévue est manquante, impossible d'annuler");
       return false;
     }
 
@@ -98,13 +108,16 @@ export function RequestsTab({
       return true;
     } catch (error) {
       console.error('Error cancelling request:', error);
-      toast.error('Échec de l\'annulation de la demande de transport');
+      toast.error("Échec de l'annulation de la demande de transport");
       return false;
     }
   };
 
   const getStatusBadge = (status?: TransportStatus) => {
-    const variants: Record<TransportStatus, { variant: 'default' | 'secondary' | 'destructive' | 'outline', label: string, color: string }> = {
+    const variants: Record<
+      TransportStatus,
+      { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string; color: string }
+    > = {
       [TransportStatus.PENDING]: {
         variant: 'outline',
         label: 'En attente',
@@ -150,11 +163,19 @@ export function RequestsTab({
     // Handle undefined or invalid status
     if (!status || !variants[status]) {
       console.warn(`Invalid or undefined status: ${status}`);
-      return <Badge variant="secondary" className="bg-gray-200 text-gray-800">Inconnu</Badge>;
+      return (
+        <Badge variant="secondary" className="bg-gray-200 text-gray-800">
+          Inconnu
+        </Badge>
+      );
     }
 
     const { variant, color, label } = variants[status];
-    return <Badge variant={variant} className={color}>{label}</Badge>;
+    return (
+      <Badge variant={variant} className={color}>
+        {label}
+      </Badge>
+    );
   };
 
   const requestColumns = [
@@ -162,13 +183,17 @@ export function RequestsTab({
       header: 'Demandeur',
       accessor: 'requestedBy' as string,
       render: (request: TransportRequestResponse) => (
-        console.log("***********",request),
-        <div>
-          <div className="font-medium">{request.requestedBy?.fullName || 'Inconnu'}</div>
-          <div className="text-sm text-muted-foreground">
-            <Badge variant="secondary">Groupe</Badge>
+        console.log('***********', request),
+        (
+          <div>
+            <div className="font-medium">
+              {request.requestedBy?.fullName || 'Inconnu'}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <Badge variant="secondary">Groupe</Badge>
+            </div>
           </div>
-        </div>
+        )
       ),
       sortable: true,
       filterable: true,
@@ -176,8 +201,8 @@ export function RequestsTab({
     {
       header: 'Passagers',
       accessor: 'passengerCount' as string,
-      render: (request: TransportRequestResponse) => 
-        request.employeeTransports 
+      render: (request: TransportRequestResponse) =>
+        request.employeeTransports
           ? `${request.employeeTransports.length} passager${request.employeeTransports.length !== 1 ? 's' : ''}`
           : 'Aucun passager',
       sortable: true,
@@ -223,21 +248,20 @@ export function RequestsTab({
       >
         <Copy className="h-4 w-4" />
       </Button>
-      
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDispatchRequest(request);
-          }}
-          title="Dispatcher"
-          className="text-etaxi-yellow hover:text-yellow-600"
-        >
-          <Navigation className="h-4 w-4" />
-        </Button>
-     
-      {(request.status === TransportStatus.PENDING || request.status === TransportStatus.APPROVED) && (
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleDispatchRequest(request);
+        }}
+        title="Dispatcher"
+        className="text-etaxi-yellow hover:text-yellow-600"
+      >
+        <Navigation className="h-4 w-4" />
+      </Button>
+      {(request.status === TransportStatus.PENDING ||
+        request.status === TransportStatus.APPROVED) && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
@@ -257,9 +281,8 @@ export function RequestsTab({
                 <span>Annuler la demande</span>
               </AlertDialogTitle>
               <AlertDialogDescription>
-                Êtes-vous sûr de vouloir annuler cette demande de transport de
-                groupe ? Cette action est irréversible et tous les passagers
-                seront notifiés.
+                Êtes-vous sûr de vouloir annuler cette demande de transport de groupe ?
+                Cette action est irréversible et tous les passagers seront notifiés.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -277,19 +300,42 @@ export function RequestsTab({
     </div>
   );
 
+  const handleFilterChange = (value: string) => {
+    onFilterChange(value === 'null' ? null : value); // Convert 'null' string to null
+  };
+
   return (
-    <TableWithPagination
-      data={requests}
-      columns={requestColumns}
-      actions={requestActions}
-      total={total}
-      skip={skip}
-      take={take}
-      onPageChange={(newSkip, newTake) => {
-        setSkip(newSkip);
-        setTake(newTake);
-      }}
-      searchPlaceholder="Rechercher par demandeur, trajet..."
-    />
+    <div>
+      <div className="mb-4">
+        <Select onValueChange={handleFilterChange} disabled={isLoading}>
+          <SelectTrigger>
+            <SelectValue placeholder="Sélectionner un filtre" />
+          </SelectTrigger>
+          <SelectContent>
+            {filterOptions.map((option) => (
+              <SelectItem
+                key={option.value || 'null'}
+                value={option.value || 'null'}
+              >
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <TableWithPagination
+        data={requests}
+        columns={requestColumns}
+        actions={requestActions}
+        total={total}
+        skip={skip}
+        take={take}
+        onPageChange={(newSkip, newTake) => {
+          setSkip(newSkip);
+          setTake(newTake);
+        }}
+        searchPlaceholder="Rechercher par demandeur, trajet..."
+      />
+    </div>
   );
 }

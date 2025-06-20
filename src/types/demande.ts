@@ -1,4 +1,5 @@
 import { Employee as BaseEmployee, AddressDto } from "@/types/employee";
+import { Subsidiary } from "./subsidiary";
 
 export enum TransportType {
   IMMEDIATE = "IMMEDIATE",
@@ -118,12 +119,12 @@ export interface TransportRequestResponse {
   requestedBy?: RequestedByDto;
   enterpriseId?: string;
   enterprise?: EnterpriseDto;
+  subsidiary?: Subsidiary;
   subsidiaryId?: string;
   employeeTransports: EmployeeTransportDto[];
   passengerCount?: number;
   departureLocation?: string;
   arrivalLocation?: string;
- 
 }
 
 // Types specific to the frontend UI

@@ -15,9 +15,12 @@ import { toast } from 'sonner';
 import { TransportRequestResponse, TransportStatus, DuplicateSchedule, TransportHistory, CreateTransportRequestDto, GetTransportRequestsQueryDto } from '@/types/demande';
 import { demandeService } from '@/services/demande.service';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRolesAndSubsidiaries, Subsidiary } from '@/hooks/useRolesAndSubsidiaries';
 
 export function IndividualTransportPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { subsidiaries, loading: subsidiariesLoading, error: subsidiariesError } = useRolesAndSubsidiaries(user?.enterpriseId);
   const [activeTab, setActiveTab] = useState<'requests' | 'history'>('requests');
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<TransportRequestResponse | null>(null);
@@ -29,81 +32,120 @@ export function IndividualTransportPage() {
   const [history, setHistory] = useState<TransportHistory[]>([]);
   const [totalRequests, setTotalRequests] = useState(0);
   const [totalHistory, setTotalHistory] = useState(0);
-  const [skip, setSkip] = useState(0);
-  const [take, setTake] = useState(10);
+  const [requestsSkip, setRequestsSkip] = useState(0);
+  const [requestsTake] = useState(10);
+  const [historySkip, setHistorySkip] = useState(0);
+  const [historyTake] = useState(10);
   const [loading, setLoading] = useState(false);
-  const { user } = useAuth(); 
+  const [selectedSubsidiary, setSelectedSubsidiary] = useState<string | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<TransportStatus | null>(null);
 
-  
- const fetchRequests = async () => {
+  const fetchRequests = async (resetPagination: boolean = false) => {
     setLoading(true);
     try {
+      if (resetPagination) {
+        setRequestsSkip(0);
+      }
       const query: GetTransportRequestsQueryDto = {
-        page: skip / take + 1,
-        limit: take,
+        page: Math.floor(requestsSkip / requestsTake) + 1,
+        limit: requestsTake,
       };
 
-      // Add enterpriseId and subsidiaryId based on user role
       if (user) {
-        const userRoles = user.roles.map((r) => r.role.name); // Assuming role has a 'name' property
+        const userRoles = user.roles.map((r) => r.role.name);
         if (userRoles.includes('ADMIN_ENTREPRISE') && user.enterpriseId) {
           query.enterpriseId = user.enterpriseId;
+          if (selectedSubsidiary) {
+            query.subsidiaryId = selectedSubsidiary;
+            console.log('Filtering by subsidiary:', { enterpriseId: query.enterpriseId, subsidiaryId: query.subsidiaryId }); // Debug query
+          }
         } else if (userRoles.includes('ADMIN_FILIALE') && user.enterpriseId && user.subsidiaryId) {
           query.enterpriseId = user.enterpriseId;
           query.subsidiaryId = user.subsidiaryId;
+          if (selectedStatus) {
+            query.status = selectedStatus;
+            console.log('Filtering by status:', { enterpriseId: query.enterpriseId, subsidiaryId: query.subsidiaryId, status: query.status }); // Debug query
+          }
         }
       }
 
+      console.log('Sending request with query:', query); // Debug API call
       const response = await demandeService.getTransportRequests(query);
-      console.log("responsssseee ////////", response);
-
-      const responsesFiltered = response.data.filter(req => req.employeeTransports.length === 1);
+      console.log('API response:', response.data);
+      const responsesFiltered: TransportRequestResponse[] = response.data.filter(req => req.employeeTransports.length === 1);
       setRequests(responsesFiltered);
+      console.log('Filtered requests:', responsesFiltered);
+      console.log('Filtered requests length:', responsesFiltered.length);
       setTotalRequests(response.pagination.total);
     } catch (error) {
+      console.error('Fetch requests error:', error);
       toast.error('Erreur lors du chargement des demandes');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchHistory = async () => {
+  const fetchHistory = async (resetPagination: boolean = false) => {
     setLoading(true);
     try {
-      const response = await demandeService.getTransportRequests({
-        page: skip / take + 1,
-        limit: take,
-        status: TransportStatus.COMPLETED || TransportStatus.CANCELLED,
-        type: TransportStatus.IN_PROGRESS,
-      });
-      // Transform response data to match TransportHistory interface
+      if (resetPagination) {
+        setHistorySkip(0);
+      }
+      const query: GetTransportRequestsQueryDto = {
+        page: Math.floor(historySkip / historyTake) + 1,
+        limit: historyTake,
+        status: selectedStatus || [TransportStatus.COMPLETED, TransportStatus.CANCELLED].join(','),
+      };
+
+      if (user) {
+        const userRoles = user.roles.map((r) => r.role.name);
+        if (userRoles.includes('ADMIN_ENTREPRISE') && user.enterpriseId) {
+          query.enterpriseId = user.enterpriseId;
+          if (selectedSubsidiary) {
+            query.subsidiaryId = selectedSubsidiary;
+            console.log('History filtering by subsidiary:', { enterpriseId: query.enterpriseId, subsidiaryId: query.subsidiaryId }); // Debug query
+          }
+        } else if (userRoles.includes('ADMIN_FILIALE') && user.enterpriseId && user.subsidiaryId) {
+          query.enterpriseId = user.enterpriseId;
+          query.subsidiaryId = user.subsidiaryId;
+          if (selectedStatus) {
+            query.status = selectedStatus;
+            console.log('History filtering by status:', { enterpriseId: query.enterpriseId, subsidiaryId: query.subsidiaryId, status: query.status }); // Debug query
+          }
+        }
+      }
+
+      console.log('Sending history request with query:', query); // Debug API call
+      const response = await demandeService.getTransportRequests(query);
+      console.log('History API response:', response.data);
       const historyData: TransportHistory[] = response.data
         .filter(req => req.employeeTransports.length === 1)
         .map(req => ({
           id: req.id,
           requestId: req.id,
-          reference: req.reference || '',
+          reference: req.reference || `TR-${req.id}`,
           type: 'individual',
-          requestedBy: req.requestedBy?.fullName || '',
+          requestedBy: req.requestedBy?.fullName || 'Inconnu',
           passengerCount: req.passengerCount || 1,
-          departureLocation: req.employeeTransports[0]?.departure?.fullAddress || '',
-          arrivalLocation: req.employeeTransports[0]?.arrival?.fullAddress || '',
-          scheduledDate: req.scheduledDate || '',
-          completedDate: req.employeeTransports[0]?.actualArrival || '',
-          status: req.status as 'completed' | 'cancelled',
+          departureLocation: req.employeeTransports[0]?.departure?.formattedAddress || 'Non spécifié',
+          arrivalLocation: req.employeeTransports[0]?.arrival?.formattedAddress || 'Non spécifié',
+          scheduledDate: req.scheduledDate || new Date().toISOString(),
+          completedDate: req.employeeTransports[0]?.actualArrival || req.updatedAt || new Date().toISOString(),
+          status: (req.status === 'COMPLETED' ? 'completed' : 'cancelled') as 'completed' | 'cancelled',
           driver: req.employeeTransports[0]?.rideId ? {
-            name: 'Unknown', // Update with actual driver data if available
+            name: 'Unknown', // Update with actual driver data
             rating: 0,
             vehicle: 'Unknown',
           } : undefined,
-          cost: 0, // Update with actual cost if available
-          duration: '', // Update with actual duration if available
-          distance: '', // Update with actual distance if available
-          note: req.note,
+          cost: req.cost || 0,
+          duration: req.duration || '',
+          distance: req.distance || '',
+          note: req.note || '',
         }));
       setHistory(historyData);
-      setTotalHistory(response.total);
+      setTotalHistory(response.pagination.total);
     } catch (error) {
+      console.error('Fetch history error:', error);
       toast.error('Erreur lors du chargement de l\'historique');
     } finally {
       setLoading(false);
@@ -111,12 +153,15 @@ export function IndividualTransportPage() {
   };
 
   useEffect(() => {
+    if (subsidiariesError) {
+      toast.error(subsidiariesError);
+    }
     if (activeTab === 'requests') {
       fetchRequests();
-    } else {
+    } else if (activeTab === 'history') {
       fetchHistory();
     }
-  }, [activeTab, skip, take]);
+  }, [activeTab, requestsSkip, requestsTake, historySkip, historyTake, selectedSubsidiary, selectedStatus, subsidiariesError]);
 
   const handleViewRequest = (request: TransportRequestResponse) => {
     navigate(`/transport/${request.id}`);
@@ -135,21 +180,34 @@ export function IndividualTransportPage() {
   };
 
   const handleCancelRequest = async (request: TransportRequestResponse) => {
-    const scheduledTime = new Date(request.scheduledDate!).getTime();
+    if (!request.scheduledDate) {
+      toast.error('La date prévue est manquante, impossible d\'annuler');
+      return false;
+    }
+
+    const scheduledTime = new Date(request.scheduledDate).getTime();
     const currentTime = new Date().getTime();
     const thirtyMinutesInMs = 30 * 60 * 1000;
 
-    if (currentTime >= (scheduledTime - thirtyMinutesInMs)) {
+    if (currentTime >= scheduledTime - thirtyMinutesInMs) {
       toast.error('Impossible d\'annuler une demande moins de 30 minutes avant le départ');
       return false;
     }
 
     try {
-      // Update status to CANCELLED via API
-      await demandeService.createTransportRequest({
-        ...request,
+      const existingRequest = await demandeService.getTransportRequestById(request.id);
+      const updatedRequest: TransportRequestResponse = {
+        ...existingRequest,
         status: TransportStatus.CANCELLED,
-      });
+      };
+
+      // TODO: Implement updateTransportRequest
+      /*await demandeService.updateTransportRequest({
+        id: updatedRequest.id,
+        status: updatedRequest.status,
+        employeeTransports: updatedRequest.employeeTransports || [],
+      });*/
+
       setRequests(prev =>
         prev.map(req =>
           req.id === request.id
@@ -160,6 +218,7 @@ export function IndividualTransportPage() {
       toast.success('Demande annulée avec succès');
       return true;
     } catch (error) {
+      console.error('Error cancelling request:', error);
       toast.error('Erreur lors de l\'annulation de la demande');
       return false;
     }
@@ -213,8 +272,9 @@ export function IndividualTransportPage() {
       try {
         await demandeService.createMultipleTransportRequests(newRequests);
         toast.success(`${duplicateSchedules.length} demande(s) dupliquée(s) avec succès`);
-        fetchRequests();
+        fetchRequests(true);
       } catch (error) {
+        console.error('Error duplicating requests:', error);
         toast.error('Erreur lors de la duplication des demandes');
       } finally {
         setDuplicateDialogOpen(false);
@@ -231,15 +291,59 @@ export function IndividualTransportPage() {
       [TransportStatus.APPROVED]: { variant: 'default' as const, label: 'Approuvée', color: 'bg-blue-100 text-blue-800' },
       [TransportStatus.REJECTED]: { variant: 'destructive' as const, label: 'Rejetée', color: 'bg-red-100 text-red-800' },
       [TransportStatus.COMPLETED]: { variant: 'secondary' as const, label: 'Terminée', color: 'bg-green-100 text-green-800' },
-      [TransportStatus.CANCELLED]: { variant: 'destructive' as const, label: 'Annulée', color: 'bg-red-100 text-red-800' },
+      [TransportStatus.CANCELLED]: { variant: 'destructive' as const, label: 'Annulée', color: 'bg-gray-100 text-gray-800' },
       [TransportStatus.DISPATCHED]: { variant: 'default' as const, label: 'Dispatchée', color: 'bg-purple-100 text-purple-800' },
       [TransportStatus.ASSIGNED]: { variant: 'default' as const, label: 'Assignée', color: 'bg-indigo-100 text-indigo-800' },
       [TransportStatus.IN_PROGRESS]: { variant: 'default' as const, label: 'En cours', color: 'bg-teal-100 text-teal-800' },
+      completed: { variant: 'secondary' as const, label: 'Terminée', color: 'bg-green-100 text-green-800' },
+      cancelled: { variant: 'destructive' as const, label: 'Annulée', color: 'bg-gray-100 text-gray-800' },
     };
 
-    const { label, color } = variants[status] || { variant: 'outline' as const, label: status, color: 'bg-gray-100 text-gray-800' };
-    return <Badge className={color}>{label}</Badge>;
+    const { variant, color, label } = variants[status] || { variant: 'outline' as const, label: String(status), color: 'bg-gray-100 text-gray-800' };
+    return <Badge variant={variant} className={color}>{label}</Badge>;
   };
+
+  const handleSubsidiaryFilterChange = (subsidiaryId: string | null) => {
+    setSelectedSubsidiary(subsidiaryId);
+    setRequestsSkip(0);
+    setHistorySkip(0);
+    if (activeTab === 'requests') {
+      fetchRequests(true);
+    } else if (activeTab === 'history') {
+      fetchHistory(true);
+    }
+  };
+
+  const handleStatusFilterChange = (status: TransportStatus | null) => {
+    setSelectedStatus(status);
+    setRequestsSkip(0);
+    setHistorySkip(0);
+    if (activeTab === 'requests') {
+      fetchRequests(true);
+    } else if (activeTab === 'history') {
+      fetchHistory(true);
+    }
+  };
+
+  const subsidiaryFilterOptions = [
+    { label: 'Toutes les filiales', value: null },
+    ...subsidiaries.map((sub) => ({
+      label: sub.name,
+      value: sub.id,
+    })),
+  ];
+
+  const statusFilterOptions = [
+    { label: 'Tous les statuts', value: null },
+    { label: 'En attente', value: TransportStatus.PENDING },
+    { label: 'Approuvée', value: TransportStatus.APPROVED },
+    { label: 'Rejetée', value: TransportStatus.REJECTED },
+    { label: 'Terminée', value: TransportStatus.COMPLETED },
+    { label: 'Annulée', value: TransportStatus.CANCELLED },
+    { label: 'Dispatchée', value: TransportStatus.DISPATCHED },
+    { label: 'Assignée', value: TransportStatus.ASSIGNED },
+    { label: 'En cours', value: TransportStatus.IN_PROGRESS },
+  ];
 
   const requestColumns = [
     {
@@ -247,29 +351,33 @@ export function IndividualTransportPage() {
       accessor: 'requestedBy' as keyof TransportRequestResponse,
       render: (request: TransportRequestResponse) => (
         <div>
-          <div className="font-medium">{request.requestedBy?.fullName}</div>
+          <div className="font-medium">{request.requestedBy?.fullName || 'Inconnu'}</div>
           <div className="text-sm text-muted-foreground">
             <Badge variant="outline">Individuel</Badge>
           </div>
         </div>
       ),
+      sortable: true,
+      filterable: true,
     },
     {
       header: 'Passagers',
       accessor: 'passengerCount' as keyof TransportRequestResponse,
       render: (request: TransportRequestResponse) => `${request.passengerCount || 1} passager`,
+      sortable: true,
     },
-  
     {
       header: 'Date prévue',
       accessor: 'scheduledDate' as keyof TransportRequestResponse,
       render: (request: TransportRequestResponse) =>
-        request.scheduledDate ? new Date(request.scheduledDate).toLocaleString('fr-FR') : '-',
+        request.scheduledDate ? new Date(request.scheduledDate).toLocaleString('fr-FR') : 'Non définie',
+      sortable: true,
     },
     {
       header: 'Statut',
       accessor: 'status' as keyof TransportRequestResponse,
       render: (request: TransportRequestResponse) => getStatusBadge(request.status!),
+      filterable: true,
     },
   ];
 
@@ -285,6 +393,7 @@ export function IndividualTransportPage() {
           </div>
         </div>
       ),
+      sortable: true,
     },
     {
       header: 'Demandeur',
@@ -297,6 +406,8 @@ export function IndividualTransportPage() {
           </div>
         </div>
       ),
+      sortable: true,
+      filterable: true,
     },
     {
       header: 'Trajet',
@@ -328,6 +439,7 @@ export function IndividualTransportPage() {
           </div>
         </div>
       ),
+      sortable: true,
     },
     {
       header: 'Chauffeur',
@@ -354,11 +466,13 @@ export function IndividualTransportPage() {
           {item.cost > 0 ? `${item.cost.toFixed(2)}€` : '-'}
         </div>
       ),
+      sortable: true,
     },
     {
       header: 'Statut',
       accessor: 'status' as keyof TransportHistory,
       render: (item: TransportHistory) => getStatusBadge(item.status),
+      filterable: true,
     },
   ];
 
@@ -439,30 +553,6 @@ export function IndividualTransportPage() {
     </Button>
   );
 
-  const requestFilterOptions = [
-    { label: 'Toutes', value: 'all', field: 'status' as keyof TransportRequestResponse },
-    { label: 'En attente', value: TransportStatus.PENDING, field: 'status' as keyof TransportRequestResponse },
-    { label: 'Approuvée', value: TransportStatus.APPROVED, field: 'status' as keyof TransportRequestResponse },
-    { label: 'Rejetée', value: TransportStatus.REJECTED, field: 'status' as keyof TransportRequestResponse },
-    { label: 'Terminée', value: TransportStatus.COMPLETED, field: 'status' as keyof TransportRequestResponse },
-  ];
-
-  const historyFilterOptions = [
-    { label: 'Toutes', value: 'all', field: 'status' as keyof TransportHistory },
-    { label: 'Terminées', value: 'completed', field: 'status' as keyof TransportHistory },
-    { label: 'Annulées', value: 'cancelled', field: 'status' as keyof TransportHistory },
-  ];
-
-  const handlePageChange = (newSkip: number, newTake: number) => {
-    setSkip(newSkip);
-    setTake(newTake);
-  };
-
-  const handleFilterChange = (filters: Record<string, string>) => {
-    setSkip(0); // Reset to first page when filters change
-    // Update fetch logic with new filters if needed
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -478,7 +568,7 @@ export function IndividualTransportPage() {
             Brouillons
           </Button>
           <Button
-            onClick={() => navigate('/transport/create-group')}
+            onClick={() => navigate('/transport/create-individual')}
             className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -504,20 +594,20 @@ export function IndividualTransportPage() {
             data={requests}
             columns={requestColumns}
             actions={requestActions}
-            filterOptions={requestFilterOptions}
+            filterOptions={user?.roles.some((r) => r.role.name === 'ADMIN_ENTREPRISE') ? subsidiaryFilterOptions : statusFilterOptions}
             total={totalRequests}
-            skip={skip}
-            take={take}
-            onPageChange={handlePageChange}
-            onFilterChange={handleFilterChange}
+            skip={requestsSkip}
+            take={requestsTake}
+            onPageChange={(newSkip) => setRequestsSkip(newSkip)}
+            onFilterChange={user?.roles.some((r) => r.role.name === 'ADMIN_ENTREPRISE') ? handleSubsidiaryFilterChange : handleStatusFilterChange}
             onRowClick={handleViewRequest}
             searchPlaceholder="Rechercher par demandeur, trajet..."
+            isLoading={subsidiariesLoading || loading}
           />
         </TabsContent>
 
         <TabsContent value="history">
           <div className="space-y-4">
-            {/* Statistics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4">
@@ -577,20 +667,20 @@ export function IndividualTransportPage() {
               data={history}
               columns={historyColumns}
               actions={historyActions}
-              filterOptions={historyFilterOptions}
+              filterOptions={user?.roles.some((r) => r.role.name === 'ADMIN_ENTREPRISE') ? subsidiaryFilterOptions : statusFilterOptions}
               total={totalHistory}
-              skip={skip}
-              take={take}
-              onPageChange={handlePageChange}
-              onFilterChange={handleFilterChange}
+              skip={historySkip}
+              take={historyTake}
+              onPageChange={(newSkip) => setHistorySkip(newSkip)}
+              onFilterChange={user?.roles.some((r) => r.role.name === 'ADMIN_ENTREPRISE') ? handleSubsidiaryFilterChange : handleStatusFilterChange}
               onRowClick={handleViewHistoryDetails}
               searchPlaceholder="Rechercher par référence, demandeur..."
+              isLoading={subsidiariesLoading || loading}
             />
           </div>
         </TabsContent>
       </Tabs>
 
-      {/* Dialog pour dupliquer une demande */}
       <Dialog open={duplicateDialogOpen} onOpenChange={setDuplicateDialogOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
@@ -601,8 +691,8 @@ export function IndividualTransportPage() {
               <Label className="text-base font-medium mb-4 block">Sélectionner les dates</Label>
               <Calendar
                 mode="multiple"
-                selected={selectedDates}
-                onSelect={handleDateSelect}
+                value={selectedDates}
+                onValueChange={handleDateSelect}
                 className="rounded-md border"
                 disabled={(date) => date < new Date()}
               />
@@ -664,7 +754,6 @@ export function IndividualTransportPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog pour les détails de l'historique */}
       <Dialog open={historyDetailsOpen} onOpenChange={setHistoryDetailsOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -700,11 +789,11 @@ export function IndividualTransportPage() {
                 <p className="text-sm font-medium mb-2">Trajet</p>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4 text-green-500" />
+                    <MapPin className="h-4 w-4 text-green-600" />
                     <span className="text-sm">{selectedHistory.departureLocation}</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4 text-red-500" />
+                    <MapPin className="h-4 w-4 text-red-600" />
                     <span className="text-sm">{selectedHistory.arrivalLocation}</span>
                   </div>
                 </div>
@@ -719,7 +808,7 @@ export function IndividualTransportPage() {
                         <p className="text-sm text-muted-foreground">{selectedHistory.driver.vehicle}</p>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
                         <span>{selectedHistory.driver.rating}</span>
                       </div>
                     </div>
@@ -745,7 +834,7 @@ export function IndividualTransportPage() {
               {selectedHistory.note && (
                 <div>
                   <p className="text-sm font-medium mb-2">Note</p>
-                  <p className="text-sm bg-muted/50 p-3 rounded">{selectedHistory.note}</p>
+                  <p className="text-sm bg-muted-foreground/10 p-3 rounded">{selectedHistory.note}</p>
                 </div>
               )}
             </div>
