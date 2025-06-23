@@ -105,7 +105,7 @@ export function DraftRequestsPage() {
     if (draft.type === 'individual') {
       navigate('/transport/create', { state: { draftId: draft.id } });
     } else {
-      navigate('/transport/create-group', { state: { draftId: draft.id } });
+      navigate('/transportcreate-transport', { state: { draftId: draft.id } });
     }
   };
 

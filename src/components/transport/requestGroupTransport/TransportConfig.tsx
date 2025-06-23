@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,13 +10,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Home, Briefcase, Phone, Mail } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, addHours, isToday, startOfDay, setHours, setMinutes } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { RecurringDateTime, SelectedPassenger } from '@/types/demande';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface TransportConfigProps {
-  transportType: 'public' | 'private';
+  transportType: string;
   setTransportType: (type: 'public' | 'private') => void;
   scheduledDate: Date;
   setScheduledDate: (date: Date) => void;
@@ -60,6 +60,40 @@ export function TransportConfig({
   setShowEmployeeList,
   handleShowConfirmation,
 }: TransportConfigProps) {
+  // Set default transport type to 'private' if not set
+  useEffect(() => {
+    if (!transportType) {
+      setTransportType('private');
+    }
+  }, [transportType, setTransportType]);
+
+  // Get next full hour (e.g., 11:45 PM -> 12:00 AM)
+  const getNextHour = () => {
+    const now = new Date();
+    const nextHour = setMinutes(setHours(now, now.getHours() + 1), 0);
+    const formattedTime = format(nextHour, 'HH:mm');
+    console.log(`Calculated next hour: ${formattedTime}`); // Debugging output
+    return formattedTime;
+  };
+
+  // Set default time to next hour if not set
+  useEffect(() => {
+    if (!scheduledTime || scheduledTime === '09:00') {
+      setScheduledTime(getNextHour());
+    }
+  }, [scheduledTime, setScheduledTime]);
+
+  // Format current date as YYYY-MM-DD for min attribute
+  const today = format(new Date(), 'yyyy-MM-dd');
+
+  // Get minimum time for a given date (next hour for today, 00:00 for future dates)
+  const getMinTime = (date: Date) => {
+    if (isToday(date)) {
+      return getNextHour();
+    }
+    return '00:00';
+  };
+
   return (
     <Card className={showEmployeeList ? 'lg:col-span-2' : 'lg:col-span-3'}>
       <CardHeader className="pb-3">
@@ -81,6 +115,7 @@ export function TransportConfig({
               value={scheduledDate.toISOString().split('T')[0]}
               onChange={(e) => setScheduledDate(new Date(e.target.value))}
               className="text-sm"
+              min={today}
             />
           </div>
           <div className="space-y-1">
@@ -90,6 +125,7 @@ export function TransportConfig({
               value={scheduledTime}
               onChange={(e) => setScheduledTime(e.target.value)}
               className="text-sm"
+              min={getMinTime(scheduledDate)}
             />
           </div>
           <div className="space-y-1">
@@ -99,8 +135,8 @@ export function TransportConfig({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+               <SelectItem  value="private">Privé</SelectItem>
                 <SelectItem value="public">Public</SelectItem>
-                <SelectItem value="private">Privé</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -123,39 +159,40 @@ export function TransportConfig({
           </div>
         </div>
         {isRecurring && (
-  <div className="space-y-3 p-3 border rounded">
-    <Label className="text-sm font-medium">Dates de récurrence</Label>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="flex flex-col">
-        <Calendar
-          mode="multiple"
-          selected={recurringDates.map((rd) => rd.date)}
-          onSelect={handleRecurringDateChange}
-          className="rounded-md border text-sm"
-          disabled={(date) => date < new Date()}
-        />
-      </div>
-      {recurringDates.length > 0 && (
-        <div className="flex flex-col">
-          <Label className="text-sm">Heures par date</Label>
-          <ScrollArea className="h-full max-h-[290px] mt-2">
-            {recurringDates.map((rd, index) => (
-              <div key={index} className="flex items-center space-x-2 mb-2">
-                <span className="text-xs w-20">{format(rd.date, 'dd/MM', { locale: fr })}</span>
-                <Input
-                  type="time"
-                  value={rd.time}
-                  onChange={(e) => updateRecurringTime(index, e.target.value)}
-                  className="text-xs h-8"
+          <div className="space-y-3 p-3 border rounded">
+            <Label className="text-sm font-medium">Dates de récurrence</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <Calendar
+                  mode="multiple"
+                  selected={recurringDates.map((rd) => rd.date)}
+                  onSelect={handleRecurringDateChange}
+                  className="rounded-md border text-sm"
+                  disabled={(date) => date < new Date()}
                 />
               </div>
-            ))}
-          </ScrollArea>
-        </div>
-      )}
-    </div>
-  </div>
-)}
+              {recurringDates.length > 0 && (
+                <div className="flex flex-col">
+                  <Label className="text-sm">Heures par date</Label>
+                  <ScrollArea className="h-full max-h-[290px] mt-2">
+                    {recurringDates.map((rd, index) => (
+                      <div key={index} className="flex items-center space-x-2 mb-2">
+                        <span className="text-xs w-20">{format(rd.date, 'dd/MM', { locale: fr })}</span>
+                        <Input
+                          type="time"
+                          value={rd.time}
+                          onChange={(e) => updateRecurringTime(index, e.target.value)}
+                          className="text-xs h-8"
+                          min={isToday(rd.date) ? getNextHour() : '00:00'}
+                        />
+                      </div>
+                    ))}
+                  </ScrollArea>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {selectedPassengers.length > 0 && (
           <div className="space-y-2">
             <Label className="text-sm font-medium">Passagers ({selectedPassengers.length})</Label>
@@ -172,7 +209,7 @@ export function TransportConfig({
                 <TableBody>
                   {selectedPassengers.map((passenger) => {
                     const employeeAddresses = passenger.addresses?.map((addr) => ({
-                      id: addr.address.id ||  addr.address.street || 'none', // Use the address UUID, fallback to 'none'
+                      id: addr.address.id || addr.address.street || 'none',
                       formattedAddress: addr.address.formattedAddress || addr.address.street || 'Adresse non spécifiée',
                     })) || [];
                     const addressOptions = employeeAddresses.length > 0 ? employeeAddresses : [{ id: 'none', formattedAddress: 'Aucune adresse disponible' }];

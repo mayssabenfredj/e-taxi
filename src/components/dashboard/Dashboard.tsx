@@ -71,7 +71,7 @@ export function Dashboard() {
         <Route path="/transport/:id" element={<TransportRequestDetails />} />
         <Route path="/transport/:id/edit" element={<EditTransportRequest />} />
         <Route path="/transport/drafts" element={<DraftRequestsPage />} />
-        <Route path="/transport/create-group" element={<CreateGroupTransportRequest />} />
+        <Route path="/transport/create-transport" element={<CreateGroupTransportRequest />} />
         <Route path="/transport/:id/group-dispatch" element={<GroupTransportDispatchPage />} />
         <Route path="/transport/create" element={<CreateTransportRequest />} />
         <Route path="/taxis" element={<TaxiManagementPage />} />

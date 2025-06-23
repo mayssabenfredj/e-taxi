@@ -567,7 +567,7 @@ export function IndividualTransportPage() {
             Brouillons
           </Button>
           <Button
-            onClick={() => navigate('/transport/create-individual')}
+            onClick={() => navigate('/transport/create-transport')}
             className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
           >
             <Plus className="mr-2 h-4 w-4" />
