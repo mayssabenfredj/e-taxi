@@ -23,7 +23,7 @@ export function Header() {
           Brouillons
         </Button>
         <Button
-          onClick={() => navigate('/transport/create-group')}
+          onClick={() => navigate('/transport/create-transport')}
           className="bg-etaxi-yellow hover:bg-yellow-500 text-black w-full sm:w-auto"
         >
           <Plus className="mr-2 h-4 w-4" />

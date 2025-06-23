@@ -49,14 +49,24 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
     const exampleSubsidiary = subsidiaries[0]?.name || 'TechCorp Paris';
     const data = [
       {
-        firstName: 'miso',
+        firstName: 'hamadi',
         lastName: 'bf',
-        email: 'miso.dupont@example.tn',
-        phone: '+216123456792',
+        email: 'hamadi.bf@example.tn',
+        phone: '+216123456444',
         role: exampleRole,
         subsidiary: exampleSubsidiary,
         homeAddress: '123 Rue Exemple, 75001 Paris',
         workAddress: '456 Boulevard Travail, 75002 Paris'
+      },
+       {
+        firstName: 'ahlem',
+        lastName: 'bf',
+        email: 'ahlem@example.tn',
+        phone: '+216123456777',
+        role: exampleRole,
+        subsidiary: exampleSubsidiary,
+        homeAddress: '123 Rue Paris,  Tuis',
+        workAddress: 'Avenue habib bourguiba,  Tunis'
       },
      
     ];
