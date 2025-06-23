@@ -57,28 +57,21 @@ export function IndividualTransportPage() {
           query.enterpriseId = user.enterpriseId;
           if (selectedSubsidiary) {
             query.subsidiaryId = selectedSubsidiary;
-            console.log('Filtering by subsidiary:', { enterpriseId: query.enterpriseId, subsidiaryId: query.subsidiaryId }); // Debug query
           }
         } else if (userRoles.includes('ADMIN_FILIALE') && user.enterpriseId && user.subsidiaryId) {
           query.enterpriseId = user.enterpriseId;
           query.subsidiaryId = user.subsidiaryId;
           if (selectedStatus) {
             query.status = selectedStatus;
-            console.log('Filtering by status:', { enterpriseId: query.enterpriseId, subsidiaryId: query.subsidiaryId, status: query.status }); // Debug query
           }
         }
       }
 
-      console.log('Sending request with query:', query); // Debug API call
       const response = await demandeService.getTransportRequests(query);
-      console.log('API response:', response.data);
       const responsesFiltered: TransportRequestResponse[] = response.data.filter(req => req.employeeTransports.length === 1);
       setRequests(responsesFiltered);
-      console.log('Filtered requests:', responsesFiltered);
-      console.log('Filtered requests length:', responsesFiltered.length);
       setTotalRequests(response.pagination.total);
     } catch (error) {
-      console.error('Fetch requests error:', error);
       toast.error('Erreur lors du chargement des demandes');
     } finally {
       setLoading(false);
@@ -102,21 +95,17 @@ export function IndividualTransportPage() {
           query.enterpriseId = user.enterpriseId;
           if (selectedSubsidiary) {
             query.subsidiaryId = selectedSubsidiary;
-            console.log('History filtering by subsidiary:', { enterpriseId: query.enterpriseId, subsidiaryId: query.subsidiaryId }); // Debug query
           }
         } else if (userRoles.includes('ADMIN_FILIALE') && user.enterpriseId && user.subsidiaryId) {
           query.enterpriseId = user.enterpriseId;
           query.subsidiaryId = user.subsidiaryId;
           if (selectedStatus) {
             query.status = selectedStatus;
-            console.log('History filtering by status:', { enterpriseId: query.enterpriseId, subsidiaryId: query.subsidiaryId, status: query.status }); // Debug query
           }
         }
       }
 
-      console.log('Sending history request with query:', query); // Debug API call
       const response = await demandeService.getTransportRequests(query);
-      console.log('History API response:', response.data);
       const historyData: TransportHistory[] = response.data
         .filter(req => req.employeeTransports.length === 1)
         .map(req => ({
@@ -144,7 +133,6 @@ export function IndividualTransportPage() {
       setHistory(historyData);
       setTotalHistory(response.pagination.total);
     } catch (error) {
-      console.error('Fetch history error:', error);
       toast.error('Erreur lors du chargement de l\'historique');
     } finally {
       setLoading(false);
@@ -217,7 +205,6 @@ export function IndividualTransportPage() {
       toast.success('Demande annulée avec succès');
       return true;
     } catch (error) {
-      console.error('Error cancelling request:', error);
       toast.error('Erreur lors de l\'annulation de la demande');
       return false;
     }
@@ -273,7 +260,6 @@ export function IndividualTransportPage() {
         toast.success(`${duplicateSchedules.length} demande(s) dupliquée(s) avec succès`);
         fetchRequests(true);
       } catch (error) {
-        console.error('Error duplicating requests:', error);
         toast.error('Erreur lors de la duplication des demandes');
       } finally {
         setDuplicateDialogOpen(false);

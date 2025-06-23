@@ -14,12 +14,10 @@ export class DemandeService {
     data: CreateTransportRequestDto
   ): Promise<TransportRequestResponse> {
     try {
-      console.log("demande", data);
       const response = await apiClient.post(
         "/Demande/transport-requests",
         data
       );
-      console.log("demandeess", response.data);
       return response.data;
     } catch (error) {
       throw new Error(`Failed to create transport request: ${error.message}`);
@@ -94,7 +92,6 @@ export class DemandeService {
   }
 
   async updateTransportRequest(id: string, data: UpdateTransportRequestDto) {
-    console.log("PATCH updateTransportRequest data:", data);
     const response = await apiClient.patch(
       `/Demande/transport-requests/${id}`,
       data
@@ -114,7 +111,6 @@ export class DemandeService {
         `/Demande/transport-requests/${id}/duplicate`,
         { scheduledDates }
       );
-      console.log("duplicateTransport", response);
       return response.data;
     } catch (error) {
       throw new Error(

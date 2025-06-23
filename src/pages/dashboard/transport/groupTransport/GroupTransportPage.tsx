@@ -51,28 +51,21 @@ export function GroupTransportPage() {
           query.enterpriseId = user.enterpriseId;
           if (selectedSubsidiary) {
             query.subsidiaryId = selectedSubsidiary;
-            console.log('Filtering by subsidiary:', { enterpriseId: query.enterpriseId, subsidiaryId: query.subsidiaryId }); // Debug query
           }
         } else if (userRoles.includes('ADMIN_FILIALE') && user.enterpriseId && user.subsidiaryId) {
           query.enterpriseId = user.enterpriseId;
           query.subsidiaryId = user.subsidiaryId;
           if (selectedStatus) {
             query.status = selectedStatus;
-            console.log('Filtering by status:', { enterpriseId: query.enterpriseId, subsidiaryId: query.subsidiaryId, status: query.status }); // Debug query
           }
         }
       }
 
-      console.log('Sending request with query:', query); // Debug API call
       const response = await demandeService.getTransportRequests(query);
-      console.log('API response:', response.data);
       const responsesFiltered: TransportRequestResponse[] = response.data.filter(req => req.employeeTransports.length !== 1);
       setRequests(responsesFiltered);
-      console.log('Filtered requests:', responsesFiltered);
-      console.log('Filtered requests length:', responsesFiltered.length);
       setRequestsTotal(response.pagination.total);
     } catch (error) {
-      console.error('Fetch requests error:', error);
       toast.error('Échec du chargement des demandes de transport');
     } finally {
       setLoading(false);
@@ -96,21 +89,17 @@ export function GroupTransportPage() {
           query.enterpriseId = user.enterpriseId;
           if (selectedSubsidiary) {
             query.subsidiaryId = selectedSubsidiary;
-            console.log('History filtering by subsidiary:', { enterpriseId: query.enterpriseId, subsidiaryId: query.subsidiaryId }); // Debug query
           }
         } else if (userRoles.includes('ADMIN_FILIALE') && user.enterpriseId && user.subsidiaryId) {
           query.enterpriseId = user.enterpriseId;
           query.subsidiaryId = user.subsidiaryId;
           if (selectedStatus) {
             query.status = selectedStatus;
-            console.log('History filtering by status:', { enterpriseId: query.enterpriseId, subsidiaryId: query.subsidiaryId, status: query.status }); // Debug query
           }
         }
       }
 
-      console.log('Sending history request with query:', query); // Debug API call
       const response = await demandeService.getTransportRequests(query);
-      console.log('History API response:', response.data);
       setHistory(
         response.data.map((req) => ({
           id: req.id,
@@ -132,7 +121,6 @@ export function GroupTransportPage() {
       );
       setHistoryTotal(response.pagination.total);
     } catch (error) {
-      console.error('Fetch history error:', error);
       toast.error('Échec du chargement de l\'historique des transports');
     } finally {
       setLoading(false);

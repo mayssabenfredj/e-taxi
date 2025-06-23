@@ -166,7 +166,6 @@ export function TransportRequestDetails() {
         ...request,
         status: TransportStatus.CANCELLED,
       });*/
-      console.log(request);
       /*setRequest(updatedRequest);*/
       toast.success('Demande annulée avec succès');
       setShowCancelDialog(false);

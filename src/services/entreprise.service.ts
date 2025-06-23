@@ -36,7 +36,6 @@ export const entrepriseService = {
         data: response.data,
       };
     } catch (error: any) {
-      console.error("Error creating enterprise:", error);
       return {
         success: false,
         error:
@@ -55,7 +54,6 @@ export const entrepriseService = {
       const response = await apiClient.get("/entreprise", { params });
       return response.data;
     } catch (error) {
-      console.error("Error fetching enterprises:", error);
       throw error;
     }
   },
@@ -65,7 +63,6 @@ export const entrepriseService = {
       const response = await apiClient.get(`/entreprise/${id}`);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching enterprise with id ${id}:`, error);
       throw error;
     }
   },
@@ -75,10 +72,7 @@ export const entrepriseService = {
       const response = await apiClient.get(`/entreprise/${id}/stats`);
       return response.data;
     } catch (error) {
-      console.error(
-        `Error fetching stats for enterprise with id ${id}:`,
-        error
-      );
+    
       throw error;
     }
   },
@@ -89,8 +83,7 @@ export const entrepriseService = {
     file?: File
   ): Promise<any> {
     try {
-      console.log("dto:", dto);
-      console.log("file:", file);
+      
       const formData = new FormData();
       formData.append("titre", dto.titre || "");
       formData.append("email", dto.email || "");
@@ -171,10 +164,8 @@ export const entrepriseService = {
       const response = await apiClient.patch(`/entreprise/${id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      console.log("response:", response);
       return response;
     } catch (error) {
-      console.error(`Error updating enterprise with id ${id}:`, error);
       throw error;
     }
   },
@@ -186,34 +177,24 @@ export const entrepriseService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Error verifying enterprise account:", error);
       throw error;
     }
   },
   async getLogoImage(path: string): Promise<string> {
     try {
-      console.log("Fetching logo for path:", path);
       const fullUrl = `/entreprise/logo/${path}`;
-      console.log(
-        "Full logo request URL:",
-        `${apiClient.defaults.baseURL}${fullUrl}`
-      );
+     
       const response = await apiClient.get(fullUrl, {
         responseType: "json", // Expect JSON response
       });
-      console.log("Logo response data:", response.data);
       const { base64, contentType } = response.data.data;
       if (!base64 || !contentType) {
         throw new Error("Invalid logo response: missing base64 or contentType");
       }
       const dataUrl = `data:${contentType};base64,${base64}`;
-      console.log("Generated data URL length:", dataUrl.length);
       return dataUrl;
     } catch (error) {
-      console.error(
-        `Error fetching logo image for path ${path}:`,
-        error.response?.data || error.message
-      );
+     
       throw error;
     }
   },

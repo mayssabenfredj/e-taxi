@@ -4,7 +4,6 @@ export const userService = {
   getAll: async () => {
     try {
       const response = await apiClient.get("/users");
-      console.log("usersssssss",response.data); 
       return response.data;
     } catch (error) {
       throw new Error("Échec de la récupération des users");

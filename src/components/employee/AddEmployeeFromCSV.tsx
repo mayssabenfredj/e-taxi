@@ -143,7 +143,6 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
 
       return employees;
     } catch (error) {
-      console.error('Erreur lors du parsing Excel:', error);
       toast.error('Erreur lors de l\'analyse du fichier Excel');
       return [];
     }
@@ -195,7 +194,6 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
         }
       }
     } catch (error) {
-      console.error('Erreur lors de la lecture du fichier:', error);
       toast.error('Erreur lors de la lecture du fichier Excel');
     } finally {
       setIsProcessing(false);
@@ -268,7 +266,6 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
     });
 
     // Log the formatted employees array
-    console.log('Formatted Employees:', formattedEmployees);
 
     onEmployeesImported(formattedEmployees);
     

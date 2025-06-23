@@ -13,12 +13,9 @@ export const authService = {
       if (response.data.access_token) {
         authService.setTokens(response.data.access_token);
       } else {
-        console.warn("[authService] No access_token in response");
       }
       return response.data;
     } catch (error: any) {
-      console.error("[authService] Login Error:", error);
-      console.error("[authService] Error Response:", error.response?.data);
       throw new Error(error.response?.data?.message || "Échec de la connexion");
     }
   },
@@ -27,7 +24,6 @@ export const authService = {
       const token = authService.getStoredToken();
       await apiClient.post("/auth/logout");
     } catch (error) {
-      console.error("Erreur lors de la déconnexion:", error);
     }
   },
   resetPassword: async (token: string, newPassword: string): Promise<any> => {
@@ -38,8 +34,6 @@ export const authService = {
       });
       return response.data;
     } catch (error: any) {
-      console.error("[authService] Reset Password Error:", error);
-      console.error("[authService] Error Response:", error.response?.data);
       throw new Error(
         error.response?.data?.message ||
           "Échec de la réinitialisation du mot de passe"
@@ -53,8 +47,6 @@ export const authService = {
       });
       return response.data;
     } catch (error: any) {
-      console.error("[authService] Send Verification Error:", error);
-      console.error("[authService] Error Response:", error.response?.data);
       throw new Error(
         error.response?.data?.message ||
           "Échec de l'envoi de l'email de vérification"
@@ -72,7 +64,6 @@ export const authService = {
   },
   setTokens: (token: string): void => {
     if (typeof window !== "undefined") {
-      console.log("set tokenn ", token);
       localStorage.setItem("token", token);
     } else {
       console.warn("[authService] localStorage is not available");
@@ -83,7 +74,6 @@ export const authService = {
       const token = localStorage.getItem("token");
       return token;
     }
-    console.warn("[authService] localStorage is not available");
     return null;
   },
   clearTokens: (): void => {

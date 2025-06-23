@@ -72,7 +72,6 @@ export function TransportConfig({
     const now = new Date();
     const nextHour = setMinutes(setHours(now, now.getHours() + 1), 0);
     const formattedTime = format(nextHour, 'HH:mm');
-    console.log(`Calculated next hour: ${formattedTime}`); // Debugging output
     return formattedTime;
   };
 

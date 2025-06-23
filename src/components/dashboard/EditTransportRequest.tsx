@@ -133,27 +133,22 @@ export function EditTransportRequest() {
   // Fetch subsidiaries for the current enterprise
   useEffect(() => {
     if (!request?.enterprise?.id) {
-      console.log('No enterpriseId available for subsidiary fetch');
       return;
     }
     SubsidiaryService.getAllSubsidiaries({ enterpriseId: request.enterprise.id, take: 100 })
       .then(res => {
         setSubsidiaries(res.data);
-        console.log('Fetched subsidiaries:', res.data);
       })
       .catch((err) => {
         setSubsidiaries([]);
-        console.error('Error fetching subsidiaries:', err);
       });
   }, [request?.enterprise?.id]);
 
   // Debug log for employees
   useEffect(() => {
     if (!request?.enterpriseId) {
-      console.log('No enterpriseId available for employee fetch');
       return;
     }
-    console.log('Available employees:', availableEmployees);
   }, [availableEmployees, request?.enterpriseId]);
 
   const handleSave = async () => {

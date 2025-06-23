@@ -344,7 +344,6 @@ export function CreateGroupTransportRequest() {
       setTotalPrice(parseFloat(groupPrice.toFixed(2)));
       setIsCalculating(false);
     } catch (error: any) {
-      console.error('Error calculating routes:', error);
       toast.error(`Erreur de calcul d'itinéraire: ${error.message || error.status || 'inconnue'}`);
       setRouteEstimations(
         selectedPassengers.map(() => ({
@@ -412,7 +411,6 @@ export function CreateGroupTransportRequest() {
       navigate('/transport/group');
     } catch (error) {
       toast.error('Erreur lors de la création de la demande de transport');
-      console.error(error);
     }
   };
 

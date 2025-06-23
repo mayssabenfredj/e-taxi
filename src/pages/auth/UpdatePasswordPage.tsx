@@ -19,7 +19,6 @@ export function UpdatePasswordPage() {
   const navigate = useNavigate();
   const { token } = useParams<{ token: string }>(); // Extract token from path parameter
 
-  console.log('Token:', token); // Debug: Should log the UUID from the URL
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,13 +47,11 @@ export function UpdatePasswordPage() {
 
     try {
       const response = await authService.resetPassword(token, password);
-      console.log('Reset Password Response:', response);
       
          toast.success('Mot de passe mis à jour avec succès');
       navigate('/auth');
      
     } catch (error: any) {
-      console.error('Reset Password Error:', error);
       toast.error(error.message || 'Une erreur est survenue lors de la mise à jour du mot de passe');
     } finally {
       setIsLoading(false);

@@ -34,12 +34,10 @@ export function CompanyPage() {
         const countriesData = await addressService.getCountries();
         const regionsData = await addressService.getRegions();
         const citiesData = await addressService.getCities();
-        console.log('Countries Data:', countriesData.length);
         setCountries(countriesData);
         setRegions(regionsData);
         setCities(citiesData);
       } catch (error) {
-        console.error('Error fetching address data:', error);
         toast.error('Failed to load address data');
       } finally {
         setIsLoading(false);
@@ -57,7 +55,6 @@ export function CompanyPage() {
   // Initialize company and editedCompany
   useEffect(() => {
     if (user?.enterprise) {
-      console.log('Enterprise data:', user.enterprise);
       setCompany(user.enterprise);
       setEditedCompany({
         titre: user.enterprise.name,
@@ -78,22 +75,17 @@ export function CompanyPage() {
     let mounted = true;
     const fetchLogo = async () => {
       if (company?.logoUrl) {
-        console.log('Fetching logo for:', company.logoUrl);
         try {
           const imageUrl = await entrepriseService.getLogoImage(company.logoUrl);
           if (mounted) {
-            console.log('Set logoUrl:', imageUrl.substring(0, 50) + '...');
             setLogoUrl(imageUrl);
           }
         } catch (error) {
-          console.error('Failed to fetch logo:', error);
           if (mounted) {
             setLogoUrl(null);
-            toast.error('Failed to load company logo');
           }
         }
       } else {
-        console.log('No logoUrl provided');
         if (mounted) {
           setLogoUrl(null);
         }
@@ -186,7 +178,6 @@ export function CompanyPage() {
         toast.error('Please upload an image file');
         return;
       }
-      console.log('Selected file:', file.name);
       setLogoFile(file);
     }
   };
@@ -221,10 +212,7 @@ export function CompanyPage() {
     );
 
     try {
-      console.log('Saving with DTO:', cleanedDto);
-      console.log('Saving with file:', logoFile ? logoFile.name : 'No file');
       const response = await entrepriseService.update(company.id, cleanedDto, logoFile);
-      console.log('Update response:', response.data);
       if (response.status === 200) {
         // Refresh user data after update
         await refreshUser();
@@ -236,7 +224,6 @@ export function CompanyPage() {
         throw new Error('Update request was not successful');
       }
     } catch (error) {
-      console.error('Update failed:', error);
       toast.error('Failed to update enterprise');
     }
   };

@@ -20,7 +20,6 @@ export function ConfirmAccount() {
       }
 
       try {
-                console.log('Toookeen', token);
         await entrepriseService.verifyAccount(token);
         setStatus('success');
         toast.success('Compte activé avec succès !');

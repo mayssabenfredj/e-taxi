@@ -14,10 +14,7 @@ const apiClient = axios.create({
 // Interceptor to add token, skipping public routes
 apiClient.interceptors.request.use(
   (config) => {
-    console.log(
-      "[apiClient] Full Request URL:",
-      `${API_BASE_URL}${config.url}`
-    ); // Log full URL
+   
     if (
       config.url?.includes("/login") ||
       config.url?.includes("/verify-enterprise-account") ||

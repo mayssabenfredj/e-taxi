@@ -67,7 +67,6 @@ export function SubsidariesPage() {
         setManagers(mappedManagers);
       } catch (error) {
         toast.error('Erreur lors du chargement des managers');
-        console.error(error);
       } finally {
         setLoadingManagers(false);
       }
