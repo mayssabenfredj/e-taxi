@@ -29,10 +29,10 @@ export function SubsidariesPage() {
   const [managers, setManagers] = useState<Manager[]>([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
-  open: boolean;
-  subsidiary: Subsidiary | null;
-  newStatus: EntityStatus | null;
-}>({ open: false, subsidiary: null, newStatus: null });
+    open: boolean;
+    subsidiary: Subsidiary | null;
+    newStatus: EntityStatus | null;
+  }>({ open: false, subsidiary: null, newStatus: null });
 
   const enterpriseId = user?.enterpriseId;
 
@@ -176,7 +176,7 @@ export function SubsidariesPage() {
           email: formData.email || undefined,
           website: formData.website || undefined,
           description: formData.description || undefined,
-          adminIds: formData.selectedManagerIds.length ? formData.selectedManagerIds : undefined,
+          adminIds: formData.selectedManagerIds, // Always send the updated list, including empty array
           address: addressData,
           status: EntityStatus.ACTIVE,
         };
@@ -227,30 +227,30 @@ export function SubsidariesPage() {
       email: subsidiary.email || '',
       website: subsidiary.website || '',
       description: subsidiary.description || '',
-      selectedManagerIds: subsidiary.adminIds || [],
+      selectedManagerIds: subsidiary.managerIds || [], // Use managerIds to ensure correct initialization
       address: subsidiary.address || null,
       enterpriseId: enterpriseId || '',
     });
     setIsCreateOpen(true);
   };
 
- const handleUpdateStatus = (subsidiary: Subsidiary, newStatus: EntityStatus) => {
-  setConfirmDialog({ open: true, subsidiary, newStatus });
-};
+  const handleUpdateStatus = (subsidiary: Subsidiary, newStatus: EntityStatus) => {
+    setConfirmDialog({ open: true, subsidiary, newStatus });
+  };
 
-const confirmStatusChange = async () => {
-  if (!confirmDialog.subsidiary || !confirmDialog.newStatus) return;
+  const confirmStatusChange = async () => {
+    if (!confirmDialog.subsidiary || !confirmDialog.newStatus) return;
 
-  try {
-    await SubsidiaryService.updateSubsidiaryStatus(confirmDialog.subsidiary.id, confirmDialog.newStatus);
-    toast.success(`Statut de la filiale mis à jour à "${confirmDialog.newStatus}" avec succès!`);
-    await fetchSubsidiaries();
-  } catch (err: any) {
-    toast.error(`Erreur lors du changement de statut: ${err.message || 'Une erreur est survenue.'}`);
-  } finally {
-    setConfirmDialog({ open: false, subsidiary: null, newStatus: null });
-  }
-};
+    try {
+      await SubsidiaryService.updateSubsidiaryStatus(confirmDialog.subsidiary.id, confirmDialog.newStatus);
+      toast.success(`Statut de la filiale mis à jour à "${confirmDialog.newStatus}" avec succès!`);
+      await fetchSubsidiaries();
+    } catch (err: any) {
+      toast.error(`Erreur lors du changement de statut: ${err.message || 'Une erreur est survenue.'}`);
+    } finally {
+      setConfirmDialog({ open: false, subsidiary: null, newStatus: null });
+    }
+  };
 
   if (!enterpriseId) {
     return (
@@ -261,60 +261,60 @@ const confirmStatusChange = async () => {
   }
 
   return (
-  <div className="space-y-4 max-w-6xl">
-    {loading && <div>Chargement...</div>}
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-      <SubsidiaryStats total={total} subsidiaries={subsidiaries} />
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogTrigger asChild>
-          <Button className="bg-etaxi-yellow hover:bg-yellow-500 text-black h-8 text-sm w-full sm:w-auto">
-            <Plus className="mr-1 h-3 w-3" />
-            Nouvelle Filiale
-          </Button>
-        </DialogTrigger>
+    <div className="space-y-4 max-w-6xl">
+      {loading && <div>Chargement...</div>}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <SubsidiaryStats total={total} subsidiaries={subsidiaries} />
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-etaxi-yellow hover:bg-yellow-500 text-black h-8 text-sm w-full sm:w-auto">
+              <Plus className="mr-1 h-3 w-3" />
+              Nouvelle Filiale
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <SubsidiaryForm
+              editingSubsidiary={editingSubsidiary}
+              formData={formData}
+              setFormData={setFormData}
+              managers={managers}
+              onSubmit={handleSubmit}
+              onCancel={resetForm}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+      <SubsidiaryTable
+        subsidiaries={subsidiaries}
+        total={total}
+        skip={skip}
+        take={take}
+        onPageChange={handlePageChange}
+        onFilterChange={handleFilterChange}
+        onEdit={handleEdit}
+        onUpdateStatus={handleUpdateStatus}
+      />
+      <Dialog open={confirmDialog.open} onOpenChange={() => setConfirmDialog({ open: false, subsidiary: null, newStatus: null })}>
         <DialogContent>
-          <SubsidiaryForm
-            editingSubsidiary={editingSubsidiary}
-            formData={formData}
-            setFormData={setFormData}
-            managers={managers}
-            onSubmit={handleSubmit}
-            onCancel={resetForm}
-          />
+          <DialogHeader>
+            <DialogTitle>
+              {confirmDialog.newStatus === EntityStatus.ACTIVE
+                ? `Confirmer l'activation de "${confirmDialog.subsidiary?.name}"`
+                : `Confirmer la désactivation de "${confirmDialog.subsidiary?.name}"`}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="mt-2">Êtes-vous sûr de vouloir continuer ?</p>
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setConfirmDialog({ open: false, subsidiary: null, newStatus: null })}
+            >
+              Annuler
+            </Button>
+            <Button onClick={confirmStatusChange}>Confirmer</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-    <SubsidiaryTable
-      subsidiaries={subsidiaries}
-      total={total}
-      skip={skip}
-      take={take}
-      onPageChange={handlePageChange}
-      onFilterChange={handleFilterChange}
-      onEdit={handleEdit}
-      onUpdateStatus={handleUpdateStatus}
-    />
-    <Dialog open={confirmDialog.open} onOpenChange={() => setConfirmDialog({ open: false, subsidiary: null, newStatus: null })}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {confirmDialog.newStatus === EntityStatus.ACTIVE
-              ? `Confirmer l'activation de "${confirmDialog.subsidiary?.name}"`
-              : `Confirmer la désactivation de "${confirmDialog.subsidiary?.name}"`}
-          </DialogTitle>
-        </DialogHeader>
-        <p className="mt-2">Êtes-vous sûr de vouloir continuer ?</p>
-        <DialogFooter className="mt-4">
-          <Button
-            variant="outline"
-            onClick={() => setConfirmDialog({ open: false, subsidiary: null, newStatus: null })}
-          >
-            Annuler
-          </Button>
-          <Button onClick={confirmStatusChange}>Confirmer</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  </div>
-);
+  );
 }

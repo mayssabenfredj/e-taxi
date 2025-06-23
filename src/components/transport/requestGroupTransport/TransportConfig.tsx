@@ -123,37 +123,39 @@ export function TransportConfig({
           </div>
         </div>
         {isRecurring && (
-          <div className="space-y-3 p-3 border rounded">
-            <Label className="text-sm font-medium">Dates de récurrence</Label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Calendar
-                mode="multiple"
-                selected={recurringDates.map((rd) => rd.date)}
-                onSelect={handleRecurringDateChange}
-                className="rounded-md border text-sm"
-                disabled={(date) => date < new Date()}
-              />
-              {recurringDates.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-sm">Heures par date</Label>
-                  <ScrollArea className="h-32">
-                    {recurringDates.map((rd, index) => (
-                      <div key={index} className="flex items-center space-x-2 mb-2">
-                        <span className="text-xs w-20">{format(rd.date, 'dd/MM', { locale: fr })}</span>
-                        <Input
-                          type="time"
-                          value={rd.time}
-                          onChange={(e) => updateRecurringTime(index, e.target.value)}
-                          className="text-xs h-8"
-                        />
-                      </div>
-                    ))}
-                  </ScrollArea>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+  <div className="space-y-3 p-3 border rounded">
+    <Label className="text-sm font-medium">Dates de récurrence</Label>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="flex flex-col">
+        <Calendar
+          mode="multiple"
+          selected={recurringDates.map((rd) => rd.date)}
+          onSelect={handleRecurringDateChange}
+          className="rounded-md border text-sm"
+          disabled={(date) => date < new Date()}
+        />
+      </div>
+      {recurringDates.length > 0 && (
+        <div className="flex flex-col">
+          <Label className="text-sm">Heures par date</Label>
+          <ScrollArea className="h-full max-h-[290px] mt-2">
+            {recurringDates.map((rd, index) => (
+              <div key={index} className="flex items-center space-x-2 mb-2">
+                <span className="text-xs w-20">{format(rd.date, 'dd/MM', { locale: fr })}</span>
+                <Input
+                  type="time"
+                  value={rd.time}
+                  onChange={(e) => updateRecurringTime(index, e.target.value)}
+                  className="text-xs h-8"
+                />
+              </div>
+            ))}
+          </ScrollArea>
+        </div>
+      )}
+    </div>
+  </div>
+)}
         {selectedPassengers.length > 0 && (
           <div className="space-y-2">
             <Label className="text-sm font-medium">Passagers ({selectedPassengers.length})</Label>

@@ -94,7 +94,6 @@ export function IndividualTransportPage() {
       const query: GetTransportRequestsQueryDto = {
         page: Math.floor(historySkip / historyTake) + 1,
         limit: historyTake,
-        status: selectedStatus || [TransportStatus.COMPLETED, TransportStatus.CANCELLED].join(','),
       };
 
       if (user) {

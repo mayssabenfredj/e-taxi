@@ -216,7 +216,7 @@ export function TransportRequestDetails() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate('/transport/group')}
+            onClick={() => navigate(request?.employeeTransports.length === 1 ? '/transport/individual' : '/transport/group')}
             className="flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
