@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MapPin, FilePlus, FileMinus } from 'lucide-react';
+import { MapPin, FilePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Employee, UserAddressDto, AddressDto } from '@/types/employee';
 import { AddressInput } from '@/components/shared/AddressInput';
@@ -26,32 +26,36 @@ const EmployeeAddressesTab: React.FC<EmployeeAddressesTabProps> = ({
   const [newAddress, setNewAddress] = useState<AddressDto | null>(null);
   const [newAddressLabel, setNewAddressLabel] = useState('');
   const [newAddressType, setNewAddressType] = useState<AddressType>(AddressType.CUSTOM);
+  const [showAddressForm, setShowAddressForm] = useState(false);
 
-  const handleAddAddress = () => {
-    if (!newAddress || !newAddressLabel.trim()) {
-      toast.error('Veuillez remplir le libellé et l\'adresse');
-      return;
+  useEffect(() => {
+    if (newAddress && newAddressLabel.trim() && newAddress.formattedAddress) {
+      const addressWithLabel: UserAddressDto = {
+        address: {
+          ...newAddress,
+          addressType: newAddressType,
+        },
+        isDefault: false,
+        label: newAddressLabel,
+      };
+
+      const updatedAddresses = [...(editedEmployee.addresses || employee.addresses || []), addressWithLabel];
+      setEditedEmployee({
+        ...editedEmployee,
+        addresses: updatedAddresses,
+      });
+      toast.success('Adresse enregistrée automatiquement');
+      // Clear only the address input, keep the form visible
+      setNewAddress({
+        street: '',
+        formattedAddress: '',
+        addressType: AddressType.CUSTOM,
+        placeId: '',
+      });
+      setNewAddressLabel('');
+      setNewAddressType(AddressType.CUSTOM);
     }
-
-    const addressWithLabel: UserAddressDto = {
-      address: {
-        ...newAddress,
-        addressType: newAddressType,
-      },
-      isDefault: false,
-      label: newAddressLabel,
-    };
-
-    const updatedAddresses = [...(editedEmployee.addresses || employee.addresses || []), addressWithLabel];
-    setEditedEmployee({
-      ...editedEmployee,
-      addresses: updatedAddresses,
-    });
-    setNewAddress(null);
-    setNewAddressLabel('');
-    setNewAddressType(AddressType.CUSTOM);
-    toast.success('Adresse ajoutée avec succès');
-  };
+  }, [newAddress, newAddressLabel, newAddressType, editedEmployee, employee.addresses, setEditedEmployee]);
 
   const handleRemoveAddress = (addressId: string) => {
     const updatedAddresses = (editedEmployee.addresses || employee.addresses || []).filter(
@@ -87,52 +91,32 @@ const EmployeeAddressesTab: React.FC<EmployeeAddressesTabProps> = ({
           <span>Adresses enregistrées ({addresses?.length || 0})</span>
         </CardTitle>
         {isEditing && (
-          <div>
-            {newAddress ? (
-              <div className="flex space-x-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setNewAddress(null);
-                    setNewAddressLabel('');
-                    setNewAddressType(AddressType.CUSTOM);
-                  }}
-                >
-                  <FileMinus className="h-4 w-4 mr-1" />
-                  Annuler
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={handleAddAddress}
-                  className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
-                >
-                  <FilePlus className="h-4 w-4 mr-1" />
-                  Enregistrer
-                </Button>
-              </div>
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  setNewAddress({
-                    street: '',
-                    formattedAddress: '',
-                    addressType: AddressType.CUSTOM,
-                    placeId: '',
-                  })
-                }
-              >
-                <FilePlus className="h-4 w-4 mr-1" />
-                Nouvelle adresse
-              </Button>
-            )}
-          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setShowAddressForm(!showAddressForm);
+              if (showAddressForm) {
+                setNewAddress(null);
+                setNewAddressLabel('');
+                setNewAddressType(AddressType.CUSTOM);
+              } else {
+                setNewAddress({
+                  street: '',
+                  formattedAddress: '',
+                  addressType: AddressType.CUSTOM,
+                  placeId: '',
+                });
+              }
+            }}
+          >
+            <FilePlus className="h-4 w-4 mr-1" />
+            {showAddressForm ? 'Masquer le formulaire' : 'Nouvelle adresse'}
+          </Button>
         )}
       </CardHeader>
       <CardContent>
-        {newAddress && (
+        {isEditing && showAddressForm && (
           <Card className="mb-4 border-dashed">
             <CardContent className="p-4">
               <div className="space-y-4">

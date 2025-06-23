@@ -13,8 +13,8 @@ import { useRolesAndSubsidiaries } from '@/hooks/useRolesAndSubsidiaries';
 import { demandeService } from '@/services/demande.service';
 import { CreateTransportRequestDto, TransportType, SelectedPassenger, RecurringDateTime, RouteEstimation, DraftData, TransportDirection, GroupRoute } from '@/types/demande';
 import { ConfirmationView } from '@/components/transport/requestGroupTransport/ConfirmationView';
-import { Loader } from '@googlemaps/js-api-loader'; // Google Maps API loader
 import { CreateEmployee, Employee } from '@/types/employee';
+import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
 
 export function CreateGroupTransportRequest() {
   const navigate = useNavigate();
@@ -22,6 +22,7 @@ export function CreateGroupTransportRequest() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const enterpriseId = user?.enterpriseId;
+  const { isGoogleMapsLoaded } = useGoogleMaps(); // Utilisez le hook useGoogleMaps
 
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [selectedPassengers, setSelectedPassengers] = useState<SelectedPassenger[]>([]);
@@ -42,32 +43,10 @@ export function CreateGroupTransportRequest() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [groupRoute, setGroupRoute] = useState<GroupRoute | null>(null);
 
-  // Google Maps API Loader
-  const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
-  useEffect(() => {
-    const loader = new Loader({
-      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-      version: 'weekly',
-      libraries: ['places'],
-    });
-
-    loader
-      .load()
-      .then(() => {
-        setGoogleMapsLoaded(true);
-      })
-      .catch((error) => {
-        console.error('Error loading Google Maps:', error);
-        toast.error('Erreur lors du chargement de Google Maps');
-      });
-
-    return () => {
-      // Cleanup if needed
-    };
-  }, []);
+  // Supprimez l'état googleMapsLoaded et l'effet useEffect lié au Loader
 
   // Fetch employees using useEmployees hook
-  const { employees, total, loading  ,importEmployees} = useEmployees({
+  const { employees, total, loading, importEmployees } = useEmployees({
     enterpriseId,
     roleFilter: 'all',
     subsidiaryFilter,
@@ -180,7 +159,7 @@ export function CreateGroupTransportRequest() {
     isRecurring,
     recurringDates,
     note,
-    isHomeToWorkTrip
+    isHomeToWorkTrip,
   ]);
 
   const handleEmployeeSelect = (employeeId: string) => {
@@ -245,143 +224,140 @@ export function CreateGroupTransportRequest() {
     navigate('/transport/drafts');
   };
 
-const calculateRoutes = async () => {
-  if (!googleMapsLoaded || !window.google) {
-    toast.error('Google Maps non chargé');
-    return;
-  }
+  const calculateRoutes = async () => {
+    if (!isGoogleMapsLoaded || !window.google) {
+      toast.error('Google Maps non chargé');
+      return;
+    }
 
-  setIsCalculating(true);
+    setIsCalculating(true);
 
-  try {
-    const directionsService = new window.google.maps.DirectionsService();
+    try {
+      const directionsService = new window.google.maps.DirectionsService();
 
-    // Estimations individuelles
-    const estimations: RouteEstimation[] = await Promise.all(
-      selectedPassengers.map(async (passenger) => {
-        const departureAddress = passenger.addresses?.find(
-          (addr) => addr.address.id === passenger.departureAddressId
-        )?.address.formattedAddress;
-        const arrivalAddress = passenger.addresses?.find(
-          (addr) => addr.address.id === passenger.arrivalAddressId
-        )?.address.formattedAddress;
+      // Estimations individuelles
+      const estimations: RouteEstimation[] = await Promise.all(
+        selectedPassengers.map(async (passenger) => {
+          const departureAddress = passenger.addresses?.find(
+            (addr) => addr.address.id === passenger.departureAddressId
+          )?.address.formattedAddress;
+          const arrivalAddress = passenger.addresses?.find(
+            (addr) => addr.address.id === passenger.arrivalAddressId
+          )?.address.formattedAddress;
 
-        if (!departureAddress || !arrivalAddress) {
-          return {
-            distance: '-',
-            duration: '-',
-            price: 0,
+          if (!departureAddress || !arrivalAddress) {
+            return {
+              distance: '-',
+              duration: '-',
+              price: 0,
+            };
+          }
+
+          const individualRequest: google.maps.DirectionsRequest = {
+            origin: departureAddress,
+            destination: arrivalAddress,
+            travelMode: google.maps.TravelMode.DRIVING,
           };
-        }
 
-        const individualRequest: google.maps.DirectionsRequest = {
-          origin: departureAddress,
-          destination: arrivalAddress,
-          travelMode: google.maps.TravelMode.DRIVING,
-        };
+          const individualDirectionsResponse = await directionsService.route(individualRequest);
+          const route = individualDirectionsResponse.routes[0];
+          const leg = route.legs[0];
+          const distanceKm = (leg.distance?.value || 0) / 1000;
+          const durationSeconds = leg.duration?.value || 0;
+          const durationMinutes = Math.round(durationSeconds / 60);
 
-        const individualDirectionsResponse = await directionsService.route(individualRequest);
-        const route = individualDirectionsResponse.routes[0];
-        const leg = route.legs[0];
-        const distanceKm = (leg.distance?.value || 0) / 1000;
-        const durationSeconds = leg.duration?.value || 0;
-        const durationMinutes = Math.round(durationSeconds / 60);
+          const basePrice = 0.9;
+          const pricePerKm = 0.6;
+          const pricePerMinute = 0.15;
+          const price = basePrice + distanceKm * pricePerKm + durationMinutes * pricePerMinute;
 
-        const basePrice = 0.9;
-        const pricePerKm = 0.6;
-        const pricePerMinute = 0.15;
-        const price = basePrice + distanceKm * pricePerKm + durationMinutes * pricePerMinute;
+          return {
+            distance: `${distanceKm.toFixed(1)} km`,
+            duration: `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`,
+            price: parseFloat(price.toFixed(2)),
+            departureAddress,
+            arrivalAddress,
+          };
+        })
+      );
 
-        return {
-          distance: `${distanceKm.toFixed(1)} km`,
-          duration: `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`,
-          price: parseFloat(price.toFixed(2)),
-          departureAddress,
-          arrivalAddress,
-        };
-      })
-    );
+      setRouteEstimations(estimations);
 
-    setRouteEstimations(estimations);
+      // Calcul du trajet groupé
+      const addresses = selectedPassengers
+        .map((passenger) => {
+          const addressId = isHomeToWorkTrip ? passenger.departureAddressId : passenger.arrivalAddressId;
+          return passenger.addresses?.find((addr) => addr.address.id === addressId)?.address.formattedAddress;
+        })
+        .filter((address): address is string => !!address);
 
-    // Calcul du trajet groupé
-    const addresses = selectedPassengers
-      .map((passenger) => {
-        const addressId = isHomeToWorkTrip ? passenger.departureAddressId : passenger.arrivalAddressId;
-        return passenger.addresses?.find((addr) => addr.address.id === addressId)?.address.formattedAddress;
-      })
-      .filter((address): address is string => !!address);
+      const workAddress = selectedPassengers[0]?.addresses?.find(
+        (addr) => addr.address.addressType === 'OFFICE'
+      )?.address.formattedAddress;
 
-    const workAddress = selectedPassengers[0]?.addresses?.find(
-      (addr) => addr.address.addressType === 'OFFICE'
-    )?.address.formattedAddress;
+      if (!workAddress || addresses.length === 0) {
+        throw new Error('Adresses non valides');
+      }
 
-    if (!workAddress || addresses.length === 0) {
-      throw new Error('Adresses non valides');
+      const waypoints = isHomeToWorkTrip
+        ? addresses.slice(1).map((address) => ({ location: address, stopover: true }))
+        : addresses.slice(0, -1).map((address) => ({ location: address, stopover: true }));
+
+      const origin = isHomeToWorkTrip ? addresses[0] : workAddress;
+      const destination = isHomeToWorkTrip ? workAddress : addresses[addresses.length - 1];
+
+      const request: google.maps.DirectionsRequest = {
+        origin,
+        destination,
+        waypoints,
+        optimizeWaypoints: true,
+        travelMode: google.maps.TravelMode.DRIVING,
+      };
+
+      const directionsResponse = await directionsService.route(request);
+      const groupRouteResponse = directionsResponse.routes[0];
+      const totalDistanceKm = groupRouteResponse.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) / 1000;
+      const totalDurationSeconds = groupRouteResponse.legs.reduce((acc, leg) => acc + (leg.duration?.value || 0), 0);
+      const totalDurationMinutes = Math.round(totalDurationSeconds / 60);
+
+      const basePrice = 0.9;
+      const pricePerKm = 0.6;
+      const pricePerMinute = 0.15;
+      const groupPrice = basePrice + totalDistanceKm * pricePerKm + totalDurationMinutes * pricePerMinute;
+
+      const points: string[] = [origin];
+      if (waypoints.length > 0) {
+        const optimizedOrder = directionsResponse.routes[0].waypoint_order;
+        const orderedWaypoints = optimizedOrder.map((index) => waypoints[index].location);
+        points.push(...orderedWaypoints);
+      }
+      points.push(destination);
+
+      setGroupRoute({
+        totalDistance: `${totalDistanceKm.toFixed(1)} km`,
+        totalDuration: `${Math.floor(totalDurationMinutes / 60)}h ${totalDurationMinutes % 60}min`,
+        points,
+        origin,
+        destination,
+      });
+
+      setTotalPrice(parseFloat(groupPrice.toFixed(2)));
+      setIsCalculating(false);
+    } catch (error: any) {
+      console.error('Error calculating routes:', error);
+      toast.error(`Erreur de calcul d'itinéraire: ${error.message || error.status || 'inconnue'}`);
+      setRouteEstimations(
+        selectedPassengers.map(() => ({
+          distance: '-',
+          duration: '-',
+          price: 0,
+        }))
+      );
+      setGroupRoute(null);
+      setTotalPrice(0);
+      setIsCalculating(false);
     }
-
-    const waypoints = isHomeToWorkTrip
-      ? addresses.slice(1).map((address) => ({ location: address, stopover: true }))
-      : addresses.slice(0, -1).map((address) => ({ location: address, stopover: true }));
-
-    const origin = isHomeToWorkTrip ? addresses[0] : workAddress;
-    const destination = isHomeToWorkTrip ? workAddress : addresses[addresses.length - 1];
-
-    const request: google.maps.DirectionsRequest = {
-      origin,
-      destination,
-      waypoints,
-      optimizeWaypoints: true,
-      travelMode: google.maps.TravelMode.DRIVING,
-    };
-
-    const directionsResponse = await directionsService.route(request);
-    const groupRouteResponse = directionsResponse.routes[0];
-    const totalDistanceKm = groupRouteResponse.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) / 1000;
-    const totalDurationSeconds = groupRouteResponse.legs.reduce((acc, leg) => acc + (leg.duration?.value || 0), 0);
-    const totalDurationMinutes = Math.round(totalDurationSeconds / 60);
-
-    const basePrice = 0.9;
-    const pricePerKm = 0.6;
-    const pricePerMinute = 0.15;
-    const groupPrice = basePrice + totalDistanceKm * pricePerKm + totalDurationMinutes * pricePerMinute;
-
-    // Construire la liste des points dans l'ordre
-    const points: string[] = [origin];
-    if (waypoints.length > 0) {
-      const optimizedOrder = directionsResponse.routes[0].waypoint_order;
-      const orderedWaypoints = optimizedOrder.map((index) => waypoints[index].location);
-      points.push(...orderedWaypoints);
-    }
-    points.push(destination);
-
-    setGroupRoute({
-      totalDistance: `${totalDistanceKm.toFixed(1)} km`,
-      totalDuration: `${Math.floor(totalDurationMinutes / 60)}h ${totalDurationMinutes % 60}min`,
-      points,
-      origin,
-      destination,
-    });
-
-    setTotalPrice(parseFloat(groupPrice.toFixed(2)));
-    setIsCalculating(false);
-  } catch (error: any) {
-    console.error('Error calculating routes:', error);
-    toast.error(`Erreur de calcul d'itinéraire: ${error.message || error.status || 'inconnue'}`);
-    setRouteEstimations(
-      selectedPassengers.map(() => ({
-        distance: '-',
-        duration: '-',
-        price: 0,
-      }))
-    );
-    setGroupRoute(null);
-    setTotalPrice(0);
-    setIsCalculating(false);
-  }
-};
-
-
+  };
 
   const handleSubmit = async () => {
     if (selectedEmployees.length === 0) {
@@ -497,7 +473,7 @@ const calculateRoutes = async () => {
             <ArrowLeft className="h-4 w-4 mr-1" />
             Retour
           </Button>
-          <h2 className="text-2xl font-bold">Nouvelle demande de transport </h2>
+          <h2 className="text-2xl font-bold">Nouvelle demande de transport</h2>
         </div>
         <div className="flex space-x-2">
           <Button variant="outline" onClick={handleSaveDraft}>
@@ -508,22 +484,22 @@ const calculateRoutes = async () => {
       </div>
       <Steps currentStep={showConfirmation ? 1 : 0} steps={steps} />
       {showConfirmation ? (
-       <ConfirmationView
-  isCalculating={isCalculating}
-  transportType={transportType}
-  scheduledDate={scheduledDate}
-  scheduledTime={scheduledTime}
-  isRecurring={isRecurring}
-  recurringDates={recurringDates}
-  note={note}
-  isHomeToWorkTrip={isHomeToWorkTrip}
-  selectedPassengers={selectedPassengers}
-  routeEstimations={routeEstimations}
-  totalPrice={totalPrice}
-  groupRoute={groupRoute}
-  setShowConfirmation={setShowConfirmation}
-  handleSubmit={handleSubmit}
-/>
+        <ConfirmationView
+          isCalculating={isCalculating}
+          transportType={transportType}
+          scheduledDate={scheduledDate}
+          scheduledTime={scheduledTime}
+          isRecurring={isRecurring}
+          recurringDates={recurringDates}
+          note={note}
+          isHomeToWorkTrip={isHomeToWorkTrip}
+          selectedPassengers={selectedPassengers}
+          routeEstimations={routeEstimations}
+          totalPrice={totalPrice}
+          groupRoute={groupRoute}
+          setShowConfirmation={setShowConfirmation}
+          handleSubmit={handleSubmit}
+        />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {showEmployeeList && (

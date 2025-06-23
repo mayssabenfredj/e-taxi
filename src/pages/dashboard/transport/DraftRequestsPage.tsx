@@ -113,16 +113,38 @@ export function DraftRequestsPage() {
     navigate(`/transport/${draft.requestId}/group-dispatch`);
   };
 
-  const handleDeleteDraft = (draftId: string) => {
-    setDrafts(prev => prev.filter(d => d.id !== draftId));
-    toast.success('Brouillon supprimé');
-  };
+ const handleDeleteDraft = (draftId: string) => {
+  try {
+    if (localStorage.getItem(draftId)) {
+      localStorage.removeItem(draftId);
+      setDrafts(prev => prev.filter(d => d.id !== draftId));
+      toast.success('Brouillon supprimé');
+    } else {
+      toast.error('Brouillon introuvable dans le stockage local');
+    }
+  } catch (error) {
+    console.error('Erreur lors de la suppression du brouillon:', error);
+    toast.error('Erreur lors de la suppression du brouillon');
+  }
+};
 
-  const handleDeleteDispatchDraft = (draft: DispatchDraft) => {
-    localStorage.removeItem(`groupDispatchDraft-${draft.requestId}`);
-    setDispatchDrafts(prev => prev.filter(d => d.id !== draft.id));
-    toast.success('Brouillon de dispatch supprimé');
-  };
+const handleDeleteDispatchDraft = (draft: DispatchDraft) => {
+  try {
+    const key = `groupDispatchDraft-${draft.requestId}`;
+    if (localStorage.getItem(key)) {
+      localStorage.removeItem(key);
+      setDispatchDrafts(prev => prev.filter(d => d.id !== draft.id));
+      toast.success('Brouillon de dispatch supprimé');
+    } else {
+      toast.error('Brouillon de dispatch introuvable dans le stockage local');
+    }
+  } catch (error) {
+    console.error('Erreur lors de la suppression du brouillon de dispatch:', error);
+    toast.error('Erreur lors de la suppression du brouillon de dispatch');
+  }
+};
+
+
 
   const getCompletionBadge = (percentage: number) => {
     if (percentage >= 80) return <Badge variant="default">Presque terminé</Badge>;

@@ -218,6 +218,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
             street: emp.homeAddress.split(',')[0]?.trim() || '',
             postalCode: emp.homeAddress.split(',')[1]?.trim() || '',
             addressType: AddressType.HOME,
+            formattedAddress :emp.homeAddress,
             manuallyEntered: true,
             isVerified: false,
             isExact: false
@@ -231,13 +232,14 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
           address: {
             street: emp.workAddress.split(',')[0]?.trim() || '',
             postalCode: emp.workAddress.split(',')[1]?.trim() || '',
+            formattedAddress :emp.workAddress,
             addressType: AddressType.OFFICE,
             manuallyEntered: true,
             isVerified: false,
             isExact: false
           },
           label: AddressType.OFFICE,
-          isDefault: false
+          isDefault: true
         });
       }
 

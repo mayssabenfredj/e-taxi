@@ -2,9 +2,9 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Search, Target } from 'lucide-react';
 import { toast } from 'sonner';
+import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
 
 interface Coordinates {
   lat: number;
@@ -27,8 +27,9 @@ interface AutocompletePrediction {
 }
 
 export function MapPicker({ onLocationSelect, initialLocation, className }: MapPickerProps) {
+  const { isGoogleMapsLoaded } = useGoogleMaps();
   const [coordinates, setCoordinates] = useState<Coordinates>(
-    initialLocation || { lat: 36.8065, lng: 10.1815 } // Tunis by default
+    initialLocation || { lat: 36.8065, lng: 10.1815 }
   );
   const [address, setAddress] = useState('');
   const [selectedLocation, setSelectedLocation] = useState<{
@@ -43,59 +44,17 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
   const mapRef = useRef<HTMLDivElement>(null);
   const autocompleteRef = useRef<HTMLInputElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [marker, setMarker] = useState<google.maps.Marker | null>(null);
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [marker, setMarker] = useState<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const autocompleteElementRef = useRef<any>(null);
 
-  // Load Google Maps script
   useEffect(() => {
-    if (scriptLoaded || window.google?.maps) {
-      initializeMap();
+    if (!isGoogleMapsLoaded) {
+      toast.error('API Google Maps non chargée');
       return;
     }
+    initializeMap();
+  }, [isGoogleMapsLoaded]);
 
-    const loadGoogleMaps = async () => {
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBlMBSsjVaMcxb7yT78o8AOh8IbqvRm340&libraries=places,marker,geocoder&loading=async`;
-      script.async = true;
-      script.defer = true;
-
-      script.onload = () => {
-        const checkGoogleMapsLoaded = setInterval(() => {
-          if (window.google?.maps?.Map) {
-            clearInterval(checkGoogleMapsLoaded);
-            setScriptLoaded(true);
-            initializeMap();
-          }
-        }, 100);
-
-        setTimeout(() => {
-          clearInterval(checkGoogleMapsLoaded);
-          if (!window.google?.maps?.Map) {
-            toast.error('Timeout lors du chargement de Google Maps');
-          }
-        }, 10000);
-      };
-
-      script.onerror = () => {
-        toast.error('Échec du chargement de l’API Google Maps. Vérifiez votre clé API.');
-      };
-
-      document.head.appendChild(script);
-    };
-
-    loadGoogleMaps();
-
-    return () => {
-      if (map) {
-        google.maps.event.clearInstanceListeners(map);
-      }
-      if (marker) {
-        marker.setMap(null);
-      }
-    };
-  }, [scriptLoaded]);
-
-  // Initialize map
   const initializeMap = useCallback(() => {
     if (!mapRef.current || !window.google?.maps?.Map) {
       console.error('Google Maps API not loaded or map container not found');
@@ -111,13 +70,12 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
       fullscreenControl: false,
     });
 
-    const markerInstance = new google.maps.Marker({
+    const markerInstance = new google.maps.marker.AdvancedMarkerElement({
       position: coordinates,
       map: mapInstance,
-      draggable: true,
+      gmpDraggable: true
     });
 
-    // Initialize autocomplete for fallback
     if (autocompleteRef.current) {
       const autocomplete = new google.maps.places.Autocomplete(autocompleteRef.current, {
         fields: ['formatted_address', 'geometry', 'place_id', 'address_components'],
@@ -135,7 +93,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
         setCoordinates(newCoords);
         setManualCoords({ lat: newCoords.lat.toString(), lng: newCoords.lng.toString() });
         mapInstance.setCenter(newCoords);
-        markerInstance.setPosition(newCoords);
+        markerInstance.position = new google.maps.LatLng(newCoords.lat, newCoords.lng);
         setAddress(place.formatted_address || '');
         setSearchQuery(place.formatted_address || '');
         setSuggestions([]);
@@ -148,20 +106,28 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
       });
     }
 
-    // Marker dragend event
-    markerInstance.addListener('dragend', () => {
-      const position = markerInstance.getPosition();
+    markerInstance.addListener('dragend', (event) => {
+      const position = markerInstance.position;
       if (!position) return;
-      const newCoords = {
-        lat: position.lat(),
-        lng: position.lng(),
-      };
+
+      let lat: number, lng: number;
+
+      if (typeof (position as google.maps.LatLng).lat === 'function') {
+        // C'est un LatLng
+        lat = (position as google.maps.LatLng).lat();
+        lng = (position as google.maps.LatLng).lng();
+      } else {
+        // C'est un LatLngLiteral
+        lat = (position as google.maps.LatLngLiteral).lat;
+        lng = (position as google.maps.LatLngLiteral).lng;
+      }
+
+      const newCoords = { lat, lng };
       setCoordinates(newCoords);
-      setManualCoords({ lat: newCoords.lat.toString(), lng: newCoords.lng.toString() });
+      setManualCoords({ lat: lat.toString(), lng: lng.toString() });
       reverseGeocode(newCoords);
     });
 
-    // Map click event
     mapInstance.addListener('click', (e: google.maps.MapMouseEvent) => {
       if (!e.latLng) return;
 
@@ -172,15 +138,14 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
 
       setCoordinates(newCoords);
       setManualCoords({ lat: newCoords.lat.toString(), lng: newCoords.lng.toString() });
-      markerInstance.setPosition(newCoords);
+      markerInstance.position = new google.maps.LatLng(newCoords.lat, newCoords.lng);
       reverseGeocode(newCoords);
     });
 
     setMap(mapInstance);
     setMarker(markerInstance);
-  }, [coordinates]);
+  }, [coordinates, isGoogleMapsLoaded]);
 
-  // Fetch autocomplete suggestions
   const fetchSuggestions = async (query: string) => {
     if (!query.trim()) {
       setSuggestions([]);
@@ -190,8 +155,9 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
     setIsSearching(true);
 
     try {
-      if (!window.google) {
-        await loadGoogleMapsScript();
+      if (!isGoogleMapsLoaded) {
+        toast.error('API Google Maps non chargée');
+        return;
       }
 
       const service = new google.maps.places.AutocompleteService();
@@ -208,11 +174,10 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
       );
     } catch (error) {
       setIsSearching(false);
-      toast.error('Erreur lors de la recherche d’adresses');
+      toast.error("Erreur lors de la recherche d'adresses");
     }
   };
 
-  // Select a suggestion
   const handleSuggestionSelect = async (prediction: AutocompletePrediction) => {
     try {
       const service = new google.maps.places.PlacesService(document.createElement('div'));
@@ -231,7 +196,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
               map.setCenter(newCoords);
             }
             if (marker) {
-              marker.setPosition(newCoords);
+              marker.position = new google.maps.LatLng(newCoords.lat, newCoords.lng);
             }
             setAddress(place.formatted_address || '');
             setSearchQuery(place.formatted_address || '');
@@ -243,33 +208,15 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
               placeId: place.place_id,
             });
           } else {
-            toast.error('Impossible de récupérer les détails de l’adresse');
+            toast.error("Impossible de récupérer les détails de l'adresse");
           }
         }
       );
     } catch (error) {
-      toast.error('Erreur lors de la sélection de l’adresse');
+      toast.error("Erreur lors de la sélection de l'adresse");
     }
   };
 
-  const loadGoogleMapsScript = (): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (window.google) {
-        resolve();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBlMBSsjVaMcxb7yT78o8AOh8IbqvRm340&libraries=places,marker,geocoder`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Échec du chargement de Google Maps'));
-      document.head.appendChild(script);
-    });
-  };
-
-  // Reverse geocode coordinates
   const reverseGeocode = async (coords: Coordinates) => {
     try {
       const geocoder = new google.maps.Geocoder();
@@ -287,11 +234,10 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
         });
       }
     } catch (error) {
-      toast.error('Erreur lors de la récupération de l’adresse');
+      toast.error("Erreur lors de la récupération de l'adresse");
     }
   };
 
-  // Get current location
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       toast.error('Géolocalisation non supportée');
@@ -312,18 +258,18 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
           map.setZoom(15);
         }
         if (marker) {
-          marker.setPosition(newCoords);
+          marker.position = new google.maps.LatLng(newCoords.lat, newCoords.lng);
         }
         reverseGeocode(newCoords);
         toast.success('Position actuelle obtenue !');
       },
       (error) => {
-        toast.error('Impossible d’obtenir la position');
+        toast.error("Impossible d'obtenir la position");
       }
     );
   };
 
-  // Handle manual coordinate input
+    // Handle manual coordinate input
   const handleManualCoordsChange = (type: 'lat' | 'lng', value: string) => {
     setManualCoords((prev) => ({ ...prev, [type]: value }));
 
@@ -343,12 +289,11 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
       map.setCenter(newCoords);
     }
     if (marker) {
-      marker.setPosition(newCoords);
+      marker.position = new google.maps.LatLng(newCoords.lat, newCoords.lng);
     }
     reverseGeocode(newCoords);
   };
-
-  // Handle location confirmation
+  
   const handleConfirmLocation = () => {
     if (!selectedLocation) {
       toast.error('Aucune adresse sélectionnée');
@@ -360,101 +305,98 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
 
   return (
     <div className={`space-y-2 ${className}`}>
-  <div className="space-y-2 p-2">
-    <div className="space-y-1">
-      <Label className="text-xs">Rechercher une adresse</Label>
-      <div className="relative flex space-x-1">
-        <Input
-          ref={autocompleteRef}
-          placeholder="Entrez une adresse..."
-          value={searchQuery}
-          onChange={(e) => {
-            setSearchQuery(e.target.value);
-            fetchSuggestions(e.target.value);
-          }}
-          className="flex-1 text-xs h-8"
-        />
-      </div>
-      {isSearching && (
-        <div className="text-center py-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-etaxi-yellow mx-auto"></div>
+      <div className="space-y-2 p-2">
+        <Label className="text-xs">Rechercher une adresse</Label>
+        <div className="relative flex space-x-1">
+          <Input
+            ref={autocompleteRef}
+            placeholder="Entrez une adresse..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              fetchSuggestions(e.target.value);
+            }}
+            className="flex-1 text-xs h-8"
+            disabled={!isGoogleMapsLoaded}
+          />
         </div>
-      )}
-      {suggestions.length > 0 && (
-        <div className="space-y-1 max-h-32 overflow-y-auto bg-white border border-gray-200 rounded-md">
-          {suggestions.map((prediction) => (
-            <div
-              key={prediction.place_id}
-              onClick={() => handleSuggestionSelect(prediction)}
-              className="p-2 hover:bg-muted rounded cursor-pointer"
-            >
-              <div className="flex items-center space-x-2">
-                <MapPin className="h-3 w-3 text-etaxi-yellow flex-shrink-0" />
-                <span className="text-xs truncate">{prediction.description}</span>
+        {isSearching && (
+          <div className="text-center py-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-etaxi-yellow mx-auto"></div>
+          </div>
+        )}
+        {suggestions.length > 0 && (
+          <div className="space-y-1 max-h-32 overflow-y-auto bg-white border border-gray-200 rounded-md">
+            {suggestions.map((prediction) => (
+              <div
+                key={prediction.place_id}
+                onClick={() => handleSuggestionSelect(prediction)}
+                className="p-2 hover:bg-muted rounded cursor-pointer"
+              >
+                <div className="flex items-center space-x-2">
+                  <MapPin className="h-3 w-3 text-etaxi-yellow flex-shrink-0" />
+                  <span className="text-xs truncate">{prediction.description}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        )}
+        <div className="space-y-1">
+          <Label className="text-xs">Coordonnées</Label>
+          <div className="grid grid-cols-2 gap-1">
+            <Input
+              type="number"
+              step="any"
+              placeholder="Latitude"
+              value={manualCoords.lat}
+              onChange={(e) => handleManualCoordsChange('lat', e.target.value)}
+              className="text-xs h-8"
+              disabled={!isGoogleMapsLoaded}
+            />
+            <Input
+              type="number"
+              step="any"
+              placeholder="Longitude"
+              value={manualCoords.lng}
+              onChange={(e) => handleManualCoordsChange('lng', e.target.value)}
+              className="text-xs h-8"
+              disabled={!isGoogleMapsLoaded}
+            />
+          </div>
         </div>
-      )}
-    </div>
-
-    <div className="space-y-1">
-      <Label className="text-xs">Coordonnées</Label>
-      <div className="grid grid-cols-2 gap-1">
-        <Input
-          type="number"
-          step="any"
-          placeholder="Latitude"
-          value={manualCoords.lat}
-          onChange={(e) => handleManualCoordsChange('lat', e.target.value)}
-          className="text-xs h-8"
-        />
-        <Input
-          type="number"
-          step="any"
-          placeholder="Longitude"
-          value={manualCoords.lng}
-          onChange={(e) => handleManualCoordsChange('lng', e.target.value)}
-          className="text-xs h-8"
-        />
+        <div className="space-y-1">
+          <Label className="text-xs">Cliquez sur la carte pour sélectionner</Label>
+          <div
+            ref={mapRef}
+            className="w-full h-[150px] rounded-lg overflow-hidden border border-gray-200"
+          />
+        </div>
+        <Button
+          onClick={getCurrentLocation}
+          variant="outline"
+          className="w-full text-xs h-8"
+          disabled={!isGoogleMapsLoaded}
+        >
+          <Target className="mr-1 h-3 w-3" />
+          Utiliser ma position
+        </Button>
+        {address && (
+          <div className="p-2 bg-muted rounded-lg">
+            <Label className="text-xs font-medium">Adresse sélectionnée :</Label>
+            <p className="text-xs text-muted-foreground mt-1 truncate">{address}</p>
+            <p className="text-xs text-muted-foreground">
+              {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+            </p>
+          </div>
+        )}
+        <Button
+          onClick={handleConfirmLocation}
+          className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-xs h-8"
+          disabled={!selectedLocation || !isGoogleMapsLoaded}
+        >
+          Confirmer l'adresse
+        </Button>
       </div>
     </div>
-
-    <div className="space-y-1">
-      <Label className="text-xs">Cliquez sur la carte pour sélectionner</Label>
-      <div
-        ref={mapRef}
-        className="w-full h-[150px] rounded-lg overflow-hidden border border-gray-200"
-      />
-    </div>
-
-    <Button
-      onClick={getCurrentLocation}
-      variant="outline"
-      className="w-full text-xs h-8"
-    >
-      <Target className="mr-1 h-3 w-3" />
-      Utiliser ma position
-    </Button>
-
-    {address && (
-      <div className="p-2 bg-muted rounded-lg">
-        <Label className="text-xs font-medium">Adresse sélectionnée :</Label>
-        <p className="text-xs text-muted-foreground mt-1 truncate">{address}</p>
-        <p className="text-xs text-muted-foreground">
-          {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
-        </p>
-      </div>
-    )}
-
-    <Button
-      onClick={handleConfirmLocation}
-      className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-xs h-8"
-      disabled={!selectedLocation}
-    >
-      Confirmer l’adresse
-    </Button>
-  </div>
-</div>
   );
 }
