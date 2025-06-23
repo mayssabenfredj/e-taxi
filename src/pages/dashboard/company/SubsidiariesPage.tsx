@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -6,7 +6,7 @@ import SubsidiaryService from '@/services/subsidiarie.service';
 import EmployeeService from '@/services/employee.service';
 import { Subsidiary, CreateSubsidiary, UpdateSubsidiary, EntityStatus, FormData, Manager } from '@/types/subsidiary';
 import { Address, AddressType } from '@/types/addresse';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import SubsidiaryForm from '@/components/company/SubsidiaryForm';
@@ -28,6 +28,11 @@ export function SubsidariesPage() {
   const [statusFilter, setStatusFilter] = useState<EntityStatus | 'all'>('all');
   const [managers, setManagers] = useState<Manager[]>([]);
   const [loadingManagers, setLoadingManagers] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+  open: boolean;
+  subsidiary: Subsidiary | null;
+  newStatus: EntityStatus | null;
+}>({ open: false, subsidiary: null, newStatus: null });
 
   const enterpriseId = user?.enterpriseId;
 
@@ -71,56 +76,57 @@ export function SubsidariesPage() {
   }, [enterpriseId]);
 
   // Fetch subsidiaries with pagination and filters
-  useEffect(() => {
-    const fetchSubsidiaries = async () => {
-      if (!enterpriseId) {
-        setLoading(false);
-        return;
-      }
+  const fetchSubsidiaries = useCallback(async () => {
+    if (!enterpriseId) {
+      setLoading(false);
+      return;
+    }
 
-      try {
-        setLoading(true);
-        const query = {
-          enterpriseId,
-          name: nameFilter || undefined,
-          status: statusFilter === 'all' ? undefined : statusFilter,
-          skip,
-          take,
-        };
-        const { data, total } = await SubsidiaryService.getAllSubsidiaries(query);
-        const mappedData: Subsidiary[] = data.map((sub) => ({
-          id: sub.id,
-          name: sub.name,
-          address: sub.address || null,
-          phone: sub.phone,
-          email: sub.email,
-          website: sub.website,
-          description: sub.description,
-          status: sub.status || EntityStatus.ACTIVE,
-          createdAt: sub.createdAt || new Date().toISOString().split('T')[0],
-          updatedAt: sub.updatedAt,
-          deletedAt: sub.deletedAt,
-          enterpriseId: sub.enterpriseId,
-          employeeCount: sub.employeeCount || 0,
-          employeesCount: sub.employeesCount || 0,
-          admins: sub.admins || [],
-          adminIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
-          managerIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
-          managerNames: sub.admins
-            ? managers.filter((m) => sub.admins.some((admin: { id: string }) => admin.id === m.id)).map((m) => m.name)
-            : [],
-        }));
-        setSubsidiaries(mappedData);
-        setTotal(total);
-        toast.success('Filiales chargées avec succès!');
-      } catch (err: any) {
-        toast.error(`Erreur lors du chargement des filiales: ${err.message || 'Une erreur est survenue.'}`);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSubsidiaries();
+    try {
+      setLoading(true);
+      const query = {
+        enterpriseId,
+        name: nameFilter || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        skip,
+        take,
+      };
+      const { data, total } = await SubsidiaryService.getAllSubsidiaries(query);
+      const mappedData: Subsidiary[] = data.map((sub) => ({
+        id: sub.id,
+        name: sub.name,
+        address: sub.address || null,
+        phone: sub.phone,
+        email: sub.email,
+        website: sub.website,
+        description: sub.description,
+        status: sub.status || EntityStatus.ACTIVE,
+        createdAt: sub.createdAt || new Date().toISOString().split('T')[0],
+        updatedAt: sub.updatedAt,
+        deletedAt: sub.deletedAt,
+        enterpriseId: sub.enterpriseId,
+        employeeCount: sub.employeeCount || 0,
+        employeesCount: sub.employeesCount || 0,
+        admins: sub.admins || [],
+        adminIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
+        managerIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
+        managerNames: sub.admins
+          ? managers.filter((m) => sub.admins.some((admin: { id: string }) => admin.id === m.id)).map((m) => m.name)
+          : [],
+      }));
+      setSubsidiaries(mappedData);
+      setTotal(total);
+      toast.success('Filiales chargées avec succès!');
+    } catch (err: any) {
+      toast.error(`Erreur lors du chargement des filiales: ${err.message || 'Une erreur est survenue.'}`);
+    } finally {
+      setLoading(false);
+    }
   }, [enterpriseId, skip, take, nameFilter, statusFilter, managers]);
+
+  useEffect(() => {
+    fetchSubsidiaries();
+  }, [fetchSubsidiaries]);
 
   const handlePageChange = (newSkip: number, newTake: number) => {
     setSkip(newSkip);
@@ -142,7 +148,6 @@ export function SubsidariesPage() {
   };
 
   const handleSubmit = async () => {
-    // Validation moved to SubsidiaryForm
     try {
       const addressData: Omit<Address, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt' | 'city' | 'region' | 'country'> = {
         label: formData.address?.label || '',
@@ -164,8 +169,6 @@ export function SubsidariesPage() {
         notes: formData.address?.notes || undefined,
       };
 
-      let newSubsidiary: Subsidiary;
-
       if (editingSubsidiary) {
         const updateData: UpdateSubsidiary = {
           name: formData.name,
@@ -177,32 +180,7 @@ export function SubsidariesPage() {
           address: addressData,
           status: EntityStatus.ACTIVE,
         };
-        const updated = await SubsidiaryService.updateSubsidiary(editingSubsidiary.id, updateData);
-        newSubsidiary = {
-          id: updated.id,
-          name: updated.name,
-          address: updated.address || null,
-          phone: updated.phone,
-          email: updated.email,
-          website: updated.website,
-          description: updated.description,
-          status: updated.status || EntityStatus.ACTIVE,
-          createdAt: editingSubsidiary.createdAt,
-          updatedAt: updated.updatedAt || new Date().toISOString(),
-          deletedAt: updated.deletedAt,
-          enterpriseId: updated.enterpriseId,
-          employeeCount: updated.employeeCount || 0,
-          employeesCount: updated.employeesCount || 0,
-          admins: updated.admins || [],
-          adminIds: updated.admins?.map((admin: { id: string }) => admin.id) || [],
-          managerIds: updated.admins?.map((admin: { id: string }) => admin.id) || [],
-          managerNames: updated.admins
-            ? managers.filter((m) => updated.admins.some((admin: { id: string }) => admin.id === m.id)).map((m) => m.name)
-            : [],
-        };
-        setSubsidiaries((prev) =>
-          prev.map((s) => (s.id === updated.id ? newSubsidiary : s))
-        );
+        await SubsidiaryService.updateSubsidiary(editingSubsidiary.id, updateData);
         toast.success('Filiale modifiée avec succès!');
       } else {
         const createData: CreateSubsidiary = {
@@ -216,34 +194,11 @@ export function SubsidariesPage() {
           address: addressData,
           status: EntityStatus.ACTIVE,
         };
-        const created = await SubsidiaryService.createSubsidiary(createData);
-        newSubsidiary = {
-          id: created.id,
-          name: created.name,
-          address: created.address || null,
-          phone: created.phone,
-          email: created.email,
-          website: created.website,
-          description: created.description,
-          status: created.status || EntityStatus.ACTIVE,
-          createdAt: created.createdAt || new Date().toISOString().split('T')[0],
-          updatedAt: created.updatedAt,
-          deletedAt: created.deletedAt,
-          enterpriseId: created.enterpriseId,
-          employeeCount: created.employeeCount || 0,
-          employeesCount: created.employeesCount || 0,
-          admins: created.admins || [],
-          adminIds: created.admins?.map((admin: { id: string }) => admin.id) || [],
-          managerIds: created.admins?.map((admin: { id: string }) => admin.id) || [],
-          managerNames: created.admins
-            ? managers.filter((m) => created.admins.some((admin: { id: string }) => admin.id === m.id)).map((m) => m.name)
-            : [],
-        };
-        setSubsidiaries((prev) => [newSubsidiary, ...prev]);
-        setTotal((prev) => prev + 1);
+        await SubsidiaryService.createSubsidiary(createData);
         toast.success('Filiale créée avec succès!');
       }
       resetForm();
+      await fetchSubsidiaries(); // Re-fetch subsidiaries to reflect changes
     } catch (err: any) {
       toast.error(`Erreur: ${err.message || 'Une erreur est survenue.'}`);
     }
@@ -279,28 +234,23 @@ export function SubsidariesPage() {
     setIsCreateOpen(true);
   };
 
-  const handleUpdateStatus = async (subsidiary: Subsidiary, newStatus: EntityStatus) => {
-    try {
-      const updated = await SubsidiaryService.updateSubsidiaryStatus(subsidiary.id, newStatus);
-      const updatedSubsidiary: Subsidiary = {
-        ...subsidiary,
-        status: updated.status || newStatus,
-        updatedAt: updated.updatedAt || new Date().toISOString(),
-        admins: updated.admins || subsidiary.admins || [],
-        adminIds: updated.admins?.map((admin: { id: string }) => admin.id) || subsidiary.adminIds || [],
-        managerIds: updated.admins?.map((admin: { id: string }) => admin.id) || subsidiary.managerIds || [],
-        managerNames: updated.admins
-          ? managers.filter((m) => updated.admins.some((admin: { id: string }) => admin.id === m.id)).map((m) => m.name)
-          : subsidiary.managerNames || [],
-      };
-      setSubsidiaries((prev) =>
-        prev.map((s) => (s.id === updated.id ? updatedSubsidiary : s))
-      );
-      toast.success(`Statut de la filiale mis à jour à "${newStatus}" avec succès!`);
-    } catch (err: any) {
-      toast.error(`Erreur lors du changement de statut: ${err.message || 'Une erreur est survenue.'}`);
-    }
-  };
+ const handleUpdateStatus = (subsidiary: Subsidiary, newStatus: EntityStatus) => {
+  setConfirmDialog({ open: true, subsidiary, newStatus });
+};
+
+const confirmStatusChange = async () => {
+  if (!confirmDialog.subsidiary || !confirmDialog.newStatus) return;
+
+  try {
+    await SubsidiaryService.updateSubsidiaryStatus(confirmDialog.subsidiary.id, confirmDialog.newStatus);
+    toast.success(`Statut de la filiale mis à jour à "${confirmDialog.newStatus}" avec succès!`);
+    await fetchSubsidiaries();
+  } catch (err: any) {
+    toast.error(`Erreur lors du changement de statut: ${err.message || 'Une erreur est survenue.'}`);
+  } finally {
+    setConfirmDialog({ open: false, subsidiary: null, newStatus: null });
+  }
+};
 
   if (!enterpriseId) {
     return (
@@ -311,17 +261,18 @@ export function SubsidariesPage() {
   }
 
   return (
-    <div className="space-y-4 max-w-6xl">
-      {loading && <div>Chargement...</div>}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <SubsidiaryStats total={total} subsidiaries={subsidiaries} />
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-etaxi-yellow hover:bg-yellow-500 text-black h-8 text-sm w-full sm:w-auto">
-              <Plus className="mr-1 h-3 w-3" />
-              Nouvelle Filiale
-            </Button>
-          </DialogTrigger>
+  <div className="space-y-4 max-w-6xl">
+    {loading && <div>Chargement...</div>}
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <SubsidiaryStats total={total} subsidiaries={subsidiaries} />
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogTrigger asChild>
+          <Button className="bg-etaxi-yellow hover:bg-yellow-500 text-black h-8 text-sm w-full sm:w-auto">
+            <Plus className="mr-1 h-3 w-3" />
+            Nouvelle Filiale
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
           <SubsidiaryForm
             editingSubsidiary={editingSubsidiary}
             formData={formData}
@@ -330,18 +281,40 @@ export function SubsidariesPage() {
             onSubmit={handleSubmit}
             onCancel={resetForm}
           />
-        </Dialog>
-      </div>
-      <SubsidiaryTable
-        subsidiaries={subsidiaries}
-        total={total}
-        skip={skip}
-        take={take}
-        onPageChange={handlePageChange}
-        onFilterChange={handleFilterChange}
-        onEdit={handleEdit}
-        onUpdateStatus={handleUpdateStatus}
-      />
+        </DialogContent>
+      </Dialog>
     </div>
-  );
+    <SubsidiaryTable
+      subsidiaries={subsidiaries}
+      total={total}
+      skip={skip}
+      take={take}
+      onPageChange={handlePageChange}
+      onFilterChange={handleFilterChange}
+      onEdit={handleEdit}
+      onUpdateStatus={handleUpdateStatus}
+    />
+    <Dialog open={confirmDialog.open} onOpenChange={() => setConfirmDialog({ open: false, subsidiary: null, newStatus: null })}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {confirmDialog.newStatus === EntityStatus.ACTIVE
+              ? `Confirmer l'activation de "${confirmDialog.subsidiary?.name}"`
+              : `Confirmer la désactivation de "${confirmDialog.subsidiary?.name}"`}
+          </DialogTitle>
+        </DialogHeader>
+        <p className="mt-2">Êtes-vous sûr de vouloir continuer ?</p>
+        <DialogFooter className="mt-4">
+          <Button
+            variant="outline"
+            onClick={() => setConfirmDialog({ open: false, subsidiary: null, newStatus: null })}
+          >
+            Annuler
+          </Button>
+          <Button onClick={confirmStatusChange}>Confirmer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
+);
 }

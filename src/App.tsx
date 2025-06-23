@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { GoogleMapsProvider } from './contexts/GoogleMapsContext';
 import { Toaster } from './components/ui/sonner';
 import { Dashboard } from './components/dashboard/Dashboard';
 import { ConfirmAccount } from './pages/ConfirmAccount';
@@ -17,6 +18,7 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <LanguageProvider>
+          <GoogleMapsProvider>
           <Router>
             <div className="min-h-screen bg-background">
               <Routes>
@@ -33,7 +35,8 @@ function App() {
               </Routes>
               <Toaster />
             </div>
-          </Router>
+            </Router>
+            </GoogleMapsProvider>
         </LanguageProvider>
       </AuthProvider>
     </ThemeProvider>

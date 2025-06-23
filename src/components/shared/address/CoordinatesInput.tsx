@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Target } from 'lucide-react';
 import { toast } from 'sonner';
-import { Address, AddressType, City, Region, Country } from '@/types/addresse';
+import { Address, AddressType } from '@/types/addresse';
 
 interface CoordinatesInputProps {
   onSubmit: (address: Address) => void;
@@ -13,6 +13,7 @@ export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
   const [coordinates, setCoordinates] = useState({
     latitude: '',
     longitude: '',
+    manualAddress: '',
   });
 
   const handleSubmit = () => {
@@ -29,36 +30,41 @@ export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
       return;
     }
 
+    if (!coordinates.manualAddress.trim()) {
+      toast.error('Adresse manuelle requise');
+      return;
+    }
+
     const address: Address = {
       id: `coords-${Date.now()}`,
-      label: `Coordonnées: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-      street: null, // No specific street from coordinates
+      label: coordinates.manualAddress,
+      street: coordinates.manualAddress,
       buildingNumber: null,
       complement: null,
-      postalCode: null, // No postal code from coordinates
-      cityId: null, // No city ID available
+      postalCode: null,
+      cityId: null,
       regionId: null,
-      countryId: null, // No country ID available
+      countryId: null,
       latitude: lat,
       longitude: lng,
       placeId: null,
-      formattedAddress: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+      formattedAddress: coordinates.manualAddress,
       isVerified: false,
-      isExact: true, // Coordinates are exact
+      isExact: true,
       manuallyEntered: true,
       addressType: AddressType.CUSTOM,
       notes: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       deletedAt: null,
-      city: null, // No City object available
+      city: null,
       region: null,
-      country: null, // No Country object available
+      country: null,
     };
 
     onSubmit(address);
-    setCoordinates({ latitude: '', longitude: '' });
-    toast.success('Position GPS ajoutée');
+    setCoordinates({ latitude: '', longitude: '', manualAddress: '' });
+    toast.success('Position GPS et adresse ajoutées');
   };
 
   const getCurrentLocation = () => {
@@ -73,6 +79,7 @@ export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
         const lng = position.coords.longitude;
 
         setCoordinates({
+          ...coordinates,
           latitude: lat.toString(),
           longitude: lng.toString(),
         });
@@ -87,6 +94,14 @@ export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
 
   return (
     <div className="space-y-3">
+      <Input
+        type="text"
+        placeholder="Adresse manuelle (ex: 123 Rue Principale, Paris)"
+        value={coordinates.manualAddress}
+        onChange={(e) => setCoordinates({ ...coordinates, manualAddress: e.target.value })}
+        className="text-sm"
+        required
+      />
       <div className="grid grid-cols-2 gap-2">
         <Input
           type="number"
@@ -95,6 +110,7 @@ export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
           value={coordinates.latitude}
           onChange={(e) => setCoordinates({ ...coordinates, latitude: e.target.value })}
           className="text-sm"
+          required
         />
         <Input
           type="number"
@@ -103,6 +119,7 @@ export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
           value={coordinates.longitude}
           onChange={(e) => setCoordinates({ ...coordinates, longitude: e.target.value })}
           className="text-sm"
+          required
         />
       </div>
 
@@ -120,9 +137,9 @@ export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
         onClick={handleSubmit}
         className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black text-sm"
         size="sm"
-        disabled={!coordinates.latitude || !coordinates.longitude}
+        disabled={!coordinates.latitude || !coordinates.longitude || !coordinates.manualAddress.trim()}
       >
-        Utiliser ces coordonnées
+        Utiliser ces coordonnées et adresse
       </Button>
     </div>
   );

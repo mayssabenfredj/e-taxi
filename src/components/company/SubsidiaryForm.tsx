@@ -31,40 +31,41 @@ const SubsidiaryForm: React.FC<SubsidiaryFormProps> = ({
 }) => {
   const [loadingManagers, setLoadingManagers] = useState(false);
 
-  // Validate phone number: must start with +216 and be 12 characters long
-  const validatePhone = (phone: string): boolean => {
-    return phone.startsWith('+216') && phone.length === 12 && validator.isMobilePhone(phone, 'any');
-  };
+ // Validate phone number: must start with +216 followed by 8 digits
+const validatePhone = (phone: string): boolean => {
+  const phoneRegex = /^\+216\d{8}$/;
+  return phone.startsWith('+216') && phone.length === 12 && phoneRegex.test(phone);
+};
 
-  // Handle form submission with validation
-  const handleSubmit = async () => {
-    if (!formData.name) {
-      toast.error('Le nom de la filiale est requis');
-      return;
-    }
-    if (!formData.email) {
-      toast.error("L'email est requis");
-      return;
-    }
-    if (!validator.isEmail(formData.email)) {
-      toast.error('Veuillez entrer un email valide');
-      return;
-    }
-    if (!formData.phone) {
-      toast.error('Le numéro de téléphone est requis');
-      return;
-    }
-    if (!validatePhone(formData.phone)) {
-      toast.error('Le numéro de téléphone doit commencer par +216 et contenir exactement 12 chiffres (ex: +21658063156)');
-      return;
-    }
-    if (!formData.address) {
-      toast.error("L'adresse est requise");
-      return;
-    }
+// Handle form submission with validation
+const handleSubmit = async () => {
+  if (!formData.name) {
+    toast.error('Le nom de la filiale est requis');
+    return;
+  }
+  if (!formData.email) {
+    toast.error("L'email est requis");
+    return;
+  }
+  if (!validator.isEmail(formData.email)) {
+    toast.error('Veuillez entrer un email valide');
+    return;
+  }
+  if (!formData.phone) {
+    toast.error('Le numéro de téléphone est requis');
+    return;
+  }
+  if (!validatePhone(formData.phone)) {
+    toast.error('Le numéro de téléphone doit être au format +216 suivi de 8 chiffres (ex: +21612345678)');
+    return;
+  }
+  if (!formData.address) {
+    toast.error("L'adresse est requise");
+    return;
+  }
 
-    await onSubmit();
-  };
+  await onSubmit();
+};
 
   return (
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto my-4 mx-4">
@@ -106,7 +107,7 @@ const SubsidiaryForm: React.FC<SubsidiaryFormProps> = ({
             <Input
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="+21658063156"
+              placeholder="+216XXXXXXXX"
               className="h-9 text-sm bg-background border-border"
               required
             />
