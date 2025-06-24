@@ -208,6 +208,7 @@ export function GroupTransportPage() {
             filterOptions={user?.roles.some((r) => r.role.name === 'ADMIN_ENTREPRISE') ? subsidiaryFilterOptions : statusFilterOptions}
             onFilterChange={user?.roles.some((r) => r.role.name === 'ADMIN_ENTREPRISE') ? handleSubsidiaryFilterChange : handleStatusFilterChange}
             isLoading={subsidiariesLoading || loading}
+            fetchRequests={fetchRequests}
           />
         </TabsContent>
        

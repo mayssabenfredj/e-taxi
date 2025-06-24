@@ -3,6 +3,7 @@ import {
   CreateTransportRequestDto,
   GetTransportRequestsQueryDto,
   TransportRequestResponse,
+  TransportStatus,
   UpdateTransportRequestDto,
 } from "@/types/demande";
 
@@ -97,6 +98,26 @@ export class DemandeService {
       data
     );
     return response.data;
+  }
+
+  /**
+   * Update the status of a transport request
+   */
+  async updateTransportRequestStatus(
+    id: string,
+    status: TransportStatus
+  ): Promise<TransportRequestResponse> {
+    try {
+      const response = await apiClient.patch(
+        `/Demande/transport-requests/${id}/status`,
+        { status: status }
+      );
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        `Failed to update transport request status: ${error.message}`
+      );
+    }
   }
 
   /**

@@ -27,6 +27,7 @@ import {
   FileText,
   Car,
   X,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TransportRequestResponse, EmployeeTransportDto, TransportStatus, TransportType, TransportDirection } from '@/types/demande';
@@ -39,6 +40,7 @@ export function TransportRequestDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [request, setRequest] = useState<TransportRequestResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -138,22 +140,16 @@ export function TransportRequestDetails() {
 
   const handleDispatch = () => {
     if (!request || !id) return;
-    if (request.employeeTransports.length > 1) {
-      navigate(`/transport/${id}/group-dispatch`);
-    } else {
-      navigate(`/transport/${id}/dispatch`);
-    }
+    navigate(`/transport/${id}/group-dispatch`);
   };
 
   const handleApprove = async () => {
     if (!request || !id) return;
     try {
-      /*const updatedRequest = await demandeService.updateTransportRequest(id, {
-        ...request,
-        status: TransportStatus.APPROVED,
-      });
-      setRequest(updatedRequest);*/
+      const updatedRequest = await demandeService.updateTransportRequestStatus(id, TransportStatus.APPROVED);
+      setRequest(updatedRequest);
       toast.success('Demande approuvée avec succès');
+      setShowApproveDialog(false);
     } catch (error: any) {
       toast.error(`Erreur lors de l'approbation de la demande : ${error.message || 'Erreur inconnue'}`);
     }
@@ -162,11 +158,8 @@ export function TransportRequestDetails() {
   const handleCancel = async () => {
     if (!request || !id) return;
     try {
-      /*const updatedRequest = await demandeService.updateTransportRequest(id, {
-        ...request,
-        status: TransportStatus.CANCELLED,
-      });*/
-      /*setRequest(updatedRequest);*/
+      const updatedRequest = await demandeService.updateTransportRequestStatus(id, TransportStatus.CANCELLED);
+      setRequest(updatedRequest);
       toast.success('Demande annulée avec succès');
       setShowCancelDialog(false);
     } catch (error: any) {
@@ -240,14 +233,38 @@ export function TransportRequestDetails() {
             </Button>
           )}
           {request.status === TransportStatus.PENDING && (
-            <Button
-              size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white flex-1 sm:flex-none"
-              onClick={handleApprove}
-            >
-              <span className="hidden sm:inline">Approuver</span>
-              <span className="sm:hidden">✓</span>
-            </Button>
+            <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700 text-white flex-1 sm:flex-none"
+                >
+                  <Check className="mr-1 h-3 w-3 sm:hidden" />
+                  <span className="hidden sm:inline">Approuver</span>
+                  <span className="sm:hidden">✓</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="mx-4">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center space-x-2">
+                    <Check className="h-5 w-5 text-green-500" />
+                    <span>Approuver la demande</span>
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Êtes-vous sûr de vouloir approuver cette demande de transport ? Cette action confirmera la demande et permettra son dispatch.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Retour</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleApprove}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Confirmer l'approbation
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
           {(request.status === TransportStatus.APPROVED || request.status === TransportStatus.PENDING) && (
             <Button
@@ -269,7 +286,10 @@ export function TransportRequestDetails() {
               </AlertDialogTrigger>
               <AlertDialogContent className="mx-4">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Annuler la demande</AlertDialogTitle>
+                  <AlertDialogTitle className="flex items-center space-x-2">
+                    <X className="h-5 w-5 text-red-500" />
+                    <span>Annuler la demande</span>
+                  </AlertDialogTitle>
                   <AlertDialogDescription>
                     Êtes-vous sûr de vouloir annuler cette demande de transport ? Cette action est irréversible.
                   </AlertDialogDescription>

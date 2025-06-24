@@ -139,17 +139,21 @@ export const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
   );
 
   return (
-    <TableWithPagination
-      data={subsidiaries}
-      columns={columns}
-      searchPlaceholder="Rechercher une filiale..."
-      take={take}
-      filterOptions={filterOptions}
-      total={total}
-      skip={skip}
-      onPageChange={onPageChange}
-      onFilterChange={onFilterChange}
-      actions={getActions}
-    />
+    <div className="w-full overflow-x-auto">
+      <div className="min-w-[700px] md:min-w-0">
+        <TableWithPagination
+          data={subsidiaries}
+          columns={columns}
+          searchPlaceholder="Rechercher une filiale..."
+          take={take}
+          filterOptions={filterOptions}
+          total={total}
+          skip={skip}
+          onPageChange={onPageChange}
+          onFilterChange={onFilterChange}
+          actions={getActions}
+        />
+      </div>
+    </div>
   );
 };

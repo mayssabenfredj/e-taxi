@@ -140,10 +140,27 @@ export const useEmployees = ({
         users: importedEmployees,
         continueOnError: true,
       };
-      await EmployeeService.createMultipleEmployees(payload);
-      setLocalStatusFilter("all"); // Reset filter to show all employees
-      setRefreshTrigger((prev) => prev + 1); // Trigger re-fetch
-      toast.success(`Importation terminée !`);
+      const result = await EmployeeService.createMultipleEmployees(payload);
+
+      // Affichage du message détaillé
+      if (result?.results) {
+        if (result.results.totalSuccessful > 0) {
+          toast.success(
+            `Importation terminée : ${result.results.totalSuccessful} succès, ${result.results.totalFailed} échec(s)`
+          );
+          setLocalStatusFilter("all");
+          setRefreshTrigger((prev) => prev + 1); // On refetch SEULEMENT si succès
+        } else {
+          toast.error(
+            `Aucun utilisateur importé. ${result.results.totalFailed} échec(s) :\n` +
+              result.results.failed
+                .map((f: any) => `${f.email} : ${f.error}`)
+                .join("\n")
+          );
+        }
+      } else {
+        toast.error("Erreur lors de l'importation.");
+      }
     } catch (error: any) {
       toast.error(
         `Erreur lors de l'importation des employés : ${

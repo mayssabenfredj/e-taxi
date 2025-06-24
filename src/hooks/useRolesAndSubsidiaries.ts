@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { roleService } from "@/services/role.service";
 import SubsidiaryService from "@/services/subsidiarie.service";
-import { EntityStatus, } from "@/types/subsidiary";
+import { EntityStatus } from "@/types/subsidiary";
 import { toast } from "sonner";
 
 export interface Role {
@@ -21,6 +21,12 @@ interface UseRolesAndSubsidiariesResult {
   error: string | null;
 }
 
+// --- Ajout d'un cache mémoire simple ---
+const rolesSubsCache: Record<
+  string,
+  { roles: Role[]; subsidiaries: Subsidiary[] }
+> = {};
+
 export const useRolesAndSubsidiaries = (
   enterpriseId?: string
 ): UseRolesAndSubsidiariesResult => {
@@ -36,6 +42,14 @@ export const useRolesAndSubsidiaries = (
         return;
       }
 
+      // Vérifie le cache
+      if (rolesSubsCache[enterpriseId]) {
+        setRoles(rolesSubsCache[enterpriseId].roles);
+        setSubsidiaries(rolesSubsCache[enterpriseId].subsidiaries);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
         // Fetch roles
@@ -48,20 +62,23 @@ export const useRolesAndSubsidiaries = (
         const filteredRoles = roleData
           .filter((role: any) => allowedRoles.includes(role.name))
           .map((role: any) => ({ id: role.id, name: role.name }));
-        setRoles(filteredRoles);
-
         // Fetch subsidiaries
         const subsidiaryData = await SubsidiaryService.getAllSubsidiaries({
           include: true,
           status: EntityStatus.ACTIVE,
           enterpriseId,
         });
-        setSubsidiaries(
-          subsidiaryData.data.map((sub: any) => ({
-            id: sub.id,
-            name: sub.name,
-          }))
-        );
+        const mappedSubs = subsidiaryData.data.map((sub: any) => ({
+          id: sub.id,
+          name: sub.name,
+        }));
+        // Stocke dans le cache
+        rolesSubsCache[enterpriseId] = {
+          roles: filteredRoles,
+          subsidiaries: mappedSubs,
+        };
+        setRoles(filteredRoles);
+        setSubsidiaries(mappedSubs);
       } catch (err) {
         const errorMessage = "Erreur lors du chargement des rôles ou filiales";
         setError(errorMessage);

@@ -7,7 +7,6 @@ import {
 } from "@/types/employee";
 import apiClient from "./apiClient";
 
-
 class EmployeeService {
   async getAllEmployees(
     query: GetEmployeesPagination
@@ -56,7 +55,6 @@ class EmployeeService {
 
   async createEmployee(data: CreateEmployee): Promise<Employee> {
     try {
-
       // Prepare payload
       const payload: CreateEmployee = {
         ...data,
@@ -151,11 +149,8 @@ class EmployeeService {
     }
   }
 
-  async createMultipleEmployees(
-    data: CreateMultipleUsersDto
-  ): Promise<any> {
+  async createMultipleEmployees(data: CreateMultipleUsersDto): Promise<any> {
     try {
-
       // Prepare payload
       const payload: CreateMultipleUsersDto = {
         users: data.users.map((user) => ({
@@ -187,8 +182,7 @@ class EmployeeService {
       };
 
       const response = await apiClient.post(`/users/bulk`, payload);
-      const employees = response.data;
-    
+      return response.data;
     } catch (error: any) {
       throw new Error(
         error.response?.data?.message ||

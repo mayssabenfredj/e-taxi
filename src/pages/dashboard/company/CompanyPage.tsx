@@ -26,26 +26,6 @@ export function CompanyPage() {
   const [cities, setCities] = useState<City[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch countries, regions, and cities on mount
-  useEffect(() => {
-    const fetchAddressData = async () => {
-      try {
-        setIsLoading(true);
-        const countriesData = await addressService.getCountries();
-        const regionsData = await addressService.getRegions();
-        const citiesData = await addressService.getCities();
-        setCountries(countriesData);
-        setRegions(regionsData);
-        setCities(citiesData);
-      } catch (error) {
-        toast.error('Failed to load address data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAddressData();
-  }, []);
-
   // Helper pour convertir Address en AddressDto
   function toAddressDto(address: Address): AddressDto {
     const { id, createdAt, updatedAt, deletedAt, city, region, country, ...rest } = address;
@@ -248,6 +228,27 @@ export function CompanyPage() {
         : null
     );
   };
+
+  useEffect(() => {
+    if (isEditing && countries.length === 0) {
+      const fetchAddressData = async () => {
+        try {
+          setIsLoading(true);
+          const countriesData = await addressService.getCountries();
+          const regionsData = await addressService.getRegions();
+          const citiesData = await addressService.getCities();
+          setCountries(countriesData);
+          setRegions(regionsData);
+          setCities(citiesData);
+        } catch (error) {
+          toast.error('Failed to load address data');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchAddressData();
+    }
+  }, [isEditing]);
 
   if (!company) {
     return (
