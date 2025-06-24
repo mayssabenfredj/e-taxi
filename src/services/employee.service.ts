@@ -17,7 +17,6 @@ class EmployeeService {
         params: query,
       });
 
-      console.log("response", response.data);
       const { data, meta } = response.data;
       const transformedData: Employee[] = data.map((item: any) => ({
         ...item,
@@ -105,10 +104,8 @@ class EmployeeService {
   async deleteEmployee(id: string) {
     try {
       const response = await apiClient.delete(`/users/${id}`);
-      console.log("response", response);
       return response;
     } catch (error: any) {
-      console.error("error", error);
       throw new Error(
         error.response?.data?.message || "Failed to delete employee"
       );
@@ -117,9 +114,7 @@ class EmployeeService {
 
   async updateEmployee(id: string, data: UpdateEmployee) {
     try {
-      console.log("data", data);
       const response = await apiClient.put(`/users/${id}`, data);
-      console.log("response", response);
       const employee = response.data;
       return {
         ...employee,
@@ -141,7 +136,6 @@ class EmployeeService {
         enabled,
       });
 
-      console.log("response update status ", response);
       const employee = response.data;
       return {
         ...employee,

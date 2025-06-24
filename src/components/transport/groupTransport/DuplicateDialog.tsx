@@ -33,7 +33,6 @@ export function DuplicateDialog({
   setSelectedDates,
   onDuplicateSuccess,
 }: DuplicateDialogProps) {
-  console.log("Selected Request", selectedRequest);
 
   const handleDateSelect = (dates: Date[] | undefined) => {
     if (dates) {

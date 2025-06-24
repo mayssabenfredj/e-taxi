@@ -107,7 +107,6 @@ export function RequestsTab({
       toast.success('Demande annulée avec succès');
       return true;
     } catch (error) {
-      console.error('Error cancelling request:', error);
       toast.error("Échec de l'annulation de la demande de transport");
       return false;
     }
@@ -162,7 +161,6 @@ export function RequestsTab({
 
     // Handle undefined or invalid status
     if (!status || !variants[status]) {
-      console.warn(`Invalid or undefined status: ${status}`);
       return (
         <Badge variant="secondary" className="bg-gray-200 text-gray-800">
           Inconnu
@@ -183,7 +181,6 @@ export function RequestsTab({
       header: 'Demandeur',
       accessor: 'requestedBy' as string,
       render: (request: TransportRequestResponse) => (
-        console.log('***********', request),
         (
           <div>
             <div className="font-medium">

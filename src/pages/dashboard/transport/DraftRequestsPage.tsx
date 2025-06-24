@@ -105,7 +105,7 @@ export function DraftRequestsPage() {
     if (draft.type === 'individual') {
       navigate('/transport/create', { state: { draftId: draft.id } });
     } else {
-      navigate('/transportcreate-transport', { state: { draftId: draft.id } });
+      navigate('/transport/create-transport', { state: { draftId: draft.id } });
     }
   };
 
@@ -123,7 +123,6 @@ export function DraftRequestsPage() {
       toast.error('Brouillon introuvable dans le stockage local');
     }
   } catch (error) {
-    console.error('Erreur lors de la suppression du brouillon:', error);
     toast.error('Erreur lors de la suppression du brouillon');
   }
 };
@@ -139,7 +138,6 @@ const handleDeleteDispatchDraft = (draft: DispatchDraft) => {
       toast.error('Brouillon de dispatch introuvable dans le stockage local');
     }
   } catch (error) {
-    console.error('Erreur lors de la suppression du brouillon de dispatch:', error);
     toast.error('Erreur lors de la suppression du brouillon de dispatch');
   }
 };
