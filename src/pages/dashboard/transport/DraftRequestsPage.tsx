@@ -301,8 +301,8 @@ const handleDeleteDispatchDraft = (draft: DispatchDraft) => {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate('/transport')}
-        >
+          onClick={() => navigate(-1)}>
+        
           <ArrowLeft className="h-4 w-4 mr-1" />
           Retour
         </Button>

@@ -11,6 +11,7 @@ import { EmployeeDialogs } from '@/components/employee/listPage/EmployeeDialogs'
 import { useEmployees } from '@/hooks/useEmployees';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateEmployee, Employee } from '@/types/employee';
+import { useRolesAndSubsidiaries } from '@/hooks/useRolesAndSubsidiaries';
 
 export function EmployeesPage() {
   const navigate = useNavigate();
@@ -36,6 +37,8 @@ export function EmployeesPage() {
     skip,
     take,
   });
+
+  const { roles, subsidiaries, loading: loadingRolesSubs } = useRolesAndSubsidiaries(enterpriseId);
 
   const handleEmployeeAdded = async (employeeData: CreateEmployee) => {
     try {
@@ -96,22 +99,22 @@ export function EmployeesPage() {
   return (
     <div className="space-y-6">
       {loading && <div>Chargement...</div>}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
         <div className="flex items-center space-x-2">
           <Users className="h-6 w-6 text-etaxi-yellow" />
           <h2 className="text-2xl font-bold">Gestion des employés</h2>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-col md:flex-row gap-2 md:gap-2 w-full md:w-auto">
           <Button
             variant="outline"
-            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 w-full md:w-auto"
             onClick={() => setCsvImportOpen(true)}
           >
             <Upload className="mr-2 h-4 w-4" />
             Importer CSV
           </Button>
           <Button
-            className="bg-etaxi-yellow hover:bg-yellow-500 text-black"
+            className="bg-etaxi-yellow hover:bg-yellow-500 text-black w-full md:w-auto"
             onClick={() => setAddEmployeeOpen(true)}
           >
             <Plus className="mr-2 h-4 w-4" />
@@ -131,6 +134,9 @@ export function EmployeesPage() {
         setStatusFilter={setEmployeeStatusFilter} // Use renamed setter
         clearFilters={clearFilters}
         hasActiveFilters={roleFilter !== 'all' || subsidiaryFilter !== 'all' || employeeStatusFilter !== 'all'}
+        roles={roles}
+        subsidiaries={subsidiaries}
+        loading={loadingRolesSubs}
       />
 
       <EmployeeTable

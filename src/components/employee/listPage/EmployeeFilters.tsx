@@ -16,6 +16,9 @@ interface EmployeeFiltersProps {
   setStatusFilter: (value: string) => void;
   clearFilters: () => void;
   hasActiveFilters: boolean;
+  roles: { id: string; name: string }[];
+  subsidiaries: { id: string; name: string }[];
+  loading: boolean;
 }
 
 export const EmployeeFilters: React.FC<EmployeeFiltersProps> = ({
@@ -27,9 +30,11 @@ export const EmployeeFilters: React.FC<EmployeeFiltersProps> = ({
   setStatusFilter,
   clearFilters,
   hasActiveFilters,
+  roles,
+  subsidiaries,
+  loading,
 }) => {
   const { user } = useAuth();
-  const { roles, subsidiaries, loading } = useRolesAndSubsidiaries(user?.enterpriseId);
   const statuses = Object.values(UserStatus); // Get all enum values: ['ENABLED', 'DISABLED']
 
   return (

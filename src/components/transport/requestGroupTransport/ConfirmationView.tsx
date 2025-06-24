@@ -100,7 +100,7 @@ export function ConfirmationView({
                   </dl>
                 </CardContent>
               </Card>
-              <Card>
+              {/*<Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center justify-between text-base">
                     <span>Passagers</span>
@@ -118,26 +118,30 @@ export function ConfirmationView({
                     </div>
                   ))}
                 </CardContent>
-              </Card>
+              </Card>*/}
             </div>
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center space-x-2">
                   <Route className="h-4 w-4 text-etaxi-yellow" />
-                  <span>Détail des trajets et estimation</span>
+                    {/*<span>Détail des trajets et estimation</span>*/}
+                                        <span>Détail des trajets </span>
+
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start space-x-3 mb-4">
+                {/*<div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800 flex items-start space-x-3 mb-4">
                   <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5" />
-                  <div>
+                    <div>
                     <p className="font-medium text-blue-800 dark:text-blue-300">Estimation des trajets</p>
                     <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
                       Les prix et durées affichés sont des estimations et peuvent varier en fonction des conditions de circulation.
                     </p>
                   </div>
                 </div>
-                <h4 className="font-medium mb-2">Estimations individuelles</h4>
+                  <h4 className="font-medium mb-2">Estimations individuelles</h4>*/}
+                                  <h4 className="font-medium mb-2">Passagers</h4>
+
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -145,9 +149,9 @@ export function ConfirmationView({
                       <TableHead>Passager</TableHead>
                       <TableHead>Départ</TableHead>
                       <TableHead>Arrivée</TableHead>
-                      <TableHead>Distance</TableHead>
+                      {/*<TableHead>Distance</TableHead>
                       <TableHead>Durée</TableHead>
-                      <TableHead>Prix</TableHead>
+                      <TableHead>Prix</TableHead>*/}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -178,26 +182,26 @@ export function ConfirmationView({
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{routeEstimations[idx]?.distance || '-'}</TableCell>
+                        {/*<TableCell>{routeEstimations[idx]?.distance || '-'}</TableCell>
                         <TableCell>{routeEstimations[idx]?.duration || '-'}</TableCell>
                         <TableCell>
                           <span className="font-medium text-etaxi-yellow">
                             {routeEstimations[idx]?.price.toFixed(2) || '0.00'} TND
                           </span>
-                        </TableCell>
+                        </TableCell>*/}
                       </TableRow>
                     ))}
-                    <TableRow>
+                      {/*<TableRow>
                       <TableCell colSpan={6} className="text-right font-bold">
                         Total individuel
                       </TableCell>
                       <TableCell className="font-bold text-etaxi-yellow">
                         {routeEstimations.reduce((sum, est) => sum + est.price, 0).toFixed(2)} TND
                       </TableCell>
-                    </TableRow>
+                    </TableRow>*/}
                   </TableBody>
                 </Table>
-                <h4 className="font-medium mt-4 mb-2">Trajet groupé</h4>
+                  {/*<h4 className="font-medium mt-4 mb-2">Trajet groupé</h4>
                 <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
                   {groupRoute ? (
                     <>
@@ -235,10 +239,10 @@ export function ConfirmationView({
                   ) : (
                     <p className="text-sm text-red-500">Impossible de calculer le trajet groupé</p>
                   )}
-                </div>
+                </div>*/}
               </CardContent>
-            </Card>
-            <Card>
+           </Card>
+             {/*<Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center space-x-2">
                   <Euro className="h-4 w-4 text-etaxi-yellow" />
@@ -264,7 +268,7 @@ export function ConfirmationView({
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </Card>*/}
             <Card className="bg-muted/30">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center space-x-2">

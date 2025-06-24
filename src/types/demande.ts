@@ -35,8 +35,6 @@ export enum AddressType {
   CUSTOM = "CUSTOM",
 }
 
-
-
 export interface EmployeeTransportDto {
   employeeId: string;
   note?: string;
@@ -85,25 +83,6 @@ export interface RequestedByDto {
   lastName?: string | null;
 }
 
-export interface EmployeeTransportDto {
-  id: string;
-  transportRequestId: string;
-  employeeId: string;
-  note?: string | null;
-  startTime: string;
-  estimatedArrival?: string | null;
-  actualArrival?: string | null;
-  status: TransportStatus;
-  departure?: AddressDto;
-  arrival?: AddressDto;
-  rideId?: string | null;
-  virtualTaxiId?: string | null;
-  employee?: Employee;
-  createdAt: string;
-  updatedAt: string;
-
-}
-
 export interface TransportRequestResponse {
   id: string;
   reference?: string;
@@ -143,7 +122,7 @@ export interface TransportHistory {
   id: string;
   requestId: string;
   reference: string;
-  type: "group";
+  type: "group" | "individual";
   requestedBy: string;
   passengerCount: number;
   departureLocation: string;
@@ -219,6 +198,7 @@ export interface DraftData {
   note: string;
   isHomeToWorkTrip: boolean;
   lastModified: string;
+  isGroupTransport?: boolean;
 }
 
 export interface UpdateTransportRequestDto {

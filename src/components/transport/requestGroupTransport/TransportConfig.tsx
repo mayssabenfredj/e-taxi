@@ -164,7 +164,7 @@ export function TransportConfig({
               <div className="flex flex-col">
                 <Calendar
                   mode="multiple"
-                  selected={recurringDates.map((rd) => rd.date)}
+                  selected={recurringDates.map((rd) => new Date(rd.date))}
                   onSelect={handleRecurringDateChange}
                   className="rounded-md border text-sm"
                   disabled={(date) => date < new Date()}

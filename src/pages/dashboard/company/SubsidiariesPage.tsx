@@ -74,13 +74,12 @@ export function SubsidariesPage() {
     fetchManagers();
   }, [enterpriseId]);
 
-  // Fetch subsidiaries with pagination and filters
-  const fetchSubsidiaries = useCallback(async () => {
+  // Déclare la fonction ici, dans le composant
+  const fetchSubsidiaries = async () => {
     if (!enterpriseId) {
       setLoading(false);
       return;
     }
-
     try {
       setLoading(true);
       const query = {
@@ -121,11 +120,12 @@ export function SubsidariesPage() {
     } finally {
       setLoading(false);
     }
-  }, [enterpriseId, skip, take, nameFilter, statusFilter, managers]);
+  };
 
+  // Appelle la fonction dans le useEffect, avec les vraies dépendances
   useEffect(() => {
     fetchSubsidiaries();
-  }, [fetchSubsidiaries]);
+  }, [enterpriseId, skip, take, nameFilter, statusFilter]);
 
   const handlePageChange = (newSkip: number, newTake: number) => {
     setSkip(newSkip);

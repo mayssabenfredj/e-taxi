@@ -159,6 +159,8 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
   );
 
   return (
+     <div className="w-full overflow-x-auto">
+      <div className="min-w-[700px] md:min-w-0">
     <TableWithPagination
       data={employees}
       columns={columns}
@@ -172,6 +174,8 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
       onRowAction={(employee) => navigate(`/employees/${employee.id}`)}
       actions={getActions}
       emptyMessage="Aucun employé trouvé"
-    />
+        />
+      </div>
+      </div>
   );
 };

@@ -15,6 +15,7 @@ import { CreateTransportRequestDto, TransportType, SelectedPassenger, RecurringD
 import { ConfirmationView } from '@/components/transport/requestGroupTransport/ConfirmationView';
 import { CreateEmployee, Employee } from '@/types/employee';
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
+import { startOfDay } from 'date-fns';
 
 export function CreateGroupTransportRequest() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export function CreateGroupTransportRequest() {
 
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [selectedPassengers, setSelectedPassengers] = useState<SelectedPassenger[]>([]);
-  const [transportType, setTransportType] = useState<'public' | 'private'>('public');
+  const [transportType, setTransportType] = useState<'public' | 'private'>('private');
   const [scheduledDate, setScheduledDate] = useState<Date>(new Date());
   const [scheduledTime, setScheduledTime] = useState('09:00');
   const [isRecurring, setIsRecurring] = useState(false);
@@ -43,7 +44,6 @@ export function CreateGroupTransportRequest() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [groupRoute, setGroupRoute] = useState<GroupRoute | null>(null);
 
-  // Supprimez l'état googleMapsLoaded et l'effet useEffect lié au Loader
 
   // Fetch employees using useEmployees hook
   const { employees, total, loading, importEmployees } = useEmployees({
@@ -111,42 +111,52 @@ export function CreateGroupTransportRequest() {
   }, [selectedEmployees, selectedPassengers, transportType, scheduledDate, scheduledTime, isRecurring, recurringDates, note, isHomeToWorkTrip]);
 
   // Load draft data
-  useEffect(() => {
-    if (location.state?.draftId || location.state?.draftData) {
-      const draftData = location.state.draftData as DraftData;
-      if (draftData) {
+ useEffect(() => {
+  if (location.state?.draftId || location.state?.draftData) {
+    const draftData = location.state.draftData as DraftData;
+    if (draftData) {
+      setSelectedEmployees(draftData.selectedEmployees || []);
+      setSelectedPassengers(draftData.selectedPassengers || []);
+      setTransportType(draftData.transportType || 'private');
+      setScheduledDate(draftData.scheduledDate ? new Date(draftData.scheduledDate) : new Date());
+      setScheduledTime(draftData.scheduledTime || '09:00');
+      setIsRecurring(draftData.isRecurring || false);
+      setRecurringDates(
+        draftData.recurringDates?.map((rd) => ({
+          date: new Date(rd.date), // Assurez-vous que c'est bien un objet Date
+          time: rd.time,
+        })) || []
+      );
+      setNote(draftData.note || '');
+      setIsHomeToWorkTrip(draftData.isHomeToWorkTrip !== undefined ? draftData.isHomeToWorkTrip : true);
+      toast.info('Brouillon chargé');
+    }
+  } else {
+    const savedDraft = localStorage.getItem('groupTransportDraft');
+    if (savedDraft) {
+      try {
+        const draftData = JSON.parse(savedDraft) as DraftData;
         setSelectedEmployees(draftData.selectedEmployees || []);
         setSelectedPassengers(draftData.selectedPassengers || []);
-        setTransportType(draftData.transportType || 'public');
+        setTransportType(draftData.transportType || 'private');
         setScheduledDate(draftData.scheduledDate ? new Date(draftData.scheduledDate) : new Date());
         setScheduledTime(draftData.scheduledTime || '09:00');
         setIsRecurring(draftData.isRecurring || false);
-        setRecurringDates(draftData.recurringDates || []);
+        setRecurringDates(
+          draftData.recurringDates?.map((rd) => ({
+            date: new Date(rd.date), // Assurez-vous que c'est bien un objet Date
+            time: rd.time,
+          })) || []
+        );
         setNote(draftData.note || '');
         setIsHomeToWorkTrip(draftData.isHomeToWorkTrip !== undefined ? draftData.isHomeToWorkTrip : true);
-        toast.info('Brouillon chargé');
-      }
-    } else {
-      const savedDraft = localStorage.getItem('groupTransportDraft');
-      if (savedDraft) {
-        try {
-          const draftData = JSON.parse(savedDraft) as DraftData;
-          setSelectedEmployees(draftData.selectedEmployees || []);
-          setSelectedPassengers(draftData.selectedPassengers || []);
-          setTransportType(draftData.transportType || 'public');
-          setScheduledDate(draftData.scheduledDate ? new Date(draftData.scheduledDate) : new Date());
-          setScheduledTime(draftData.scheduledTime || '09:00');
-          setIsRecurring(draftData.isRecurring || false);
-          setRecurringDates(draftData.recurringDates || []);
-          setNote(draftData.note || '');
-          setIsHomeToWorkTrip(draftData.isHomeToWorkTrip !== undefined ? draftData.isHomeToWorkTrip : true);
-          toast.info('Brouillon automatiquement restauré');
-        } catch (error) {
-          console.error('Error loading draft:', error);
-        }
+        toast.info('Brouillon automatiquement restauré');
+      } catch (error) {
+        console.error('Error loading draft:', error);
       }
     }
-  }, [location.state]);
+  }
+}, [location.state]);
 
   useEffect(() => {
     saveDraftData();
@@ -200,18 +210,18 @@ export function CreateGroupTransportRequest() {
     saveDraftData();
   };
 
-  const handleRecurringDateChange = (dates: Date[] | undefined) => {
-    if (dates) {
-      const newRecurringDates = dates.map((date) => ({
-        date,
-        time: scheduledTime,
-      }));
-      setRecurringDates(newRecurringDates);
-    } else {
-      setRecurringDates([]);
-    }
-    saveDraftData();
-  };
+ const handleRecurringDateChange = (dates: Date[] | undefined) => {
+  if (dates) {
+    const newRecurringDates = dates.map((date) => ({
+      date: startOfDay(date), // Normaliser la date à minuit
+      time: scheduledTime, // Utiliser l'heure actuelle
+    }));
+    setRecurringDates(newRecurringDates);
+  } else {
+    setRecurringDates([]);
+  }
+  saveDraftData();
+};
 
   const updateRecurringTime = (index: number, time: string) => {
     setRecurringDates((prev) => prev.map((item, i) => (i === index ? { ...item, time } : item)));
@@ -224,139 +234,31 @@ export function CreateGroupTransportRequest() {
     navigate('/transport/drafts');
   };
 
-  const calculateRoutes = async () => {
-    if (!isGoogleMapsLoaded || !window.google) {
-      toast.error('Google Maps non chargé');
-      return;
-    }
-
-    setIsCalculating(true);
-
-    try {
-      const directionsService = new window.google.maps.DirectionsService();
-
-      // Estimations individuelles
-      const estimations: RouteEstimation[] = await Promise.all(
-        selectedPassengers.map(async (passenger) => {
-          const departureAddress = passenger.addresses?.find(
-            (addr) => addr.address.id === passenger.departureAddressId
-          )?.address.formattedAddress;
-          const arrivalAddress = passenger.addresses?.find(
-            (addr) => addr.address.id === passenger.arrivalAddressId
-          )?.address.formattedAddress;
-
-          if (!departureAddress || !arrivalAddress) {
-            return {
-              distance: '-',
-              duration: '-',
-              price: 0,
-            };
-          }
-
-          const individualRequest: google.maps.DirectionsRequest = {
-            origin: departureAddress,
-            destination: arrivalAddress,
-            travelMode: google.maps.TravelMode.DRIVING,
-          };
-
-          const individualDirectionsResponse = await directionsService.route(individualRequest);
-          const route = individualDirectionsResponse.routes[0];
-          const leg = route.legs[0];
-          const distanceKm = (leg.distance?.value || 0) / 1000;
-          const durationSeconds = leg.duration?.value || 0;
-          const durationMinutes = Math.round(durationSeconds / 60);
-
-          const basePrice = 0.9;
-          const pricePerKm = 0.6;
-          const pricePerMinute = 0.15;
-          const price = basePrice + distanceKm * pricePerKm + durationMinutes * pricePerMinute;
-
-          return {
-            distance: `${distanceKm.toFixed(1)} km`,
-            duration: `${Math.floor(durationMinutes / 60)}h ${durationMinutes % 60}min`,
-            price: parseFloat(price.toFixed(2)),
-            departureAddress,
-            arrivalAddress,
-          };
-        })
-      );
-
-      setRouteEstimations(estimations);
-
-      // Calcul du trajet groupé
-      const addresses = selectedPassengers
-        .map((passenger) => {
-          const addressId = isHomeToWorkTrip ? passenger.departureAddressId : passenger.arrivalAddressId;
-          return passenger.addresses?.find((addr) => addr.address.id === addressId)?.address.formattedAddress;
-        })
-        .filter((address): address is string => !!address);
-
-      const workAddress = selectedPassengers[0]?.addresses?.find(
-        (addr) => addr.address.addressType === 'OFFICE'
-      )?.address.formattedAddress;
-
-      if (!workAddress || addresses.length === 0) {
-        throw new Error('Adresses non valides');
-      }
-
-      const waypoints = isHomeToWorkTrip
-        ? addresses.slice(1).map((address) => ({ location: address, stopover: true }))
-        : addresses.slice(0, -1).map((address) => ({ location: address, stopover: true }));
-
-      const origin = isHomeToWorkTrip ? addresses[0] : workAddress;
-      const destination = isHomeToWorkTrip ? workAddress : addresses[addresses.length - 1];
-
-      const request: google.maps.DirectionsRequest = {
-        origin,
-        destination,
-        waypoints,
-        optimizeWaypoints: true,
-        travelMode: google.maps.TravelMode.DRIVING,
-      };
-
-      const directionsResponse = await directionsService.route(request);
-      const groupRouteResponse = directionsResponse.routes[0];
-      const totalDistanceKm = groupRouteResponse.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0) / 1000;
-      const totalDurationSeconds = groupRouteResponse.legs.reduce((acc, leg) => acc + (leg.duration?.value || 0), 0);
-      const totalDurationMinutes = Math.round(totalDurationSeconds / 60);
-
-      const basePrice = 0.9;
-      const pricePerKm = 0.6;
-      const pricePerMinute = 0.15;
-      const groupPrice = basePrice + totalDistanceKm * pricePerKm + totalDurationMinutes * pricePerMinute;
-
-      const points: string[] = [origin];
-      if (waypoints.length > 0) {
-        const optimizedOrder = directionsResponse.routes[0].waypoint_order;
-        const orderedWaypoints = optimizedOrder.map((index) => waypoints[index].location);
-        points.push(...orderedWaypoints);
-      }
-      points.push(destination);
-
-      setGroupRoute({
-        totalDistance: `${totalDistanceKm.toFixed(1)} km`,
-        totalDuration: `${Math.floor(totalDurationMinutes / 60)}h ${totalDurationMinutes % 60}min`,
-        points,
-        origin,
-        destination,
-      });
-
-      setTotalPrice(parseFloat(groupPrice.toFixed(2)));
-      setIsCalculating(false);
-    } catch (error: any) {
-      toast.error(`Erreur de calcul d'itinéraire: ${error.message || error.status || 'inconnue'}`);
-      setRouteEstimations(
-        selectedPassengers.map(() => ({
-          distance: '-',
-          duration: '-',
-          price: 0,
-        }))
-      );
-      setGroupRoute(null);
-      setTotalPrice(0);
-      setIsCalculating(false);
-    }
-  };
+  // const calculateRoutes = async () => {
+  //   if (!isGoogleMapsLoaded || !window.google) {
+  //     toast.error('Google Maps non chargé');
+  //     return;
+  //   }
+  //
+  //   setIsCalculating(true);
+  //
+  //   try {
+  //     const directionsService = new window.google.maps.DirectionsService();
+  //     // ... tout le code de calcul ...
+  //   } catch (error: any) {
+  //     toast.error(`Erreur de calcul d'itinéraire: ${error.message || error.status || 'inconnue'}`);
+  //     setRouteEstimations(
+  //       selectedPassengers.map(() => ({
+  //         distance: '-',
+  //         duration: '-',
+  //         price: 0,
+  //       }))
+  //     );
+  //     setGroupRoute(null);
+  //     setTotalPrice(0);
+  //     setIsCalculating(false);
+  //   }
+  // };
 
   const handleSubmit = async () => {
     if (selectedEmployees.length === 0) {
@@ -408,7 +310,12 @@ export function CreateGroupTransportRequest() {
 
       localStorage.removeItem('groupTransportDraft');
       toast.success('Demande de transport de groupe créée avec succès');
-      navigate('/transport/group');
+      // Redirection selon le nombre de passagers
+      if (requestData.employeeTransports.length === 1) {
+        navigate('/transport/individual');
+      } else {
+        navigate('/transport/group');
+      }
     } catch (error) {
       toast.error('Erreur lors de la création de la demande de transport');
     }
@@ -454,7 +361,7 @@ export function CreateGroupTransportRequest() {
       return;
     }
     setShowConfirmation(true);
-    calculateRoutes();
+    // calculateRoutes();
   };
 
   const steps = [{ name: 'Configuration' }, { name: 'Confirmation' }];
@@ -467,7 +374,7 @@ export function CreateGroupTransportRequest() {
     <div className="space-y-4 max-w-7xl">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" onClick={() => navigate('/transport/group')}>
+          <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-1" />
             Retour
           </Button>

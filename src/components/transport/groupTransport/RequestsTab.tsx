@@ -20,8 +20,6 @@ import { demandeService } from '@/services/demande.service';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 
-
-
 interface RequestsTabProps {
   requests: TransportRequestResponse[];
   skip: number;
@@ -31,9 +29,10 @@ interface RequestsTabProps {
   setTake: (take: number) => void;
   setSelectedRequest: (request: TransportRequestResponse | null) => void;
   setDuplicateDialogOpen: (open: boolean) => void;
-  filterOptions: { label: string; value: string | null }[]; // Added filterOptions
-  onFilterChange: (value: string | null) => void; // Added onFilterChange
-  isLoading: boolean; // Added isLoading
+  filterOptions: { label: string; value: string | null }[];
+  onFilterChange: (value: string | null) => void;
+  isLoading: boolean;
+  fetchRequests: (resetPagination?: boolean) => Promise<void>;
 }
 
 export function RequestsTab({
@@ -48,6 +47,7 @@ export function RequestsTab({
   filterOptions,
   onFilterChange,
   isLoading,
+  fetchRequests,
 }: RequestsTabProps) {
   const navigate = useNavigate();
 
@@ -61,10 +61,6 @@ export function RequestsTab({
   };
 
   const handleDispatchRequest = (request: TransportRequestResponse) => {
-    /*if (request.status !== TransportStatus.APPROVED) {
-      toast.error('Seules les demandes approuvées peuvent être dispatchées');
-      return;
-    }*/
     navigate(`/transport/${request.id}/group-dispatch`);
   };
 
@@ -86,25 +82,13 @@ export function RequestsTab({
     }
 
     try {
-      // Fetch the existing request to get its full details
-      const existingRequest = await demandeService.getTransportRequestById(
-        request.id
+      await demandeService.updateTransportRequestStatus(
+        request.id,
+        TransportStatus.CANCELLED
       );
 
-      // Update the request status to CANCELLED
-      const updatedRequest: TransportRequestResponse = {
-        ...existingRequest,
-        status: TransportStatus.CANCELLED,
-      };
-
-      // Update the request via API (assuming updateTransportRequest exists)
-      /*await demandeService.updateTransportRequest({
-        id: updatedRequest.id,
-        status: updatedRequest.status,
-        employeeTransports: updatedRequest.employeeTransports || [],
-      });*/
-
       toast.success('Demande annulée avec succès');
+      await fetchRequests(true);
       return true;
     } catch (error) {
       toast.error("Échec de l'annulation de la demande de transport");
@@ -159,7 +143,6 @@ export function RequestsTab({
       },
     };
 
-    // Handle undefined or invalid status
     if (!status || !variants[status]) {
       return (
         <Badge variant="secondary" className="bg-gray-200 text-gray-800">
@@ -181,16 +164,14 @@ export function RequestsTab({
       header: 'Demandeur',
       accessor: 'requestedBy' as string,
       render: (request: TransportRequestResponse) => (
-        (
-          <div>
-            <div className="font-medium">
-              {request.requestedBy?.fullName || 'Inconnu'}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              <Badge variant="secondary">Groupe</Badge>
-            </div>
+        <div>
+          <div className="font-medium">
+            {request.requestedBy?.fullName || 'Inconnu'}
           </div>
-        )
+          <div className="text-sm text-muted-foreground">
+            <Badge variant="secondary">Groupe</Badge>
+          </div>
+        </div>
       ),
       sortable: true,
       filterable: true,
@@ -221,84 +202,94 @@ export function RequestsTab({
     },
   ];
 
-  const requestActions = (request: TransportRequestResponse) => (
-    <div className="flex items-center space-x-2">
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleViewRequest(request);
-        }}
-        title="Voir les détails"
-      >
-        <Eye className="h-4 w-4" />
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDuplicateRequest(request);
-        }}
-        title="Dupliquer"
-      >
-        <Copy className="h-4 w-4" />
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDispatchRequest(request);
-        }}
-        title="Dispatcher"
-        className="text-etaxi-yellow hover:text-yellow-600"
-      >
-        <Navigation className="h-4 w-4" />
-      </Button>
-      {(request.status === TransportStatus.PENDING ||
-        request.status === TransportStatus.APPROVED) && (
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={(e) => e.stopPropagation()}
-              title="Annuler"
-              className="text-red-500 hover:text-red-700"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center space-x-2">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
-                <span>Annuler la demande</span>
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Êtes-vous sûr de vouloir annuler cette demande de transport de groupe ?
-                Cette action est irréversible et tous les passagers seront notifiés.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Retour</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => handleCancelRequest(request)}
-                className="bg-red-600 hover:bg-red-700"
+  const requestActions = (request: TransportRequestResponse) => {
+    const scheduledTime = request.scheduledDate ? new Date(request.scheduledDate).getTime() : null;
+    const currentTime = new Date().getTime();
+    const thirtyMinutesInMs = 30 * 60 * 1000;
+    const canCancel =
+      request.scheduledDate &&
+      (request.status === TransportStatus.PENDING || request.status === TransportStatus.APPROVED) &&
+      scheduledTime &&
+      currentTime < scheduledTime - thirtyMinutesInMs;
+
+    return (
+      <div className="flex items-center space-x-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleViewRequest(request);
+          }}
+          title="Voir les détails"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDuplicateRequest(request);
+          }}
+          title="Dupliquer"
+        >
+          <Copy className="h-4 w-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDispatchRequest(request);
+          }}
+          title="Dispatcher"
+          className="text-etaxi-yellow hover:text-yellow-600"
+        >
+          <Navigation className="h-4 w-4" />
+        </Button>
+        {canCancel && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={(e) => e.stopPropagation()}
+                title="Annuler"
+                className="text-red-500 hover:text-red-700"
               >
-                Confirmer l'annulation
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-    </div>
-  );
+                <X className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center space-x-2">
+                  <AlertTriangle className="h-5 w-5 text-red-500" />
+                  <span>Annuler la demande</span>
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Êtes-vous sûr de vouloir annuler cette demande de transport de groupe ?
+                  Cette action est irréversible et notifie tous les passagers.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Retour</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => handleCancelRequest(request)}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Confirmer l'annulation
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </div>
+    );
+  };
 
   const handleFilterChange = (value: string) => {
-    onFilterChange(value === 'null' ? null : value); // Convert 'null' string to null
+    onFilterChange(value === 'null' ? null : value);
   };
 
   return (

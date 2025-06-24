@@ -272,7 +272,6 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
     resetState();
     onOpenChange(false);
     
-    toast.success(`${validEmployees.length} employé${validEmployees.length > 1 ? 's' : ''} importé${validEmployees.length > 1 ? 's' : ''} avec succès`);
   };
 
   const resetState = () => {

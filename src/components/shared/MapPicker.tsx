@@ -45,7 +45,6 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
   const autocompleteRef = useRef<HTMLInputElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [marker, setMarker] = useState<google.maps.marker.AdvancedMarkerElement | null>(null);
-  const autocompleteElementRef = useRef<any>(null);
 
   useEffect(() => {
     if (!isGoogleMapsLoaded) {

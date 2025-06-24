@@ -342,7 +342,7 @@ export function GroupTransportDispatchPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/transport`)}
+            onClick={() => navigate(-1)}
             className="flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
