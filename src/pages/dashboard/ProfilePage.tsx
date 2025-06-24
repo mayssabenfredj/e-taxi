@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,26 +9,60 @@ import { useAuth } from '@/contexts/AuthContext';
 import { User, Mail, Phone, MapPin, Building, Save, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { AddressInput } from '@/components/shared/AddressInput';
+import EmployeeAddressesTab from '@/components/employee/detailPage/EmployeeAddressesTab';
+import { Employee, UserAddressDto, UpdateEmployee } from '@/types/employee';
+import EmployeeService from '@/services/employee.service';
 
 export function ProfilePage() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [employee, setEmployee] = useState<Employee | null>(null);
   const [profileData, setProfileData] = useState({
-    fullName: user?.fullName || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
+    fullName: '',
+    email: '',
+    phone: '',
     alternativePhone: '',
-    address: null,
     profileImageUrl: '',
     language: 'fr',
-    timezone: 'Europe/Paris'
+    timezone: 'Europe/Paris',
   });
+  const [addresses, setAddresses] = useState<UserAddressDto[]>([]);
 
-  const handleSave = () => {
-    // Ici vous intégreriez avec votre API
-    toast.success('Profil mis à jour avec succès!');
-    setIsEditing(false);
+  useEffect(() => {
+    if (user?.id) {
+      EmployeeService.getEmployeeById(user.id).then((emp) => {
+        setEmployee(emp);
+        setProfileData({
+          fullName: emp.fullName || '',
+          email: emp.email || '',
+          phone: emp.phone || '',
+          alternativePhone: emp.alternativePhone || '',
+          profileImageUrl: (emp as any).profileImageUrl || '',
+          language: (emp as any).language || 'fr',
+          timezone: (emp as any).timezone || 'Europe/Paris',
+        });
+        setAddresses(emp.addresses || []);
+      });
+    }
+  }, [user?.id]);
+
+  const handleSave = async () => {
+    try {
+      if (!employee) return;
+      await EmployeeService.updateEmployee(employee.id, {
+        ...profileData,
+        addresses,
+      } as any); // addresses n'est pas dans UpdateEmployee, mais on force ici
+      toast.success('Profil mis à jour avec succès!');
+      setIsEditing(false);
+      // Recharger l'employé pour avoir les données à jour
+      const emp = await EmployeeService.getEmployeeById(employee.id);
+      setEmployee(emp);
+      setAddresses(emp.addresses || []);
+    } catch (error) {
+      toast.error('Erreur lors de la mise à jour du profil');
+    }
   };
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,16 +189,6 @@ export function ProfilePage() {
                   />
                 </div>
               </div>
-
-              <div className="md:col-span-2">
-                <AddressInput
-                  label="Adresse"
-                  value={profileData.address}
-                  onChange={(address) => setProfileData(prev => ({ ...prev, address }))}
-                  savedAddresses={[]}
-                  showMapPicker={isEditing}
-                />
-              </div>
             </div>
 
             {isEditing && (
@@ -176,6 +199,23 @@ export function ProfilePage() {
                 <Save className="mr-2 h-4 w-4" />
                 Enregistrer les modifications
               </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Liste des adresses utilisateur */}
+        <Card className="lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Adresses enregistrées</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {employee && (
+              <EmployeeAddressesTab
+                employee={employee}
+                editedEmployee={{ addresses }}
+                setEditedEmployee={(e) => setAddresses((e as any).addresses || [])}
+                isEditing={isEditing}
+              />
             )}
           </CardContent>
         </Card>

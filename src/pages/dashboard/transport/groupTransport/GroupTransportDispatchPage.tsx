@@ -182,7 +182,7 @@ export function GroupTransportDispatchPage() {
       });
     });
 
-    saveDraft(); // Auto-save draft
+    setHasDraftChanges(true);
   };
 
   // Desktop drag and drop handlers
@@ -231,7 +231,7 @@ export function GroupTransportDispatchPage() {
       });
     });
 
-    saveDraft(); // Auto-save draft
+    setHasDraftChanges(true);
   };
 
   const addVirtualTaxi = () => {
@@ -247,7 +247,7 @@ export function GroupTransportDispatchPage() {
     
     setVirtualTaxis(prev => [newTaxi, ...prev]);
     toast.success(`Taxi virtuel #${newTaxiNumber} ajouté`);
-    saveDraft(); // Auto-save draft
+    setHasDraftChanges(true);
   };
 
   const removeVirtualTaxi = (taxiId: string) => {
@@ -264,7 +264,7 @@ export function GroupTransportDispatchPage() {
 
     setVirtualTaxis(prev => prev.filter(t => t.id !== taxiId));
     toast.success('Taxi virtuel supprimé');
-    saveDraft(); // Auto-save draft
+    setHasDraftChanges(true);
   };
 
   const toggleTaxiCollapse = (taxiId: string) => {
@@ -275,7 +275,7 @@ export function GroupTransportDispatchPage() {
           : taxi
       )
     );
-    saveDraft(); // Auto-save draft
+    setHasDraftChanges(true);
   };
 
   const createCourse = async () => {
@@ -312,7 +312,6 @@ export function GroupTransportDispatchPage() {
           )
         );
         
-        saveDraft(); // Save draft before navigating
         setHasDraftChanges(false);
         toast.success(`Course créée avec ${assignedTaxis.length} taxi(s)`);
         navigate('/transport/history');
@@ -325,6 +324,20 @@ export function GroupTransportDispatchPage() {
   };
 
   const allPassengersAssigned = Object.keys(unassignedPassengersByDeparture).length === 0;
+
+  useEffect(() => {
+    if (hasDraftChanges) {
+      const draftData = {
+        transportRequestId: id,
+        taxis: virtualTaxis.filter(taxi => taxi.assignedPassengers.length > 0 || taxi.status !== 'available'),
+        passengerCount: passengers.length,
+        lastModified: new Date().toISOString(),
+        reference: transportRequest?.reference || `TR-${id}`,
+      };
+      localStorage.setItem(`groupDispatchDraft-${id}`, JSON.stringify(draftData));
+    }
+    // eslint-disable-next-line
+  }, [virtualTaxis]);
 
   if (loading) {
     return <div className="text-center py-6">Chargement...</div>;
