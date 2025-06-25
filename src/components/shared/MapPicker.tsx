@@ -16,6 +16,9 @@ interface MapPickerProps {
     address: string;
     coordinates: Coordinates;
     placeId?: string;
+    postalCode?: string;
+    city?: string;
+    region?: string;
   }) => void;
   initialLocation?: Coordinates;
   className?: string;
@@ -37,6 +40,9 @@ export function MapPicker({ onLocationSelect, initialLocation, className, initia
     address: string;
     coordinates: Coordinates;
     placeId?: string;
+    postalCode?: string;
+    city?: string;
+    region?: string;
   } | null>(null);
   const [manualCoords, setManualCoords] = useState({ lat: '', lng: '' });
   const [searchQuery, setSearchQuery] = useState('');
@@ -167,18 +173,33 @@ export function MapPicker({ onLocationSelect, initialLocation, className, initia
     }
   };
 
+  const parseAddressComponents = (components: any[]): { postalCode?: string; city?: string; region?: string } => {
+    let postalCode = '';
+    let city = '';
+    let region = '';
+    components.forEach((component) => {
+      if (component.types.includes('postal_code')) {
+        postalCode = component.long_name;
+      } else if (component.types.includes('locality')) {
+        city = component.long_name;
+      } else if (component.types.includes('administrative_area_level_1')) {
+        region = component.long_name;
+      }
+    });
+    return { postalCode, city, region };
+  };
+
   const handleSuggestionSelect = async (prediction: AutocompletePrediction) => {
     try {
       const service = new google.maps.places.PlacesService(document.createElement('div'));
       service.getDetails(
-        { placeId: prediction.place_id, fields: ['formatted_address', 'geometry', 'place_id'] },
+        { placeId: prediction.place_id, fields: ['formatted_address', 'geometry', 'place_id', 'address_component', 'address_components'] },
         (place, status) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && place && place.geometry?.location) {
             const newCoords = {
               lat: place.geometry.location.lat(),
               lng: place.geometry.location.lng(),
             };
-
             setCoordinates(newCoords);
             setManualCoords({ lat: newCoords.lat.toString(), lng: newCoords.lng.toString() });
             if (map) {
@@ -190,11 +211,14 @@ export function MapPicker({ onLocationSelect, initialLocation, className, initia
             setAddress(place.formatted_address || '');
             setSearchQuery(place.formatted_address || '');
             setSuggestions([]);
-
+            const { postalCode, city, region } = parseAddressComponents(place.address_components || []);
             setSelectedLocation({
               address: place.formatted_address || '',
               coordinates: newCoords,
               placeId: place.place_id,
+              postalCode,
+              city,
+              region,
             });
           } else {
             toast.error("Impossible de récupérer les détails de l'adresse");
@@ -213,16 +237,18 @@ export function MapPicker({ onLocationSelect, initialLocation, className, initia
         location: coords,
         region: 'TN', // Restreindre le géocodage à la Tunisie
       });
-
       if (response.results[0]) {
         const formattedAddress = response.results[0].formatted_address;
         setAddress(formattedAddress);
         setSearchQuery(formattedAddress);
-
+        const { postalCode, city, region } = parseAddressComponents(response.results[0].address_components || []);
         setSelectedLocation({
           address: formattedAddress,
           coordinates: coords,
           placeId: response.results[0].place_id,
+          postalCode,
+          city,
+          region,
         });
       }
     } catch (error) {

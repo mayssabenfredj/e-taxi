@@ -14,7 +14,6 @@ import { CreateEmployee, Employee } from '@/types/employee';
 import { useRolesAndSubsidiaries } from '@/hooks/useRolesAndSubsidiaries';
 
 export function EmployeesPage() {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const enterpriseId = user?.enterpriseId;
 

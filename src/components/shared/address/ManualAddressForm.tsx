@@ -13,7 +13,6 @@ import { toast } from 'sonner';
 import { addressService } from '@/services/address.service';
 import { Address, AddressType, City, Region, Country } from '@/types/addresse';
 
-
 interface ManualAddressFormProps {
   onSubmit: (address: Address) => void;
   initialAddress?: any;
@@ -43,6 +42,15 @@ export function ManualAddressForm({ onSubmit, initialAddress }: ManualAddressFor
         setLoading(true);
         const data = await addressService.getCountries();
         setCountries(data);
+        // Sélectionner Tunisie par défaut si aucun pays n'est sélectionné
+        if (!formData.countryId && !initialAddress) {
+          const tn = data.find(
+            (c) => c.name.toLowerCase() === 'tunisie' || c.name.toLowerCase() === 'tunisia' || c.code === 'TN'
+          );
+          if (tn) {
+            setFormData((prev) => ({ ...prev, countryId: tn.id }));
+          }
+        }
       } catch (error) {
         toast.error('Erreur lors du chargement des pays');
       } finally {
@@ -50,7 +58,7 @@ export function ManualAddressForm({ onSubmit, initialAddress }: ManualAddressFor
       }
     };
     fetchCountries();
-  }, []);
+  }, []); // Dépendance vide pour exécuter une seule fois au montage
 
   // Fetch regions when country changes
   useEffect(() => {
@@ -99,6 +107,7 @@ export function ManualAddressForm({ onSubmit, initialAddress }: ManualAddressFor
     fetchCities();
   }, [formData.regionId]);
 
+  // Initialize form with initialAddress
   useEffect(() => {
     if (initialAddress) {
       setFormData({
@@ -107,12 +116,10 @@ export function ManualAddressForm({ onSubmit, initialAddress }: ManualAddressFor
         buildingNumber: initialAddress.buildingNumber || '',
         complement: initialAddress.complement || '',
         postalCode: initialAddress.postalCode || '',
-        countryId: initialAddress.countryId || 'TN',
+        countryId: initialAddress.countryId || '',
         regionId: initialAddress.regionId || '',
         cityId: initialAddress.cityId || '',
       });
-    } else {
-      setFormData((prev) => ({ ...prev, countryId: 'TN' }));
     }
   }, [initialAddress]);
 
@@ -210,7 +217,9 @@ export function ManualAddressForm({ onSubmit, initialAddress }: ManualAddressFor
             required
           >
             <SelectTrigger className="text-sm h-10">
-              <SelectValue placeholder="Sélectionner un pays" />
+              <SelectValue>
+                {countries.find((country) => country.id === formData.countryId)?.name || 'Sélectionner un pays'}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {loading ? (
