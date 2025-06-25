@@ -20,7 +20,7 @@ export function EmployeesLayout() {
             }
           >
             <Users className="h-4 w-4" />
-            <span>Liste des employés</span>
+            <span>Liste des Collaborateurs</span>
           </NavLink>
           
           <NavLink
@@ -34,7 +34,7 @@ export function EmployeesLayout() {
             }
           >
             <UserPlus className="h-4 w-4" />
-            <span>Demandes d'employés</span>
+            <span>Demandes d'Collaborateurs</span>
           </NavLink>
         </nav>
       </div>

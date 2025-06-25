@@ -114,9 +114,9 @@ export function SubsidariesPage() {
       }));
       setSubsidiaries(mappedData);
       setTotal(total);
-      toast.success('Filiales chargées avec succès!');
+      toast.success('Sous Organisation chargées avec succès!');
     } catch (err: any) {
-      toast.error(`Erreur lors du chargement des filiales: ${err.message || 'Une erreur est survenue.'}`);
+      toast.error(`Erreur lors du chargement des sous organisation: ${err.message || 'Une erreur est survenue.'}`);
     } finally {
       setLoading(false);
     }
@@ -254,7 +254,7 @@ export function SubsidariesPage() {
   if (!enterpriseId) {
     return (
       <div className="p-4 text-center">
-        <p>Vous devez être associé à une entreprise pour gérer les filiales.</p>
+        <p>Vous devez être associé à une organisation  pour gérer les sous organisation.</p>
       </div>
     );
   }

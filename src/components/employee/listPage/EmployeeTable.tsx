@@ -71,7 +71,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
 
   const columns = [
     {
-      header: 'Employé',
+      header: 'Collaborateur',
       accessor: 'fullName' as keyof Employee,
       render: (employee: Employee) => (
         <div>
@@ -164,7 +164,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
     <TableWithPagination
       data={employees}
       columns={columns}
-      searchPlaceholder="Rechercher un employé..."
+      searchPlaceholder="Rechercher un Collaborateur..."
       take={take}
       filterOptions={filterOptions}
       total={total}
@@ -173,7 +173,7 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
       onFilterChange={onFilterChange}
       onRowAction={(employee) => navigate(`/employees/${employee.id}`)}
       actions={getActions}
-      emptyMessage="Aucun employé trouvé"
+      emptyMessage="Aucun Collaborateur trouvé"
         />
       </div>
       </div>

@@ -131,7 +131,7 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <UserPlus className="h-5 w-5 text-etaxi-yellow" />
-            <span>Ajouter un nouvel employé</span>
+            <span>Ajouter un nouvel Collaborateur</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -255,7 +255,7 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">Manager</FormLabel>
                     <div className="text-sm text-muted-foreground">
-                      Cet employé a-t-il des responsabilités managériales ?
+                      Ce Collaborateur a-t-il des responsabilités managériales ?
                     </div>
                   </div>
                   <Switch
@@ -327,7 +327,7 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
               </Button>
               <Button type="submit" className="bg-etaxi-yellow hover:bg-yellow-500 text-black" disabled={loading}>
                 <UserPlus className="mr-2 h-4 w-4" />
-                Ajouter l'employé
+                Ajouter le collaborateur
               </Button>
             </div>
           </form>

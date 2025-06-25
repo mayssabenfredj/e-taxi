@@ -30,7 +30,7 @@ export const useEmployeeDetails = ({
         setEmployee(employeeData);
       } catch (error: any) {
         toast.error(
-          `Erreur lors du chargement de l'employé : ${
+          `Erreur lors du chargement de Collaborateur : ${
             error.message || "Une erreur est survenue."
           }`
         );
@@ -48,11 +48,11 @@ export const useEmployeeDetails = ({
         updatedData
       );
       setEmployee(updatedEmployee);
-      toast.success("Employé mis à jour avec succès !");
+      toast.success("Collaborateur mis à jour avec succès !");
       return updatedEmployee;
     } catch (error: any) {
       toast.error(
-        `Erreur lors de la mise à jour de l'employé : ${
+        `Erreur lors de la mise à jour de Collaborateur : ${
           error.message || "Une erreur est survenue."
         }`
       );

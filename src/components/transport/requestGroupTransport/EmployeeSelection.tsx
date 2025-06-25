@@ -42,7 +42,7 @@ export function EmployeeSelection({
     <Card className="lg:col-span-1">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center justify-between">
-          <span>Sélection des employés</span>
+          <span>Sélection des Collaborateur</span>
           <Button
             variant="outline"
             size="sm"
@@ -70,7 +70,7 @@ export function EmployeeSelection({
               <SelectValue placeholder="Filtrer par filiale" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toutes les filiales</SelectItem>
+              <SelectItem value="all">Toutes les Sous Organisation</SelectItem>
               {subsidiaries.map((subsidiary) => (
                 <SelectItem key={subsidiary.id} value={subsidiary.id}>
                   {subsidiary.name}

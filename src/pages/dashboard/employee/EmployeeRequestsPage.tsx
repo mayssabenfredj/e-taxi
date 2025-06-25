@@ -162,13 +162,13 @@ export function EmployeeRequestsPage() {
     <div className="space-y-6">
       <div className="flex items-center space-x-2">
         <Users className="h-6 w-6 text-etaxi-yellow" />
-        <h2 className="text-2xl font-bold">Demandes d'employés</h2>
+        <h2 className="text-2xl font-bold">Demandes des Collaborateur</h2>
       </div>
 
       <TableWithPagination
         data={requests}
         columns={columns}
-        title="Liste des demandes d'employés"
+        title="Liste des demandes des collaborateurs"
         searchPlaceholder="Rechercher par nom, email ou filiale..."
         actions={getActions}
         filterOptions={filterOptions}

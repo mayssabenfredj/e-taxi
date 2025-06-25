@@ -265,7 +265,7 @@ export function EditTransportRequest() {
 
   const handleAddPassenger = () => {
     if (!newPassenger.fullName || !newPassenger.phone || !newPassenger.employeeId) {
-      toast.error('Veuillez remplir le nom, le téléphone et sélectionner un employé');
+      toast.error('Veuillez remplir le nom, le téléphone et sélectionner un Collaborateur');
       return;
     }
 
@@ -458,7 +458,7 @@ export function EditTransportRequest() {
                           <SelectValue placeholder="Filtrer par filiale..." />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Toutes les filiales</SelectItem>
+                          <SelectItem value="all">Toutes les sous organisation</SelectItem>
                           {subsidiaries.map((s) => (
                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                           ))}
@@ -467,10 +467,10 @@ export function EditTransportRequest() {
                     </div>
                     {/* Employee select dropdown */}
                     <div className="space-y-2">
-                      <Label>Sélectionner un employé</Label>
+                      <Label>Sélectionner un Collaborateur</Label>
                       <Select onValueChange={handleSelectEmployee} value={newPassenger.employeeId || ''}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un employé..." />
+                          <SelectValue placeholder="Sélectionner un Collaborateur..." />
                         </SelectTrigger>
                         <SelectContent>
                           {availableEmployees.map((emp) => (

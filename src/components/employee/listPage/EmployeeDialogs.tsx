@@ -28,12 +28,12 @@ export const EmployeeDialogs: React.FC<EmployeeDialogsProps> = ({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {selectedEmployee?.status === 'ENABLED' ? 'Désactiver' : 'Activer'} l'employé
+              {selectedEmployee?.status === 'ENABLED' ? 'Désactiver' : 'Activer'} le Collaborateur
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir {selectedEmployee?.status === 'ENABLED' ? 'désactiver' : 'activer'} l'employé{' '}
+              Êtes-vous sûr de vouloir {selectedEmployee?.status === 'ENABLED' ? 'désactiver' : 'activer'} le Collaborateurs{' '}
               <strong>{selectedEmployee?.fullName || `${selectedEmployee?.firstName || ''} ${selectedEmployee?.lastName || ''}`}</strong> ?{' '}
-              {selectedEmployee?.status === 'ENABLED' && ' Cet employé ne pourra plus accéder au système.'}
+              {selectedEmployee?.status === 'ENABLED' && ' Cet Collaborateur ne pourra plus accéder au système.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -52,9 +52,9 @@ export const EmployeeDialogs: React.FC<EmployeeDialogsProps> = ({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer l'employé</AlertDialogTitle>
+            <AlertDialogTitle>Supprimer le Collaborateur</AlertDialogTitle>
             <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer l'employé {' '}
+              Êtes-vous sûr de vouloir supprimer le Collaborateur {' '}
               <strong>{selectedEmployee?.fullName || `${selectedEmployee?.firstName || ''} ${selectedEmployee?.lastName || ''}`}</strong> ? Cette action est irréversible et supprimera toutes les données associées.
             </AlertDialogDescription>
           </AlertDialogHeader>

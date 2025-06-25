@@ -147,7 +147,7 @@ const EmployeeInfoTab: React.FC<EmployeeInfoTabProps> = ({
           <div className="space-y-0.5">
             <Label className="text-base">Manager</Label>
             <div className="text-sm text-muted-foreground">
-              Cet employé a-t-il des responsabilités managériales ?
+              Ce collaborateur a-t-il des responsabilités managériales ?
             </div>
           </div>
           <Switch checked={isManager} disabled />

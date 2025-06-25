@@ -60,7 +60,7 @@ export function EmployeeDetails() {
     try {
       await updateEmployee(editedEmployee);
       setIsEditing(false);
-      toast.success('Employé mis à jour avec succès');
+      toast.success('Collaborateur mis à jour avec succès');
     } catch (error) {
       // Erreur gérée par le hook via toast
     }
@@ -76,7 +76,7 @@ export function EmployeeDetails() {
   }
 
   if (!employee) {
-    return <div>Employé non trouvé</div>;
+    return <div>Collaborateur non trouvé</div>;
   }
 
   return (

@@ -402,12 +402,12 @@ export function CreateTransportRequest() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Card className="bg-gray-50">
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-base">Sélectionner un employé</CardTitle>
+                      <CardTitle className="text-base">Sélectionner un Collaborateur</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <Select onValueChange={handleSelectEmployee}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un employé..." />
+                          <SelectValue placeholder="Sélectionner un Collaborateur..." />
                         </SelectTrigger>
                         <SelectContent>
                           {employees.map(emp => (

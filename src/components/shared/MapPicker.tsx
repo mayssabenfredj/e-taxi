@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MapPin, Search, Target } from 'lucide-react';
+import { MapPin, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
+import { Input } from '../ui/input';
 
 interface Coordinates {
   lat: number;
@@ -19,6 +19,7 @@ interface MapPickerProps {
   }) => void;
   initialLocation?: Coordinates;
   className?: string;
+  initialAddress?: any;
 }
 
 interface AutocompletePrediction {
@@ -26,10 +27,10 @@ interface AutocompletePrediction {
   description: string;
 }
 
-export function MapPicker({ onLocationSelect, initialLocation, className }: MapPickerProps) {
+export function MapPicker({ onLocationSelect, initialLocation, className, initialAddress }: MapPickerProps) {
   const { isGoogleMapsLoaded } = useGoogleMaps();
   const [coordinates, setCoordinates] = useState<Coordinates>(
-    initialLocation || { lat: 36.8065, lng: 10.1815 }
+    initialLocation || { lat: 36.8065, lng: 10.1815 } // Centre par défaut : Tunis, Tunisie
   );
   const [address, setAddress] = useState('');
   const [selectedLocation, setSelectedLocation] = useState<{
@@ -54,6 +55,27 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
     initializeMap();
   }, [isGoogleMapsLoaded]);
 
+  useEffect(() => {
+    if (initialAddress) {
+      if (initialAddress.latitude && initialAddress.longitude) {
+        setCoordinates({ lat: initialAddress.latitude, lng: initialAddress.longitude });
+        setManualCoords({ lat: initialAddress.latitude.toString(), lng: initialAddress.longitude.toString() });
+      }
+      if (initialAddress.formattedAddress) {
+        setAddress(initialAddress.formattedAddress);
+        setSearchQuery(initialAddress.formattedAddress);
+      }
+      setSelectedLocation({
+        address: initialAddress.formattedAddress || initialAddress.label || '',
+        coordinates: {
+          lat: initialAddress.latitude || 36.8065,
+          lng: initialAddress.longitude || 10.1815,
+        },
+        placeId: initialAddress.placeId,
+      });
+    }
+  }, [initialAddress]);
+
   const initializeMap = useCallback(() => {
     if (!mapRef.current || !window.google?.maps?.Map) {
       console.error('Google Maps API not loaded or map container not found');
@@ -72,38 +94,8 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
     const markerInstance = new google.maps.marker.AdvancedMarkerElement({
       position: coordinates,
       map: mapInstance,
-      gmpDraggable: true
+      gmpDraggable: true,
     });
-
-    if (autocompleteRef.current) {
-      const autocomplete = new google.maps.places.Autocomplete(autocompleteRef.current, {
-        fields: ['formatted_address', 'geometry', 'place_id', 'address_components'],
-      });
-
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (!place.geometry?.location) return;
-
-        const newCoords = {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng(),
-        };
-
-        setCoordinates(newCoords);
-        setManualCoords({ lat: newCoords.lat.toString(), lng: newCoords.lng.toString() });
-        mapInstance.setCenter(newCoords);
-        markerInstance.position = new google.maps.LatLng(newCoords.lat, newCoords.lng);
-        setAddress(place.formatted_address || '');
-        setSearchQuery(place.formatted_address || '');
-        setSuggestions([]);
-
-        setSelectedLocation({
-          address: place.formatted_address || '',
-          coordinates: newCoords,
-          placeId: place.place_id,
-        });
-      });
-    }
 
     markerInstance.addListener('dragend', (event) => {
       const position = markerInstance.position;
@@ -112,11 +104,9 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
       let lat: number, lng: number;
 
       if (typeof (position as google.maps.LatLng).lat === 'function') {
-        // C'est un LatLng
         lat = (position as google.maps.LatLng).lat();
         lng = (position as google.maps.LatLng).lng();
       } else {
-        // C'est un LatLngLiteral
         lat = (position as google.maps.LatLngLiteral).lat;
         lng = (position as google.maps.LatLngLiteral).lng;
       }
@@ -161,7 +151,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
 
       const service = new google.maps.places.AutocompleteService();
       service.getPlacePredictions(
-        { input: query },
+        { input: query, componentRestrictions: { country: 'TN' } },
         (predictions, status) => {
           setIsSearching(false);
           if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
@@ -219,7 +209,10 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
   const reverseGeocode = async (coords: Coordinates) => {
     try {
       const geocoder = new google.maps.Geocoder();
-      const response = await geocoder.geocode({ location: coords });
+      const response = await geocoder.geocode({
+        location: coords,
+        region: 'TN', // Restreindre le géocodage à la Tunisie
+      });
 
       if (response.results[0]) {
         const formattedAddress = response.results[0].formatted_address;
@@ -268,7 +261,6 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
     );
   };
 
-    // Handle manual coordinate input
   const handleManualCoordsChange = (type: 'lat' | 'lng', value: string) => {
     setManualCoords((prev) => ({ ...prev, [type]: value }));
 
@@ -292,7 +284,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
     }
     reverseGeocode(newCoords);
   };
-  
+
   const handleConfirmLocation = () => {
     if (!selectedLocation) {
       toast.error('Aucune adresse sélectionnée');
@@ -309,7 +301,7 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
         <div className="relative flex space-x-1">
           <Input
             ref={autocompleteRef}
-            placeholder="Entrez une adresse..."
+            placeholder="Entrez une adresse en Tunisie..."
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);

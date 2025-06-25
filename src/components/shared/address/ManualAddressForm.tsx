@@ -16,9 +16,10 @@ import { Address, AddressType, City, Region, Country } from '@/types/addresse';
 
 interface ManualAddressFormProps {
   onSubmit: (address: Address) => void;
+  initialAddress?: any;
 }
 
-export function ManualAddressForm({ onSubmit }: ManualAddressFormProps) {
+export function ManualAddressForm({ onSubmit, initialAddress }: ManualAddressFormProps) {
   const [countries, setCountries] = useState<Country[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -67,7 +68,7 @@ export function ManualAddressForm({ onSubmit }: ManualAddressFormProps) {
         const filteredRegions = data.filter((region) => region.countryId === formData.countryId);
         setRegions(filteredRegions);
       } catch (error) {
-        toast.error('Erreur lors du chargement des régions');
+        toast.error('Erreur lors du chargement des Gouvernorats');
       } finally {
         setLoading(false);
       }
@@ -97,6 +98,23 @@ export function ManualAddressForm({ onSubmit }: ManualAddressFormProps) {
     };
     fetchCities();
   }, [formData.regionId]);
+
+  useEffect(() => {
+    if (initialAddress) {
+      setFormData({
+        label: initialAddress.label || '',
+        street: initialAddress.street || '',
+        buildingNumber: initialAddress.buildingNumber || '',
+        complement: initialAddress.complement || '',
+        postalCode: initialAddress.postalCode || '',
+        countryId: initialAddress.countryId || 'TN',
+        regionId: initialAddress.regionId || '',
+        cityId: initialAddress.cityId || '',
+      });
+    } else {
+      setFormData((prev) => ({ ...prev, countryId: 'TN' }));
+    }
+  }, [initialAddress]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,14 +226,14 @@ export function ManualAddressForm({ onSubmit }: ManualAddressFormProps) {
           </Select>
         </div>
         <div>
-          <Label className="text-sm">Région</Label>
+          <Label className="text-sm">Gouvernorat</Label>
           <Select
             value={formData.regionId}
             onValueChange={(value) => setFormData({ ...formData, regionId: value })}
             disabled={!formData.countryId || loading}
           >
             <SelectTrigger className="text-sm h-10">
-              <SelectValue placeholder="Sélectionner une région" />
+              <SelectValue placeholder="Sélectionner une Gouvernorat" />
             </SelectTrigger>
             <SelectContent>
               {loading ? (

@@ -58,10 +58,10 @@ export const useEmployees = ({
         const { data, total } = await EmployeeService.getAllEmployees(query);
         setEmployees(data);
         setTotal(total);
-        toast.success("Employés chargés avec succès !");
+        toast.success("Collaborateurs chargés avec succès !");
       } catch (error: any) {
         toast.error(
-          `Erreur lors du chargement des employés : ${
+          `Erreur lors du chargement des Collaborateurs : ${
             error.message || "Une erreur est survenue."
           }`
         );
@@ -104,7 +104,7 @@ export const useEmployees = ({
     const newEmployee = await EmployeeService.createEmployee(createData);
     setEmployees((prev) => [newEmployee, ...prev]);
     setTotal((prev) => prev + 1);
-    toast.success("Employé ajouté avec succès !");
+    toast.success("Collaborateur ajouté avec succès !");
     setRefreshTrigger((prev) => prev + 1); // Trigger re-fetch
     return newEmployee;
   };
@@ -114,7 +114,7 @@ export const useEmployees = ({
     await EmployeeService.deleteEmployee(id);
     setEmployees((prev) => prev.filter((emp) => emp.id !== id));
     setTotal((prev) => prev - 1);
-    toast.success("Employé supprimé avec succès !");
+    toast.success("Collaborateur supprimé avec succès !");
     setRefreshTrigger((prev) => prev + 1); // Trigger re-fetch
   };
 
@@ -128,7 +128,9 @@ export const useEmployees = ({
     setEmployees((prev) =>
       prev.map((emp) => (emp.id === id ? updatedEmployee : emp))
     );
-    toast.success(`Employé ${enabled ? "activé" : "désactivé"} avec succès !`);
+    toast.success(
+      `Collaborateur ${enabled ? "activé" : "désactivé"} avec succès !`
+    );
     setRefreshTrigger((prev) => prev + 1); // Trigger re-fetch
     return updatedEmployee;
   };
@@ -163,7 +165,7 @@ export const useEmployees = ({
       }
     } catch (error: any) {
       toast.error(
-        `Erreur lors de l'importation des employés : ${
+        `Erreur lors de l'importation des Collaborateurs : ${
           error.message || "Une erreur est survenue."
         }`
       );

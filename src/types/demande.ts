@@ -44,6 +44,10 @@ export interface EmployeeTransportDto {
   arrivalId?: string;
   departureAddress?: AddressDto;
   arrivalAddress?: AddressDto;
+  employee?: any;
+  departure? : any;
+  arrival?: any;
+ 
 }
 
 export interface CreateTransportRequestDto {
@@ -188,6 +192,7 @@ export interface GroupRoute {
 }
 
 export interface DraftData {
+  draftId? : string;
   selectedEmployees: string[];
   selectedPassengers: SelectedPassenger[];
   transportType: "public" | "private";

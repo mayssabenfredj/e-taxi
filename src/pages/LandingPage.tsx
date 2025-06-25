@@ -22,7 +22,7 @@ export function LandingPage() {
     {
       icon: Users,
       title: "Gestion d'Équipe",
-      description: "Organisez vos employés et leurs demandes de transport facilement"
+      description: "Organisez vos Collaborateurs et leurs demandes de transport facilement"
     },
     {
       icon: MapPin,
@@ -47,7 +47,7 @@ export function LandingPage() {
   ];
 
   const stats = [
-    { number: "500+", label: "Entreprises clientes" },
+    { number: "500+", label: "Organisations clientes" },
     { number: "10K+", label: "Courses par jour" },
     { number: "99.9%", label: "Disponibilité" },
     { number: "24/7", label: "Support client" }
@@ -56,7 +56,7 @@ export function LandingPage() {
   const services = [
     {
       icon: Building2,
-      title: "Pour Entreprises",
+      title: "Pour Organisation",
       description: "Solutions complètes de transport pour vos équipes",
       features: ["Gestion centralisée", "Reporting avancé", "Facturation groupée", "API intégrée"],
       price: "Sur mesure"
@@ -74,7 +74,7 @@ export function LandingPage() {
     {
       name: "Marie Dubois",
       position: "DRH, TechCorp",
-      content: "E-Taxi a révolutionné notre gestion des transports. Nous avons réduit nos coûts de 40% tout en améliorant la satisfaction de nos employés.",
+      content: "E-Taxi a révolutionné notre gestion des transports. Nous avons réduit nos coûts de 40% tout en améliorant la satisfaction de nos collaborateurs.",
       rating: 5,
       avatar: "MD"
     },
@@ -99,9 +99,9 @@ export function LandingPage() {
       name: "Starter",
       price: "49€",
       period: "/ mois",
-      description: "Parfait pour les petites entreprises",
+      description: "Parfait pour les petites Organisations",
       features: [
-        "Jusqu'à 50 employés",
+        "Jusqu'à 50 Collaborateurs",
         "100 courses / mois",
         "Dispatching de base",
         "Support email",
@@ -113,15 +113,15 @@ export function LandingPage() {
       name: "Professional",
       price: "149€",
       period: "/ mois",
-      description: "Idéal pour les entreprises en croissance",
+      description: "Idéal pour les Organisations en croissance",
       features: [
-        "Jusqu'à 200 employés",
+        "Jusqu'à 200 Collaborateurs",
         "Courses illimitées",
         "Dispatching intelligent",
         "Support prioritaire",
         "API & intégrations",
         "Reporting en temps réel",
-        "Gestion multi-filiales"
+        "Gestion multi Sous Organisation"
       ],
       highlighted: true
     },
@@ -129,9 +129,9 @@ export function LandingPage() {
       name: "Enterprise",
       price: "Sur mesure",
       period: "",
-      description: "Solution sur mesure pour les grandes entreprises",
+      description: "Solution sur mesure pour les grandes Organisations",
       features: [
-        "Employés illimités",
+        "Collaborateurs illimités",
         "Courses illimitées",
         "IA avancée",
         "Support dédié 24/7",
@@ -189,10 +189,10 @@ export function LandingPage() {
           <div className="animate-fade-in">
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
               La plateforme de transport
-              <span className="text-etaxi-yellow block animate-slide-in-right">pour entreprises</span>
+              <span className="text-etaxi-yellow block animate-slide-in-right">pour Organisations</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8 animate-fade-in delay-200">
-              Simplifiez la gestion de vos transports d'entreprise avec notre solution complète. 
+              Simplifiez la gestion de vos transports d'Organisation avec notre solution complète. 
               Dispatching intelligent, suivi en temps réel et optimisation des coûts.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in delay-400">
@@ -356,7 +356,7 @@ export function LandingPage() {
           <div className="text-center mb-16 animate-fade-in">
             <h2 className="text-4xl font-bold mb-4">Ce que disent nos clients</h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Découvrez pourquoi plus de 500 entreprises nous font confiance
+              Découvrez pourquoi plus de 500 Organisations nous font confiance
             </p>
           </div>
 
@@ -395,14 +395,14 @@ export function LandingPage() {
             <div className="animate-slide-in-right">
               <h2 className="text-4xl font-bold mb-6">À propos d'E-Taxi</h2>
               <p className="text-lg text-muted-foreground mb-6">
-                Depuis plus de 10 ans, nous accompagnons les entreprises dans l'optimisation 
+                Depuis plus de 10 ans, nous accompagnons les Organisations dans l'optimisation 
                 de leurs transports. Notre plateforme combine intelligence artificielle et 
                 expertise métier pour vous offrir la meilleure solution du marché.
               </p>
               <div className="space-y-4 mb-8">
                 <div className="flex items-center space-x-3">
                   <Target className="h-6 w-6 text-etaxi-yellow" />
-                  <span>Leader  tunisian du transport d'entreprise</span>
+                  <span>Leader  tunisian du transport d'Organisation</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <TrendingUp className="h-6 w-6 text-etaxi-yellow" />
@@ -439,7 +439,7 @@ export function LandingPage() {
                   <div className="bg-green-500/10 p-6 rounded-lg animate-float delay-100">
                     <Users className="h-8 w-8 text-green-500 mb-2" />
                     <div className="text-2xl font-bold">500+</div>
-                    <div className="text-sm text-muted-foreground">Entreprises clientes</div>
+                    <div className="text-sm text-muted-foreground">Organisation clientes</div>
                   </div>
                   <div className="bg-purple-500/10 p-6 rounded-lg animate-float delay-300">
                     <HeadphonesIcon className="h-8 w-8 text-purple-500 mb-2" />
@@ -499,7 +499,7 @@ export function LandingPage() {
               Prêt à révolutionner vos transports ?
             </h2>
             <p className="text-xl text-black/80 mb-8 max-w-2xl mx-auto">
-              Rejoignez les centaines d'entreprises qui font confiance à E-Taxi 
+              Rejoignez les centaines d'Organisations qui font confiance à E-Taxi 
               pour leurs besoins de transport
             </p>
             <Button 
@@ -521,7 +521,7 @@ export function LandingPage() {
             <div>
               <Logo />
               <p className="text-muted-foreground mt-4">
-                La plateforme de transport d'entreprise nouvelle génération
+                La plateforme de transport d'Organisation nouvelle génération
               </p>
             </div>
             <div>
@@ -534,7 +534,7 @@ export function LandingPage() {
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Entreprise</h4>
+              <h4 className="font-semibold mb-4">Organisation</h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li><a href="#about" className="hover:text-etaxi-yellow transition-colors">À propos</a></li>
                 <li><a href="#" className="hover:text-etaxi-yellow transition-colors">Carrières</a></li>
