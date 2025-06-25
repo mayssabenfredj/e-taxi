@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Target } from 'lucide-react';
@@ -7,14 +7,25 @@ import { Address, AddressType } from '@/types/addresse';
 
 interface CoordinatesInputProps {
   onSubmit: (address: Address) => void;
+  initialAddress?: any;
 }
 
-export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
+export function CoordinatesInput({ onSubmit, initialAddress }: CoordinatesInputProps) {
   const [coordinates, setCoordinates] = useState({
     latitude: '',
     longitude: '',
     manualAddress: '',
   });
+
+  useEffect(() => {
+    if (initialAddress) {
+      setCoordinates({
+        latitude: initialAddress.latitude ? initialAddress.latitude.toString() : '',
+        longitude: initialAddress.longitude ? initialAddress.longitude.toString() : '',
+        manualAddress: initialAddress.formattedAddress || initialAddress.label || '',
+      });
+    }
+  }, [initialAddress]);
 
   const handleSubmit = () => {
     const lat = parseFloat(coordinates.latitude);
@@ -87,7 +98,7 @@ export function CoordinatesInput({ onSubmit }: CoordinatesInputProps) {
         toast.success('Position actuelle obtenue !');
       },
       (error) => {
-        toast.error('Impossible d’obtenir la position');
+        toast.error("Impossible d'obtenir la position");
       }
     );
   };

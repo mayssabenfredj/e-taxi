@@ -19,6 +19,7 @@ interface MapPickerProps {
   }) => void;
   initialLocation?: Coordinates;
   className?: string;
+  initialAddress?: any;
 }
 
 interface AutocompletePrediction {
@@ -26,7 +27,7 @@ interface AutocompletePrediction {
   description: string;
 }
 
-export function MapPicker({ onLocationSelect, initialLocation, className }: MapPickerProps) {
+export function MapPicker({ onLocationSelect, initialLocation, className, initialAddress }: MapPickerProps) {
   const { isGoogleMapsLoaded } = useGoogleMaps();
   const [coordinates, setCoordinates] = useState<Coordinates>(
     initialLocation || { lat: 36.8065, lng: 10.1815 } // Centre par défaut : Tunis, Tunisie
@@ -53,6 +54,27 @@ export function MapPicker({ onLocationSelect, initialLocation, className }: MapP
     }
     initializeMap();
   }, [isGoogleMapsLoaded]);
+
+  useEffect(() => {
+    if (initialAddress) {
+      if (initialAddress.latitude && initialAddress.longitude) {
+        setCoordinates({ lat: initialAddress.latitude, lng: initialAddress.longitude });
+        setManualCoords({ lat: initialAddress.latitude.toString(), lng: initialAddress.longitude.toString() });
+      }
+      if (initialAddress.formattedAddress) {
+        setAddress(initialAddress.formattedAddress);
+        setSearchQuery(initialAddress.formattedAddress);
+      }
+      setSelectedLocation({
+        address: initialAddress.formattedAddress || initialAddress.label || '',
+        coordinates: {
+          lat: initialAddress.latitude || 36.8065,
+          lng: initialAddress.longitude || 10.1815,
+        },
+        placeId: initialAddress.placeId,
+      });
+    }
+  }, [initialAddress]);
 
   const initializeMap = useCallback(() => {
     if (!mapRef.current || !window.google?.maps?.Map) {

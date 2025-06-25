@@ -16,9 +16,10 @@ import { Address, AddressType, City, Region, Country } from '@/types/addresse';
 
 interface ManualAddressFormProps {
   onSubmit: (address: Address) => void;
+  initialAddress?: any;
 }
 
-export function ManualAddressForm({ onSubmit }: ManualAddressFormProps) {
+export function ManualAddressForm({ onSubmit, initialAddress }: ManualAddressFormProps) {
   const [countries, setCountries] = useState<Country[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -97,6 +98,23 @@ export function ManualAddressForm({ onSubmit }: ManualAddressFormProps) {
     };
     fetchCities();
   }, [formData.regionId]);
+
+  useEffect(() => {
+    if (initialAddress) {
+      setFormData({
+        label: initialAddress.label || '',
+        street: initialAddress.street || '',
+        buildingNumber: initialAddress.buildingNumber || '',
+        complement: initialAddress.complement || '',
+        postalCode: initialAddress.postalCode || '',
+        countryId: initialAddress.countryId || 'TN',
+        regionId: initialAddress.regionId || '',
+        cityId: initialAddress.cityId || '',
+      });
+    } else {
+      setFormData((prev) => ({ ...prev, countryId: 'TN' }));
+    }
+  }, [initialAddress]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

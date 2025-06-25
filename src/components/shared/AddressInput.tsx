@@ -62,14 +62,24 @@ export function AddressInput({
   const [open, setOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(showSavedAddresses ? 'saved' : 'manual');
+  const [selectedAddress, setSelectedAddress] = useState<Address | AddressDto | null>(value || null);
 
-  const handleAddressSelect = (address: Address) => {
-    console.log('Address selected in AddressInput:', address); // Debugging
+  // Synchronise l'adresse sélectionnée avec la prop value
+  useEffect(() => {
+    if (value && value !== selectedAddress) {
+      setSelectedAddress(value);
+    }
+  }, [value]);
+
+  // Callback général pour toute sélection d'adresse
+  const handleAddressSelect = (address: Address | AddressDto) => {
+    setSelectedAddress(address);
     onChange(address);
     setOpen(false);
     toast.success('Adresse sélectionnée');
   };
 
+  // Pour la Map
   const handleMapSelect = (mapData: { address: string; coordinates: { lat: number; lng: number }; placeId?: string }) => {
     const address: Address = {
       id: `map-${Date.now()}`,
@@ -78,7 +88,7 @@ export function AddressInput({
       postalCode: '',
       cityId: null,
       regionId: null,
-      countryId: null,
+      countryId: 'TN', // Tunisie par défaut
       latitude: mapData.coordinates.lat,
       longitude: mapData.coordinates.lng,
       placeId: mapData.placeId || null,
@@ -92,11 +102,9 @@ export function AddressInput({
       deletedAt: null,
       city: null,
       region: null,
-      country: null,
+      country: { id: 'TN', name: 'Tunisie', code: 'TN' },
     };
-
-    console.log('Map address selected:', address); // Debugging
-    onChange(address);
+    handleAddressSelect(address);
     setMapOpen(false);
     toast.success('Adresse sélectionnée depuis la carte');
   };
@@ -117,10 +125,10 @@ export function AddressInput({
               aria-expanded={open}
               className="flex-1 justify-between min-h-[40px] text-left text-sm"
             >
-              {value ? (
+              {selectedAddress ? (
                 <div className="flex items-center truncate">
                   <MapPin className="mr-2 h-4 w-4 flex-shrink-0" />
-                  <span className="truncate">{value.label || value.formattedAddress || 'Aucune adresse'}</span>
+                  <span className="truncate">{selectedAddress.label || selectedAddress.formattedAddress || 'Aucune adresse'}</span>
                 </div>
               ) : (
                 <span className="text-muted-foreground">Sélectionner une adresse...</span>
@@ -142,18 +150,18 @@ export function AddressInput({
                 <TabsContent value="saved" className="p-2">
                   <SavedAddressSelector
                     savedAddresses={savedAddresses}
-          selectedAddress={value && 'id' in value ? value as Address : undefined}
+                    selectedAddress={selectedAddress && 'id' in selectedAddress ? selectedAddress as Address : undefined}
                     onSelect={handleAddressSelect}
                   />
                 </TabsContent>
               )}
 
               <TabsContent value="manual" className="p-2">
-                <ManualAddressForm onSubmit={handleAddressSelect} />
+                <ManualAddressForm onSubmit={handleAddressSelect} initialAddress={selectedAddress} />
               </TabsContent>
 
               <TabsContent value="coords" className="p-2">
-                <CoordinatesInput onSubmit={handleAddressSelect} />
+                <CoordinatesInput onSubmit={handleAddressSelect} initialAddress={selectedAddress} />
               </TabsContent>
             </Tabs>
           </PopoverContent>
@@ -170,7 +178,7 @@ export function AddressInput({
               <DialogHeader>
                 <DialogTitle>Sélectionner sur la carte</DialogTitle>
               </DialogHeader>
-              <MapPicker onLocationSelect={handleMapSelect} />
+              <MapPicker onLocationSelect={handleMapSelect} initialAddress={selectedAddress} />
             </DialogContent>
           </Dialog>
         )}
