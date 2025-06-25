@@ -10,16 +10,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { addressService } from '@/services/address.service';
 import { Address, AddressType, City, Region, Country } from '@/types/addresse';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from '@/components/ui/command';
+
 import {
   Popover,
   PopoverContent,
@@ -80,15 +73,15 @@ export function AddressInput({
   };
 
   // Pour la Map
-  const handleMapSelect = (mapData: { address: string; coordinates: { lat: number; lng: number }; placeId?: string }) => {
+  const handleMapSelect = (mapData: { address: string; coordinates: { lat: number; lng: number }; placeId?: string; postalCode?: string; city?: string; region?: string }) => {
     const address: Address = {
       id: `map-${Date.now()}`,
       label: mapData.address,
       street: mapData.address.split(',')[0]?.trim() || '',
-      postalCode: '',
+      postalCode: mapData.postalCode || '',
       cityId: null,
       regionId: null,
-      countryId: 'TN', // Tunisie par défaut
+      countryId: null, // Tunisie par défaut
       latitude: mapData.coordinates.lat,
       longitude: mapData.coordinates.lng,
       placeId: mapData.placeId || null,
@@ -102,8 +95,9 @@ export function AddressInput({
       deletedAt: null,
       city: null,
       region: null,
-      country: { id: 'TN', name: 'Tunisie', code: 'TN' },
+      country: null,
     };
+    console.log("adress Selectedd : ", address);
     handleAddressSelect(address);
     setMapOpen(false);
     toast.success('Adresse sélectionnée depuis la carte');

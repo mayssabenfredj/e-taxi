@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { roleService } from "@/services/role.service";
 import SubsidiaryService from "@/services/subsidiarie.service";
 import { EntityStatus } from "@/types/subsidiary";
 import { toast } from "sonner";
+import { Address } from "@/types/addresse";
+import { AddressDto } from "@/types/entreprise";
 
 export interface Role {
   id: string;
@@ -12,11 +14,13 @@ export interface Role {
 export interface Subsidiary {
   id: string;
   name: string;
+  address: Address | AddressDto;
 }
 
 interface UseRolesAndSubsidiariesResult {
   roles: Role[];
   subsidiaries: Subsidiary[];
+  subsidiaryAddresses: (Address | AddressDto)[];
   loading: boolean;
   error: string | null;
 }
@@ -34,6 +38,12 @@ export const useRolesAndSubsidiaries = (
   const [subsidiaries, setSubsidiaries] = useState<Subsidiary[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Extraire les adresses des filiales
+  const subsidiaryAddresses = useMemo(
+    () => subsidiaries.map((sub) => sub.address),
+    [subsidiaries]
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -68,9 +78,11 @@ export const useRolesAndSubsidiaries = (
           status: EntityStatus.ACTIVE,
           enterpriseId,
         });
+        console.log("subsidaryyyy ", subsidiaryData);
         const mappedSubs = subsidiaryData.data.map((sub: any) => ({
           id: sub.id,
           name: sub.name,
+          address: sub.address,
         }));
         // Stocke dans le cache
         rolesSubsCache[enterpriseId] = {
@@ -93,5 +105,5 @@ export const useRolesAndSubsidiaries = (
     fetchData();
   }, [enterpriseId]);
 
-  return { roles, subsidiaries, loading, error };
+  return { roles, subsidiaries, subsidiaryAddresses, loading, error };
 };

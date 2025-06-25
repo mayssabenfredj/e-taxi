@@ -9,7 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Home, Briefcase, Phone, Mail } from 'lucide-react';
+import { Home, Briefcase, Phone, Mail, Building2 } from 'lucide-react';
 import { format, addHours, isToday, startOfDay, setHours, setMinutes } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { RecurringDateTime, SelectedPassenger } from '@/types/demande';
@@ -36,6 +36,7 @@ interface TransportConfigProps {
   showEmployeeList: boolean;
   setShowEmployeeList: (show: boolean) => void;
   handleShowConfirmation: () => void;
+  subsidiaries: any[];
 }
 
 export function TransportConfig({
@@ -59,6 +60,7 @@ export function TransportConfig({
   showEmployeeList,
   setShowEmployeeList,
   handleShowConfirmation,
+  subsidiaries,
 }: TransportConfigProps) {
   // Set default transport type to 'private' if not set
   useEffect(() => {
@@ -100,7 +102,7 @@ export function TransportConfig({
           <CardTitle className="text-lg">Configuration du transport</CardTitle>
           {!showEmployeeList && (
             <Button variant="outline" size="sm" onClick={() => setShowEmployeeList(true)}>
-              Afficher la liste des Collaborateurs
+              Afficher la liste des employés
             </Button>
           )}
         </div>
@@ -210,8 +212,35 @@ export function TransportConfig({
                     const employeeAddresses = passenger.addresses?.map((addr) => ({
                       id: addr.address.id || addr.address.street || 'none',
                       formattedAddress: addr.address.formattedAddress || addr.address.street || 'Adresse non spécifiée',
+                      type : addr.address.addressType,
                     })) || [];
-                    const addressOptions = employeeAddresses.length > 0 ? employeeAddresses : [{ id: 'none', formattedAddress: 'Aucune adresse disponible' }];
+
+                    // Ajout de toutes les adresses de toutes les filiales
+                    let subsidiariesAddressOptions = [];
+                    if (subsidiaries && Array.isArray(subsidiaries)) {
+                      subsidiariesAddressOptions = subsidiaries
+                        .filter(sub => sub.address && sub.address.id)
+                        .map(sub => {
+                          // Vérifier si déjà présente dans les adresses employé
+                          const alreadyPresent = employeeAddresses.some(addr => addr.id === sub.address.id);
+                          if (!alreadyPresent) {
+                            return {
+                              id: sub.address.id,
+                              formattedAddress: `HQ: ${sub.name} – ${sub.address.formattedAddress || sub.address.street || 'Non spécifiée'}`,
+                              type: 'SUBSIDIARY',
+                            };
+                          }
+                          return null;
+                        })
+                        .filter(Boolean);
+                    }
+                    const addressOptions = [
+                      ...employeeAddresses,
+                      ...subsidiariesAddressOptions,
+                    ];
+                    if (addressOptions.length === 0) {
+                      addressOptions.push({ id: 'none', formattedAddress: 'Aucune adresse disponible' });
+                    }
 
                     return (
                       <TableRow key={passenger.id}>
@@ -244,7 +273,12 @@ export function TransportConfig({
                             <SelectContent>
                               {addressOptions.map((address) => (
                                 <SelectItem key={address.id} value={address.id} className="text-xs">
-                                  {address.formattedAddress}
+                                  <span className="flex items-center">
+                                    {address.type === 'HOME' && <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />}
+                                    {address.type === 'OFFICE' && <Briefcase className="h-3 w-3 mr-1 text-blue-500" />}
+                                    {address.type === 'SUBSIDIARY' && <Building2 className="h-3 w-3 mr-1 text-green-600" />}
+                                    {address.formattedAddress}
+                                  </span>
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -261,7 +295,12 @@ export function TransportConfig({
                             <SelectContent>
                               {addressOptions.map((address) => (
                                 <SelectItem key={address.id} value={address.id} className="text-xs">
-                                  {address.formattedAddress}
+                                  <span className="flex items-center">
+                                    {address.type === 'HOME' && <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />}
+                                    {address.type === 'OFFICE' && <Briefcase className="h-3 w-3 mr-1 text-blue-500" />}
+                                    {address.type === 'SUBSIDIARY' && <Building2 className="h-3 w-3 mr-1 text-green-600" />}
+                                    {address.formattedAddress}
+                                  </span>
                                 </SelectItem>
                               ))}
                             </SelectContent>

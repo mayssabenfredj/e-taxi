@@ -32,7 +32,6 @@ export function CreateGroupTransportRequest() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const enterpriseId = user?.enterpriseId;
-  const { isGoogleMapsLoaded } = useGoogleMaps();
 
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [selectedPassengers, setSelectedPassengers] = useState<SelectedPassenger[]>([]);
@@ -137,7 +136,6 @@ export function CreateGroupTransportRequest() {
     setSubsidiaryFilter('all');
     setRouteEstimations([]);
     setTotalPrice(0);
-    setIsCalculating(false);
     setShowConfirmation(false);
     setGroupRoute(null);
     setDraftId(generateUUID()); // Générer un nouvel ID pour le prochain brouillon
@@ -424,7 +422,6 @@ export function CreateGroupTransportRequest() {
       <Steps currentStep={showConfirmation ? 1 : 0} steps={steps} />
       {showConfirmation ? (
         <ConfirmationView
-          isCalculating={isCalculating}
           transportType={transportType}
           scheduledDate={scheduledDate}
           scheduledTime={scheduledTime}
@@ -438,6 +435,7 @@ export function CreateGroupTransportRequest() {
           groupRoute={groupRoute}
           setShowConfirmation={setShowConfirmation}
           handleSubmit={handleSubmit}
+          subsidiaries={subsidiaries}
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -478,6 +476,7 @@ export function CreateGroupTransportRequest() {
             showEmployeeList={showEmployeeList}
             setShowEmployeeList={setShowEmployeeList}
             handleShowConfirmation={handleShowConfirmation}
+            subsidiaries={subsidiaries}
           />
         </div>
       )}

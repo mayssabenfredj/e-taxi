@@ -74,7 +74,7 @@ export function SubsidariesPage() {
     fetchManagers();
   }, [enterpriseId]);
 
-  // Déclare la fonction ici, dans le composant
+  // Fetch subsidiaries
   const fetchSubsidiaries = async () => {
     if (!enterpriseId) {
       setLoading(false);
@@ -108,24 +108,24 @@ export function SubsidariesPage() {
         admins: sub.admins || [],
         adminIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
         managerIds: sub.admins?.map((admin: { id: string }) => admin.id) || [],
-        managerNames: sub.admins
-          ? managers.filter((m) => sub.admins.some((admin: { id: string }) => admin.id === m.id)).map((m) => m.name)
-          : [],
+        managerNames: sub.admins?.map((admin: { firstName?: string; lastName?: string; fullName?: string }) =>
+          admin.fullName || `${admin.firstName || ''} ${admin.lastName || ''}`.trim() || 'Sans nom'
+        ) || [],
       }));
       setSubsidiaries(mappedData);
       setTotal(total);
-      toast.success('Sous Organisation chargées avec succès!');
+      toast.success('Sous Organisations chargées avec succès!');
     } catch (err: any) {
-      toast.error(`Erreur lors du chargement des sous organisation: ${err.message || 'Une erreur est survenue.'}`);
+      toast.error(`Erreur lors du chargement des sous organisations: ${err.message || 'Une erreur est survenue.'}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // Appelle la fonction dans le useEffect, avec les vraies dépendances
+  // Call fetchSubsidiaries when dependencies change
   useEffect(() => {
     fetchSubsidiaries();
-  }, [enterpriseId, skip, take, nameFilter, statusFilter]);
+  }, [enterpriseId, skip, take, nameFilter, statusFilter, managers]);
 
   const handlePageChange = (newSkip: number, newTake: number) => {
     setSkip(newSkip);
@@ -175,7 +175,7 @@ export function SubsidariesPage() {
           email: formData.email || undefined,
           website: formData.website || undefined,
           description: formData.description || undefined,
-          adminIds: formData.selectedManagerIds, // Always send the updated list, including empty array
+          adminIds: formData.selectedManagerIds,
           address: addressData,
           status: EntityStatus.ACTIVE,
         };
@@ -197,7 +197,7 @@ export function SubsidariesPage() {
         toast.success('Filiale créée avec succès!');
       }
       resetForm();
-      await fetchSubsidiaries(); // Re-fetch subsidiaries to reflect changes
+      await fetchSubsidiaries();
     } catch (err: any) {
       toast.error(`Erreur: ${err.message || 'Une erreur est survenue.'}`);
     }
@@ -226,7 +226,7 @@ export function SubsidariesPage() {
       email: subsidiary.email || '',
       website: subsidiary.website || '',
       description: subsidiary.description || '',
-      selectedManagerIds: subsidiary.managerIds || [], // Use managerIds to ensure correct initialization
+      selectedManagerIds: subsidiary.managerIds || [],
       address: subsidiary.address || null,
       enterpriseId: enterpriseId || '',
     });
@@ -254,7 +254,7 @@ export function SubsidariesPage() {
   if (!enterpriseId) {
     return (
       <div className="p-4 text-center">
-        <p>Vous devez être associé à une organisation  pour gérer les sous organisation.</p>
+        <p>Vous devez être associé à une organisation pour gérer les sous organisations.</p>
       </div>
     );
   }
