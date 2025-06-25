@@ -80,7 +80,8 @@ export const useRolesAndSubsidiaries = (
         setRoles(filteredRoles);
         setSubsidiaries(mappedSubs);
       } catch (err) {
-        const errorMessage = "Erreur lors du chargement des rôles ou filiales";
+        const errorMessage =
+          "Erreur lors du chargement des rôles ou Sous Organisation";
         setError(errorMessage);
         toast.error(errorMessage);
         console.error(err);

@@ -73,7 +73,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Employés');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Collaborateurs');
     
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -188,9 +188,9 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
         const invalidCount = employees.length - validCount;
         
         if (invalidCount > 0) {
-          toast.warning(`${validCount} employé${validCount > 1 ? 's' : ''} valide(s), ${invalidCount} avec${invalidCount > 1 ? ' des erreurs' : ' une erreur'}`);
+          toast.warning(`${validCount} Collaborateur${validCount > 1 ? 's' : ''} valide(s), ${invalidCount} avec${invalidCount > 1 ? ' des erreurs' : ' une erreur'}`);
         } else {
-          toast.success(`${validCount} employé${validCount > 1 ? 's' : ''} prêt${validCount > 1 ? 's' : ''} à être importé${validCount > 1 ? 's' : ''}`);
+          toast.success(`${validCount} Collaborateur${validCount > 1 ? 's' : ''} prêt${validCount > 1 ? 's' : ''} à être importé${validCount > 1 ? 's' : ''}`);
         }
       }
     } catch (error) {
@@ -211,7 +211,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
     const validEmployees = parsedEmployees.filter(emp => emp.isValid);
     
     if (validEmployees.length === 0) {
-      toast.error('Aucun employé valide à importer');
+      toast.error('Aucun Collaborateur valide à importer');
       return;
     }
 
@@ -306,7 +306,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Upload className="h-5 w-5 text-etaxi-yellow" />
-            <span>Importer des employés depuis un fichier Excel</span>
+            <span>Importer des Collaborateurs depuis un fichier Excel</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -366,7 +366,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
                   </Table>
                   <div className="mt-3 text-sm text-blue-700 dark:text-blue-300">
                     <p><strong>Rôles valides :</strong> {roles.map(r => r.name).join(', ') || 'Aucun rôle disponible'}</p>
-                    <p><strong>Filiales valides :</strong> {subsidiaries.map(s => s.name).join(', ') || 'Aucune filiale disponible'}</p>
+                    <p><strong>Sous Organisation valides :</strong> {subsidiaries.map(s => s.name).join(', ') || 'Aucune filiale disponible'}</p>
                   </div>
                 </div>
 
@@ -482,7 +482,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
                   disabled={validEmployeesCount === 0 || loading}
                 >
                   <Upload className="mr-2 h-4 w-4" />
-                  Importer {validEmployeesCount} employé(s)
+                  Importer {validEmployeesCount} Collaborateur(s)
                 </Button>
               </>
             )}

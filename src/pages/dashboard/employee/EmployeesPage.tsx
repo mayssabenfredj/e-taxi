@@ -45,7 +45,7 @@ export function EmployeesPage() {
       await createEmployee(employeeData);
       setAddEmployeeOpen(false);
     } catch (error: any) {
-      console.error('Erreur lors de l\'ajout de l\'employé:', error);
+      console.error('Erreur lors de l\'ajout de Collaborateur:', error);
     }
   };
 
@@ -91,7 +91,7 @@ export function EmployeesPage() {
   if (!enterpriseId) {
     return (
       <div className="p-4 text-center">
-        <p>Vous devez être associé à une entreprise pour gérer les employés.</p>
+        <p>Vous devez être associé à une organisation pour gérer les Collaborateurs.</p>
       </div>
     );
   }
@@ -102,7 +102,7 @@ export function EmployeesPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
         <div className="flex items-center space-x-2">
           <Users className="h-6 w-6 text-etaxi-yellow" />
-          <h2 className="text-2xl font-bold">Gestion des employés</h2>
+          <h2 className="text-2xl font-bold">Gestion des Collaborateurs</h2>
         </div>
         <div className="flex flex-col md:flex-row gap-2 md:gap-2 w-full md:w-auto">
           <Button
@@ -118,7 +118,7 @@ export function EmployeesPage() {
             onClick={() => setAddEmployeeOpen(true)}
           >
             <Plus className="mr-2 h-4 w-4" />
-            Ajouter un employé
+            Ajouter un Collaborateur
           </Button>
         </div>
       </div>

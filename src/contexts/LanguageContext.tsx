@@ -19,21 +19,21 @@ const translations = {
     'forgotPassword': 'Mot de passe oublié?',
     'resetPassword': 'Réinitialiser le mot de passe',
     'confirmPassword': 'Confirmer le mot de passe',
-    'companyName': 'Nom de l\'entreprise',
+    'companyName': 'Nom de l\'Organisation ',
     'createAccount': 'Créer un compte',
     'alreadyHaveAccount': 'Vous avez déjà un compte?',
     'noAccount': 'Pas de compte?',
     
     // Dashboard
     'dashboard': 'Tableau de bord',
-    'company': 'Entreprise',
-    'employees': 'Employés',
+    'company': 'Organisation ',
+    'employees': 'Collaborateurs',
     'transportRequests': 'Demandes de transport',
     'profile': 'Profil',
     'logout': 'Se déconnecter',
     
     // Company
-    'companyInfo': 'Informations de l\'entreprise',
+    'companyInfo': 'Informations de l\'Organisation ',
     'address': 'Adresse',
     'phone': 'Téléphone',
     'sector': 'Secteur d\'activité',
@@ -41,8 +41,8 @@ const translations = {
     'save': 'Enregistrer',
     
     // Employees
-    'addEmployee': 'Ajouter un employé',
-    'employeeName': 'Nom de l\'employé',
+    'addEmployee': 'Ajouter un Collaborateur',
+    'employeeName': 'Nom de Collaborateur',
     'importCSV': 'Importer CSV',
     'pendingRequests': 'Demandes en attente',
     'actions': 'Actions',

@@ -71,10 +71,10 @@ export const EmployeeFilters: React.FC<EmployeeFiltersProps> = ({
             <label className="text-sm font-medium">Filiale</label>
             <Select value={subsidiaryFilter} onValueChange={setSubsidiaryFilter} disabled={loading}>
               <SelectTrigger>
-                <SelectValue placeholder="Toutes les filiales" />
+                <SelectValue placeholder="Toutes les Sous Organisation" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Toutes les filiales</SelectItem>
+                <SelectItem value="all">Toutes les Sous Organisation</SelectItem>
                 {subsidiaries.map((subsidiary) => (
                   <SelectItem key={subsidiary.id} value={subsidiary.id}>
                     {subsidiary.name}

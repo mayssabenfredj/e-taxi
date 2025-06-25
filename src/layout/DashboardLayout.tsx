@@ -75,7 +75,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
   const navigation = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, path: '/dashboard' },
     { id: 'company', name: t('company'), icon: Building2, path: '/company' },
-    { id: 'subsidiaries', name: 'Filiales', icon: Home, path: '/subsidiaries' },
+    { id: 'subsidiaries', name: 'Sous Organisation', icon: Home, path: '/subsidiaries' },
     { id: 'employees', name: t('employees'), icon: Users, path: '/employees' },
     { 
       id: 'transport', 

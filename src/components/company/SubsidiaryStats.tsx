@@ -14,7 +14,7 @@ const SubsidiaryStats: React.FC<SubsidiaryStatsProps> = ({ total, subsidiaries }
       <CardContent className="p-3 flex items-center space-x-2">
         <Building2 className="h-4 w-4 text-etaxi-yellow" />
         <div className="text-left">
-          <p className="text-xs text-muted-foreground">Filiales</p>
+          <p className="text-xs text-muted-foreground">Sous Organisation</p>
           <p className="text-lg font-bold">{total}</p>
         </div>
       </CardContent>
@@ -23,7 +23,7 @@ const SubsidiaryStats: React.FC<SubsidiaryStatsProps> = ({ total, subsidiaries }
       <CardContent className="p-3 flex items-center space-x-2">
         <Users className="h-4 w-4 text-blue-500" />
         <div className="text-left">
-          <p className="text-xs text-muted-foreground">Employés</p>
+          <p className="text-xs text-muted-foreground">Collaborateurs</p>
           <p className="text-lg font-bold">
             {subsidiaries.reduce((sum, s) => sum + (s.employeesCount || s.employeeCount || 0), 0)}
           </p>

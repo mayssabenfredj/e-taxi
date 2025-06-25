@@ -20,7 +20,7 @@ export const EmployeeStats: React.FC<EmployeeStatsProps> = ({ employees, total }
           <div className="flex items-center space-x-2">
             <Users className="h-5 w-5 text-blue-500" />
             <div>
-              <p className="text-sm text-muted-foreground">Total employés</p>
+              <p className="text-sm text-muted-foreground">Total Collaborateurs</p>
               <p className="text-2xl font-bold">{total}</p>
             </div>
           </div>
@@ -53,7 +53,7 @@ export const EmployeeStats: React.FC<EmployeeStatsProps> = ({ employees, total }
           <div className="flex items-center space-x-2">
             <Building2 className="h-5 w-5 text-orange-500" />
             <div>
-              <p className="text-sm text-muted-foreground">Filiales</p>
+              <p className="text-sm text-muted-foreground">Sous Organisation</p>
               <p className="text-2xl font-bold text-orange-600">{subsidiaries.length}</p>
             </div>
           </div>

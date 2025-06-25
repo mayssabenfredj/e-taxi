@@ -162,7 +162,7 @@ export function IndividualTransportPage() {
   };
 
   const subsidiaryFilterOptions = [
-    { label: 'Toutes les filiales', value: null },
+    { label: 'Toutes les sous organisation', value: null },
     ...subsidiaries.map((sub) => ({
       label: sub.name,
       value: sub.id,

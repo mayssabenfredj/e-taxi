@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Building2 } from 'lucide-react';
+import { Loader2, Building2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import validator from 'validator';
 import { SignUpEntrepriseDto } from '@/types/entreprise';
@@ -17,6 +17,7 @@ export function SignUpForm() {
     phone: '',
     email: '',
   });
+  const [isSignupSuccess, setIsSignupSuccess] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,7 +25,7 @@ export function SignUpForm() {
 
     // Validate required fields
     if (!formData.titre) {
-      toast.error('Le nom de l’entreprise est requis');
+      toast.error('Le nom de l’Organisation  est requis');
       return;
     }
     if (!formData.email) {
@@ -57,8 +58,8 @@ export function SignUpForm() {
       };
       const response = await entrepriseService.createEnterprise(enterpriseData as SignUpEntrepriseDto);
       if (response.success) {
+        setIsSignupSuccess(true);
         toast.success('Compte créé avec succès ! Vérifiez votre email.');
-        navigate('/dashboard');
       } else {
         toast.error(response.error || 'Erreur lors de la création du compte');
       }
@@ -81,65 +82,84 @@ export function SignUpForm() {
           <span>Créer un compte</span>
         </CardTitle>
         <CardDescription className="dark:text-gray-300">
-          Rejoignez E-Taxi pour gérer vos transports d'entreprise
+          Rejoignez E-Taxi pour gérer vos transports d'Organisation 
         </CardDescription>
       </CardHeader>
 
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4 text-start">
-          <div className="grid grid-cols-2 gap-4">
+      <CardContent>
+        {!isSignupSuccess ? (
+          <form onSubmit={handleSubmit} className="space-y-4 text-start">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="titre" className="text-start dark:text-gray-200">
+                  Nom de l’Organisation  <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="titre"
+                  value={formData.titre}
+                  onChange={(e) => handleInputChange('titre', e.target.value)}
+                  required
+                  className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-start dark:text-gray-200">
+                  Email <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  required
+                  className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                />
+              </div>
+            </div>
             <div className="space-y-2">
-              <Label htmlFor="titre" className="text-start dark:text-gray-200">
-                Nom de l’entreprise <span className="text-red-500">*</span>
+              <Label htmlFor="phone" className="text-start dark:text-gray-200">
+                Téléphone <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="titre"
-                value={formData.titre}
-                onChange={(e) => handleInputChange('titre', e.target.value)}
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
                 required
+                placeholder="+216XXXXXXXX"
                 className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-start dark:text-gray-200">
-                Email <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                required
-                className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
-              />
+            <Button
+              type="submit"
+              className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black dark:bg-yellow-400 dark:hover:bg-yellow-500 dark:text-gray-900"
+              disabled={isLoading}
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Créer le compte
+            </Button>
+          </form>
+        ) : (
+          <div className="text-center space-y-4">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+              <Mail className="h-8 w-8 text-green-600" />
             </div>
+            <div>
+              <h3 className="font-medium">Compte créé avec succès !</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Un email de confirmation a été envoyé à <strong>{formData.email}</strong>. Vérifiez votre boîte de réception pour activer votre compte.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/auth')}
+              className="w-full"
+            >
+              Retour à la connexion
+            </Button>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="phone" className="text-start dark:text-gray-200">
-              Téléphone <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="phone"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
-              required
-              placeholder="+216XXXXXXXX"
-              className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
-            />
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button
-            type="submit"
-            className="w-full bg-etaxi-yellow hover:bg-yellow-500 text-black dark:bg-yellow-400 dark:hover:bg-yellow-500 dark:text-gray-900"
-            disabled={isLoading}
-          >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Créer le compte
-          </Button>
-        </CardFooter>
-      </form>
+        )}
+      </CardContent>
     </Card>
   );
 }

@@ -199,7 +199,7 @@ export function CompanyPage() {
         setIsEditing(false);
         setLogoFile(null);
         setLogoPreview(null);
-        toast.success("Informations de l'entreprise mises à jour");
+        toast.success("Informations de l'Organisation mises à jour");
       } else {
         throw new Error('Update request was not successful');
       }
@@ -255,9 +255,9 @@ export function CompanyPage() {
       <div className="space-y-6 max-w-6xl">
         <div className="flex items-center space-x-2">
           <Building2 className="h-6 w-6 text-etaxi-yellow" />
-          <h2 className="text-2xl font-bold text-left">Gestion de l'Entreprise</h2>
+          <h2 className="text-2xl font-bold text-left">Gestion d'Organisation</h2>
         </div>
-        <p className="text-muted-foreground text-center">Aucune information d'entreprise disponible.</p>
+        <p className="text-muted-foreground text-center">Aucune information d'Organisation disponible.</p>
       </div>
     );
   }
@@ -267,7 +267,7 @@ export function CompanyPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Building2 className="h-6 w-6 text-etaxi-yellow" />
-          <h2 className="text-2xl font-bold text-left">Gestion de l'Entreprise</h2>
+          <h2 className="text-2xl font-bold text-left">Gestion d'Organisation</h2>
         </div>
 
         {!isEditing ? (
@@ -380,7 +380,7 @@ export function CompanyPage() {
               <Label>Adresse</Label>
               {isEditing ? (
                 <AddressInput
-                  label="Adresse de l'entreprise"
+                  label="Adresse de l'Organisation"
                   value={editedCompany?.address || null}
                   onChange={(address) => {
                     if (address && 'id' in address) {
@@ -478,7 +478,7 @@ export function CompanyPage() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-left">
               <Building2 className="h-5 w-5" />
-              <span>Filiales ({company.subsidiaries.length || 0})</span>
+              <span>Sous Organisation ({company.subsidiaries.length || 0})</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -496,7 +496,7 @@ export function CompanyPage() {
                     <div className="flex items-center justify-between mt-2">
                       <Badge variant="secondary" className="text-xs text-left">
                         <Users className="h-3 w-3 mr-1" />
-                        {subsidiary.employeeCount || 0} employés
+                        {subsidiary.employeeCount || 0} Collaborateurs
                       </Badge>
                     </div>
                   </div>

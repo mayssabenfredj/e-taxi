@@ -53,8 +53,8 @@ export function DashboardHome() {
       color: 'bg-etaxi-yellow hover:bg-yellow-500'
     },
     {
-      title: t('addEmployee') || 'Ajouter employé',
-      description: 'Enregistrer un nouvel employé',
+      title: t('addEmployee') || 'Ajouter Collaborateur',
+      description: 'Enregistrer un nouvel Collaborateur',
       icon: Users,
       action: () => navigate('/employees'),
       color: 'bg-blue-500 hover:bg-blue-600'
@@ -113,7 +113,7 @@ export function DashboardHome() {
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm text-muted-foreground mb-1">Employés actifs</p>
+                <p className="text-xs md:text-sm text-muted-foreground mb-1">Collaborateurs actifs</p>
                 <p className="text-2xl md:text-3xl font-bold">156</p>
                 <p className="text-xs md:text-sm text-blue-600 flex items-center mt-1">
                   <Users className="h-3 w-3 mr-1" />
@@ -131,7 +131,7 @@ export function DashboardHome() {
           <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs md:text-sm text-muted-foreground mb-1">Filiales</p>
+                <p className="text-xs md:text-sm text-muted-foreground mb-1">Sous Organisation</p>
                 <p className="text-2xl md:text-3xl font-bold">8</p>
                 <p className="text-xs md:text-sm text-green-600 flex items-center mt-1">
                   <Building2 className="h-3 w-3 mr-1" />
@@ -317,7 +317,7 @@ export function DashboardHome() {
             {[
               { time: '14:30', action: 'Nouvelle demande créée', user: 'Marie Dupont', status: 'pending' },
               { time: '13:45', action: 'Course terminée', user: 'Jean Martin', status: 'completed' },
-              { time: '12:20', action: 'Employé ajouté', user: 'Sophie Laurent', status: 'info' },
+              { time: '12:20', action: 'Collaborateur ajouté', user: 'Sophie Laurent', status: 'info' },
               { time: '11:15', action: 'Course en cours', user: 'Pierre Durand', status: 'progress' }
             ].map((item, index) => (
               <div key={index} className="flex items-center space-x-3 md:space-x-4 p-2 md:p-3 rounded-lg hover:bg-muted/50">

@@ -100,7 +100,7 @@ export function TransportConfig({
           <CardTitle className="text-lg">Configuration du transport</CardTitle>
           {!showEmployeeList && (
             <Button variant="outline" size="sm" onClick={() => setShowEmployeeList(true)}>
-              Afficher la liste des employés
+              Afficher la liste des Collaborateurs
             </Button>
           )}
         </div>

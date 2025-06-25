@@ -230,7 +230,7 @@ export function ProfilePage() {
               <Building className="h-5 w-5 text-etaxi-yellow" />
               <div>
                 <p className="font-medium">{user?.enterprise?.name}</p>
-                <p className="text-sm text-muted-foreground">Entreprise principale</p>
+                <p className="text-sm text-muted-foreground">Organisation principale</p>
               </div>
             </div>
 

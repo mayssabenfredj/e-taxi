@@ -67,7 +67,7 @@ export function ManualAddressForm({ onSubmit }: ManualAddressFormProps) {
         const filteredRegions = data.filter((region) => region.countryId === formData.countryId);
         setRegions(filteredRegions);
       } catch (error) {
-        toast.error('Erreur lors du chargement des régions');
+        toast.error('Erreur lors du chargement des Gouvernorats');
       } finally {
         setLoading(false);
       }
@@ -208,14 +208,14 @@ export function ManualAddressForm({ onSubmit }: ManualAddressFormProps) {
           </Select>
         </div>
         <div>
-          <Label className="text-sm">Région</Label>
+          <Label className="text-sm">Gouvernorat</Label>
           <Select
             value={formData.regionId}
             onValueChange={(value) => setFormData({ ...formData, regionId: value })}
             disabled={!formData.countryId || loading}
           >
             <SelectTrigger className="text-sm h-10">
-              <SelectValue placeholder="Sélectionner une région" />
+              <SelectValue placeholder="Sélectionner une Gouvernorat" />
             </SelectTrigger>
             <SelectContent>
               {loading ? (

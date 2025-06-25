@@ -186,7 +186,7 @@ export function DispatchPage() {
       const existingEnterprises = taxi.assignedRequests.map(req => req.enterprise);
       if (existingEnterprises.length > 0 && !existingEnterprises.includes(draggedRequest.enterprise)) {
         // This is allowed for public requests from different enterprises
-        toast.info('Ajout de passagers d\'une autre entreprise (transport public)');
+        toast.info('Ajout de passagers d\'une autre Organisation (transport public)');
       }
     }
 

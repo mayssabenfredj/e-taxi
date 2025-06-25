@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, RotateCcw } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Steps } from '@/components/shared/Steps';
@@ -17,13 +17,22 @@ import { CreateEmployee, Employee } from '@/types/employee';
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
 import { startOfDay } from 'date-fns';
 
+// Fonction pour générer un UUID
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 export function CreateGroupTransportRequest() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
   const { user } = useAuth();
   const enterpriseId = user?.enterpriseId;
-  const { isGoogleMapsLoaded } = useGoogleMaps(); // Utilisez le hook useGoogleMaps
+  const { isGoogleMapsLoaded } = useGoogleMaps();
 
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [selectedPassengers, setSelectedPassengers] = useState<SelectedPassenger[]>([]);
@@ -40,10 +49,9 @@ export function CreateGroupTransportRequest() {
   const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('all');
   const [routeEstimations, setRouteEstimations] = useState<RouteEstimation[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
-  const [isCalculating, setIsCalculating] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [groupRoute, setGroupRoute] = useState<GroupRoute | null>(null);
-
+  const [draftId, setDraftId] = useState<string>(generateUUID());
 
   // Fetch employees using useEmployees hook
   const { employees, total, loading, importEmployees } = useEmployees({
@@ -72,9 +80,16 @@ export function CreateGroupTransportRequest() {
       employee.subsidiaryName?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Auto-save draft functionality
+  // Récupérer la liste des brouillons depuis localStorage
+  const getDrafts = (): DraftData[] => {
+    const savedDrafts = localStorage.getItem('groupTransportDrafts');
+    return savedDrafts ? JSON.parse(savedDrafts) : [];
+  };
+
+  // Sauvegarder ou mettre à jour un brouillon dans la liste
   const saveDraftData = () => {
     const draftData: DraftData = {
+      draftId,
       selectedEmployees,
       selectedPassengers,
       transportType,
@@ -86,7 +101,47 @@ export function CreateGroupTransportRequest() {
       isHomeToWorkTrip,
       lastModified: new Date().toISOString(),
     };
-    localStorage.setItem('groupTransportDraft', JSON.stringify(draftData));
+
+    const drafts = getDrafts();
+    const existingDraftIndex = drafts.findIndex((d) => d.draftId === draftId);
+    if (existingDraftIndex !== -1) {
+      drafts[existingDraftIndex] = draftData;
+    } else {
+      drafts.push(draftData);
+    }
+
+    localStorage.setItem('groupTransportDrafts', JSON.stringify(drafts));
+  };
+
+  // Créer un nouveau brouillon avec un nouvel ID
+  const saveNewDraft = () => {
+    saveDraftData();
+    toast.success('Brouillon sauvegardé');
+    navigate('/transport/drafts');
+  };
+
+  // Réinitialiser le formulaire pour un nouveau brouillon
+  const resetForm = () => {
+    setSelectedEmployees([]);
+    setSelectedPassengers([]);
+    setTransportType('private');
+    setScheduledDate(new Date());
+    setScheduledTime('09:00');
+    setIsRecurring(false);
+    setRecurringDates([]);
+    setNote('');
+    setSearchTerm('');
+    setShowEmployeeList(true);
+    setIsHomeToWorkTrip(true);
+    setCsvImportOpen(false);
+    setSubsidiaryFilter('all');
+    setRouteEstimations([]);
+    setTotalPrice(0);
+    setIsCalculating(false);
+    setShowConfirmation(false);
+    setGroupRoute(null);
+    setDraftId(generateUUID()); // Générer un nouvel ID pour le prochain brouillon
+    toast.success('Formulaire réinitialisé pour un nouveau brouillon');
   };
 
   // Auto-save every 30 seconds
@@ -97,7 +152,7 @@ export function CreateGroupTransportRequest() {
       }
     }, 30000);
     return () => clearInterval(autoSaveInterval);
-  }, [selectedEmployees, selectedPassengers, transportType, scheduledDate, scheduledTime, isRecurring, recurringDates, note, isHomeToWorkTrip]);
+  }, [selectedEmployees, selectedPassengers, transportType, scheduledDate, scheduledTime, isRecurring, recurringDates, note, isHomeToWorkTrip, draftId]);
 
   // Save draft when leaving the page
   useEffect(() => {
@@ -108,34 +163,14 @@ export function CreateGroupTransportRequest() {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [selectedEmployees, selectedPassengers, transportType, scheduledDate, scheduledTime, isRecurring, recurringDates, note, isHomeToWorkTrip]);
+  }, [selectedEmployees, selectedPassengers, transportType, scheduledDate, scheduledTime, isRecurring, recurringDates, note, isHomeToWorkTrip, draftId]);
 
   // Load draft data
- useEffect(() => {
-  if (location.state?.draftId || location.state?.draftData) {
-    const draftData = location.state.draftData as DraftData;
-    if (draftData) {
-      setSelectedEmployees(draftData.selectedEmployees || []);
-      setSelectedPassengers(draftData.selectedPassengers || []);
-      setTransportType(draftData.transportType || 'private');
-      setScheduledDate(draftData.scheduledDate ? new Date(draftData.scheduledDate) : new Date());
-      setScheduledTime(draftData.scheduledTime || '09:00');
-      setIsRecurring(draftData.isRecurring || false);
-      setRecurringDates(
-        draftData.recurringDates?.map((rd) => ({
-          date: new Date(rd.date), // Assurez-vous que c'est bien un objet Date
-          time: rd.time,
-        })) || []
-      );
-      setNote(draftData.note || '');
-      setIsHomeToWorkTrip(draftData.isHomeToWorkTrip !== undefined ? draftData.isHomeToWorkTrip : true);
-      toast.info('Brouillon chargé');
-    }
-  } else {
-    const savedDraft = localStorage.getItem('groupTransportDraft');
-    if (savedDraft) {
-      try {
-        const draftData = JSON.parse(savedDraft) as DraftData;
+  useEffect(() => {
+    if (location.state?.draftId || location.state?.draftData) {
+      const draftData = location.state.draftData as DraftData;
+      if (draftData && draftData.draftId) {
+        setDraftId(draftData.draftId);
         setSelectedEmployees(draftData.selectedEmployees || []);
         setSelectedPassengers(draftData.selectedPassengers || []);
         setTransportType(draftData.transportType || 'private');
@@ -144,22 +179,42 @@ export function CreateGroupTransportRequest() {
         setIsRecurring(draftData.isRecurring || false);
         setRecurringDates(
           draftData.recurringDates?.map((rd) => ({
-            date: new Date(rd.date), // Assurez-vous que c'est bien un objet Date
+            date: new Date(rd.date),
             time: rd.time,
           })) || []
         );
         setNote(draftData.note || '');
         setIsHomeToWorkTrip(draftData.isHomeToWorkTrip !== undefined ? draftData.isHomeToWorkTrip : true);
-        toast.info('Brouillon automatiquement restauré');
-      } catch (error) {
-        console.error('Error loading draft:', error);
+        toast.info('Brouillon chargé');
+      }
+    } else {
+      const drafts = getDrafts();
+      if (drafts.length > 0) {
+        const latestDraft = drafts[drafts.length - 1]; // Charger le dernier brouillon par défaut
+        setDraftId(latestDraft.draftId);
+        setSelectedEmployees(latestDraft.selectedEmployees || []);
+        setSelectedPassengers(latestDraft.selectedPassengers || []);
+        setTransportType(latestDraft.transportType || 'private');
+        setScheduledDate(latestDraft.scheduledDate ? new Date(latestDraft.scheduledDate) : new Date());
+        setScheduledTime(latestDraft.scheduledTime || '09:00');
+        setIsRecurring(latestDraft.isRecurring || false);
+        setRecurringDates(
+          latestDraft.recurringDates?.map((rd) => ({
+            date: new Date(rd.date),
+            time: rd.time,
+          })) || []
+        );
+        setNote(latestDraft.note || '');
+        setIsHomeToWorkTrip(latestDraft.isHomeToWorkTrip !== undefined ? latestDraft.isHomeToWorkTrip : true);
+        toast.info('Dernier brouillon automatiquement restauré');
       }
     }
-  }
-}, [location.state]);
+  }, [location.state]);
 
   useEffect(() => {
-    saveDraftData();
+    if (selectedEmployees.length > 0 || note.trim()) {
+      saveDraftData();
+    }
   }, [
     selectedEmployees,
     selectedPassengers,
@@ -170,6 +225,7 @@ export function CreateGroupTransportRequest() {
     recurringDates,
     note,
     isHomeToWorkTrip,
+    draftId,
   ]);
 
   const handleEmployeeSelect = (employeeId: string) => {
@@ -210,18 +266,18 @@ export function CreateGroupTransportRequest() {
     saveDraftData();
   };
 
- const handleRecurringDateChange = (dates: Date[] | undefined) => {
-  if (dates) {
-    const newRecurringDates = dates.map((date) => ({
-      date: startOfDay(date), // Normaliser la date à minuit
-      time: scheduledTime, // Utiliser l'heure actuelle
-    }));
-    setRecurringDates(newRecurringDates);
-  } else {
-    setRecurringDates([]);
-  }
-  saveDraftData();
-};
+  const handleRecurringDateChange = (dates: Date[] | undefined) => {
+    if (dates) {
+      const newRecurringDates = dates.map((date) => ({
+        date: startOfDay(date),
+        time: scheduledTime,
+      }));
+      setRecurringDates(newRecurringDates);
+    } else {
+      setRecurringDates([]);
+    }
+    saveDraftData();
+  };
 
   const updateRecurringTime = (index: number, time: string) => {
     setRecurringDates((prev) => prev.map((item, i) => (i === index ? { ...item, time } : item)));
@@ -229,40 +285,12 @@ export function CreateGroupTransportRequest() {
   };
 
   const handleSaveDraft = () => {
-    saveDraftData();
-    toast.success('Brouillon sauvegardé');
-    navigate('/transport/drafts');
+    saveNewDraft();
   };
-
-  // const calculateRoutes = async () => {
-  //   if (!isGoogleMapsLoaded || !window.google) {
-  //     toast.error('Google Maps non chargé');
-  //     return;
-  //   }
-  //
-  //   setIsCalculating(true);
-  //
-  //   try {
-  //     const directionsService = new window.google.maps.DirectionsService();
-  //     // ... tout le code de calcul ...
-  //   } catch (error: any) {
-  //     toast.error(`Erreur de calcul d'itinéraire: ${error.message || error.status || 'inconnue'}`);
-  //     setRouteEstimations(
-  //       selectedPassengers.map(() => ({
-  //         distance: '-',
-  //         duration: '-',
-  //         price: 0,
-  //       }))
-  //     );
-  //     setGroupRoute(null);
-  //     setTotalPrice(0);
-  //     setIsCalculating(false);
-  //   }
-  // };
 
   const handleSubmit = async () => {
     if (selectedEmployees.length === 0) {
-      toast.error('Veuillez sélectionner au moins un employé');
+      toast.error('Veuillez sélectionner au moins un Collaborateur');
       return;
     }
     if (selectedPassengers.some((p) => p.departureAddressId === 'none' || p.arrivalAddressId === 'none')) {
@@ -308,9 +336,12 @@ export function CreateGroupTransportRequest() {
         await demandeService.createTransportRequest(requestData);
       }
 
-      localStorage.removeItem('groupTransportDraft');
+      // Supprimer le brouillon soumis
+      const drafts = getDrafts();
+      const updatedDrafts = drafts.filter((d) => d.draftId !== draftId);
+      localStorage.setItem('groupTransportDrafts', JSON.stringify(updatedDrafts));
+      setDraftId(generateUUID()); // Générer un nouvel ID pour le prochain brouillon
       toast.success('Demande de transport de groupe créée avec succès');
-      // Redirection selon le nombre de passagers
       if (requestData.employeeTransports.length === 1) {
         navigate('/transport/individual');
       } else {
@@ -361,13 +392,12 @@ export function CreateGroupTransportRequest() {
       return;
     }
     setShowConfirmation(true);
-    // calculateRoutes();
   };
 
   const steps = [{ name: 'Configuration' }, { name: 'Confirmation' }];
 
   if (!enterpriseId) {
-    return <div>Erreur : ID de l'entreprise non disponible</div>;
+    return <div>Erreur : ID de l'organisation non disponible</div>;
   }
 
   return (
@@ -384,6 +414,10 @@ export function CreateGroupTransportRequest() {
           <Button variant="outline" onClick={handleSaveDraft}>
             <Save className="mr-2 h-4 w-4" />
             Sauvegarder en brouillon
+          </Button>
+          <Button variant="outline" onClick={resetForm}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Réinitialiser
           </Button>
         </div>
       </div>
