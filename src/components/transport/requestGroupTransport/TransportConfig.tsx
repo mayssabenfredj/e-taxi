@@ -14,6 +14,8 @@ import { format, addHours, isToday, startOfDay, setHours, setMinutes } from 'dat
 import { fr } from 'date-fns/locale';
 import { RecurringDateTime, SelectedPassenger } from '@/types/demande';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AddressInput } from '@/components/shared/AddressInput';
 
 interface TransportConfigProps {
   transportType: string;
@@ -32,7 +34,7 @@ interface TransportConfigProps {
   note: string;
   setNote: (note: string) => void;
   selectedPassengers: SelectedPassenger[];
-  updatePassengerAddress: (passengerId: string, field: 'departureAddressId' | 'arrivalAddressId', value: string) => void;
+  updatePassengerAddress: (passengerId: string, field: 'departureAddressId' | 'arrivalAddressId' | 'customAddresses', value: string | any[]) => void;
   showEmployeeList: boolean;
   setShowEmployeeList: (show: boolean) => void;
   handleShowConfirmation: () => void;
@@ -94,6 +96,8 @@ export function TransportConfig({
     }
     return '00:00';
   };
+
+  const [customAddressDialog, setCustomAddressDialog] = useState<{ open: boolean; passengerId: string; field: 'departureAddressId' | 'arrivalAddressId' } | null>(null);
 
   return (
     <Card className={showEmployeeList ? 'lg:col-span-2' : 'lg:col-span-3'}>
@@ -221,7 +225,6 @@ export function TransportConfig({
                       subsidiariesAddressOptions = subsidiaries
                         .filter(sub => sub.address && sub.address.id)
                         .map(sub => {
-                          // Vérifier si déjà présente dans les adresses employé
                           const alreadyPresent = employeeAddresses.some(addr => addr.id === sub.address.id);
                           if (!alreadyPresent) {
                             return {
@@ -234,9 +237,17 @@ export function TransportConfig({
                         })
                         .filter(Boolean);
                     }
+                    const customAddresses = passenger.customAddresses || [];
+                    const customAddressOptions = customAddresses.map((address: any) => ({
+                      id: address.label || address.formattedAddress || 'custom',
+                      formattedAddress: address.label || address.formattedAddress || 'Adresse personnalisée',
+                      type: 'CUSTOM',
+                      addressObj: address,
+                    }));
                     const addressOptions = [
                       ...employeeAddresses,
                       ...subsidiariesAddressOptions,
+                      ...customAddressOptions,
                     ];
                     if (addressOptions.length === 0) {
                       addressOptions.push({ id: 'none', formattedAddress: 'Aucune adresse disponible' });
@@ -263,48 +274,128 @@ export function TransportConfig({
                           </div>
                         </TableCell>
                         <TableCell className="p-2">
-                          <Select
-                            value={passenger.departureAddressId}
-                            onValueChange={(value) => updatePassengerAddress(passenger.id, 'departureAddressId', value)}
-                          >
-                            <SelectTrigger className="text-xs h-8">
-                              <SelectValue placeholder="Sélectionner une adresse" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {addressOptions.map((address) => (
-                                <SelectItem key={address.id} value={address.id} className="text-xs">
-                                  <span className="flex items-center">
-                                    {address.type === 'HOME' && <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />}
-                                    {address.type === 'OFFICE' && <Briefcase className="h-3 w-3 mr-1 text-blue-500" />}
-                                    {address.type === 'SUBSIDIARY' && <Building2 className="h-3 w-3 mr-1 text-green-600" />}
-                                    {address.formattedAddress}
-                                  </span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div>
+                            <Select
+                              value={typeof passenger.departureAddressId === 'string' ? passenger.departureAddressId : (passenger.departureAddressId && typeof passenger.departureAddressId === 'object' && 'label' in passenger.departureAddressId ? (passenger.departureAddressId as any).label : 'custom')}
+                              onValueChange={(value) => {
+                                if (value === 'custom') {
+                                  setCustomAddressDialog({ open: true, passengerId: passenger.id, field: 'departureAddressId' });
+                                } else {
+                                  // Si l'adresse sélectionnée est une adresse personnalisée, retrouver l'objet
+                                  const custom = customAddressOptions.find(opt => opt.id === value);
+                                  if (custom) {
+                                    updatePassengerAddress(passenger.id, 'departureAddressId', custom.addressObj);
+                                  } else {
+                                    updatePassengerAddress(passenger.id, 'departureAddressId', value);
+                                  }
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="text-xs h-8">
+                                <SelectValue placeholder="Sélectionner une adresse" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {addressOptions.map((address) => (
+                                  <SelectItem key={address.id} value={address.id} className="text-xs">
+                                    <span className="flex items-center">
+                                      {address.type === 'HOME' && <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />}
+                                      {address.type === 'OFFICE' && <Briefcase className="h-3 w-3 mr-1 text-blue-500" />}
+                                      {address.type === 'SUBSIDIARY' && <Building2 className="h-3 w-3 mr-1 text-green-600" />}
+                                      {address.type === 'CUSTOM' && <span className="h-3 w-3 mr-1 text-purple-600">🏠</span>}
+                                      {address.formattedAddress}
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                                <SelectItem value="custom" className="text-xs text-blue-600">+ Adresse personnalisée...</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {/* Dialog pour adresse personnalisée */}
+                            {customAddressDialog?.open && customAddressDialog.passengerId === passenger.id && customAddressDialog.field === 'departureAddressId' && (
+                              <Dialog open={true} onOpenChange={(open) => {
+                                if (!open) setCustomAddressDialog(null);
+                              }}>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Nouvelle adresse de départ</DialogTitle>
+                                  </DialogHeader>
+                                  <AddressInput
+                                    label="Adresse personnalisée"
+                                    value={null}
+                                    onChange={(address) => {
+                                      // Ajout à customAddresses du passager
+                                      const updatedCustomAddresses = [...(passenger.customAddresses || []), address];
+                                      updatePassengerAddress(passenger.id, 'customAddresses', updatedCustomAddresses);
+                                      updatePassengerAddress(passenger.id, 'departureAddressId', address);
+                                      setCustomAddressDialog(null);
+                                    }}
+                                    showSavedAddresses={false}
+                                  />
+                                </DialogContent>
+                              </Dialog>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="p-2">
-                          <Select
-                            value={passenger.arrivalAddressId}
-                            onValueChange={(value) => updatePassengerAddress(passenger.id, 'arrivalAddressId', value)}
-                          >
-                            <SelectTrigger className="text-xs h-8">
-                              <SelectValue placeholder="Sélectionner une adresse" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {addressOptions.map((address) => (
-                                <SelectItem key={address.id} value={address.id} className="text-xs">
-                                  <span className="flex items-center">
-                                    {address.type === 'HOME' && <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />}
-                                    {address.type === 'OFFICE' && <Briefcase className="h-3 w-3 mr-1 text-blue-500" />}
-                                    {address.type === 'SUBSIDIARY' && <Building2 className="h-3 w-3 mr-1 text-green-600" />}
-                                    {address.formattedAddress}
-                                  </span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div>
+                            <Select
+                              value={typeof passenger.arrivalAddressId === 'string' ? passenger.arrivalAddressId : (passenger.arrivalAddressId && typeof passenger.arrivalAddressId === 'object' && 'label' in passenger.arrivalAddressId ? (passenger.arrivalAddressId as any).label : 'custom')}
+                              onValueChange={(value) => {
+                                if (value === 'custom') {
+                                  setCustomAddressDialog({ open: true, passengerId: passenger.id, field: 'arrivalAddressId' });
+                                } else {
+                                  // Si l'adresse sélectionnée est une adresse personnalisée, retrouver l'objet
+                                  const custom = customAddressOptions.find(opt => opt.id === value);
+                                  if (custom) {
+                                    updatePassengerAddress(passenger.id, 'arrivalAddressId', custom.addressObj);
+                                  } else {
+                                    updatePassengerAddress(passenger.id, 'arrivalAddressId', value);
+                                  }
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="text-xs h-8">
+                                <SelectValue placeholder="Sélectionner une adresse" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {addressOptions.map((address) => (
+                                  <SelectItem key={address.id} value={address.id} className="text-xs">
+                                    <span className="flex items-center">
+                                      {address.type === 'HOME' && <Home className="h-3 w-3 mr-1 text-etaxi-yellow" />}
+                                      {address.type === 'OFFICE' && <Briefcase className="h-3 w-3 mr-1 text-blue-500" />}
+                                      {address.type === 'SUBSIDIARY' && <Building2 className="h-3 w-3 mr-1 text-green-600" />}
+                                      {address.type === 'CUSTOM' && <span className="h-3 w-3 mr-1 text-purple-600">🏠</span>}
+                                      {address.formattedAddress}
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                                <SelectItem value="custom" className="text-xs text-blue-600">+ Adresse personnalisée...</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {/* Dialog pour adresse personnalisée arrivée */}
+                            {customAddressDialog?.open && customAddressDialog.passengerId === passenger.id && customAddressDialog.field === 'arrivalAddressId' && (
+                              <Dialog open={true} onOpenChange={(open) => {
+                                if (!open) setCustomAddressDialog(null);
+                              }}>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Nouvelle adresse d'arrivée</DialogTitle>
+                                  </DialogHeader>
+                                  <AddressInput
+                                    label="Adresse personnalisée"
+                                    value={null}
+                                    onChange={(address) => {
+                                      // Ajout à customAddresses du passager
+                                      const updatedCustomAddresses = [...(passenger.customAddresses || []), address];
+                                      updatePassengerAddress(passenger.id, 'customAddresses', updatedCustomAddresses);
+                                      updatePassengerAddress(passenger.id, 'arrivalAddressId', address);
+                                      setCustomAddressDialog(null);
+                                    }}
+                                    showSavedAddresses={false}
+                                  />
+                                </DialogContent>
+                              </Dialog>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

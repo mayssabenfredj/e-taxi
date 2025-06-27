@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AddressInput } from '@/components/shared/AddressInput';
 import { UserPlus } from 'lucide-react';
 import { Address, AddressType } from '@/types/addresse';
-import { CreateEmployee, UserAddressDto } from '@/types/employee';
+import { CreateEmployee, UserAddressDto, AddressDto } from '@/types/employee';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRolesAndSubsidiaries } from '@/hooks/useRolesAndSubsidiaries';
 import { toast } from 'sonner';
@@ -44,22 +44,44 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
 
   const { setValue, watch } = form;
   const selectedRoleIds = watch('roleIds');
+  const selectedSubsidiaryId = watch('subsidiaryId');
 
   useEffect(() => {
     const defaultRole = roles.find(
       (role) => role.name === (isManager ? 'ADMIN_FILIAL' : 'EMPLOYEE_ENTREPRISE')
     );
-    if (defaultRole && !selectedRoleIds.includes(defaultRole.id)) {
+    if (defaultRole && (!selectedRoleIds[0] || selectedRoleIds[0] !== defaultRole.id)) {
       setValue('roleIds', [defaultRole.id]);
     }
-  }, [isManager, roles, setValue, selectedRoleIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isManager, roles]);
 
   useEffect(() => {
     if (selectedRoleIds.length > 0) {
       const selectedRole = roles.find((role) => role.id === selectedRoleIds[0]);
-      setIsManager(selectedRole?.name === 'ADMIN_FILIAL');
+      if (selectedRole) {
+        setIsManager(selectedRole.name === 'ADMIN_FILIAL');
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoleIds, roles]);
+
+  // Helper pour convertir AddressDto en Address minimal si besoin
+  function toAddress(address: Address | AddressDto | null): Address | null {
+    if (!address) return null;
+    if ('id' in address && address.id) return address as Address;
+    // Générer un id temporaire si manquant
+    return { ...address, id: `temp-${Date.now()}` } as Address;
+  }
+
+  useEffect(() => {
+    if (selectedSubsidiaryId) {
+      const subsidiary = subsidiaries.find((s) => s.id === selectedSubsidiaryId);
+      if (subsidiary && subsidiary.address) {
+        setSelectedWorkAddress(toAddress(subsidiary.address));
+      }
+    }
+  }, [selectedSubsidiaryId, subsidiaries]);
 
   const onSubmit = (data: CreateEmployee) => {
     const addresses: UserAddressDto[] = [];
@@ -70,9 +92,9 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
           buildingNumber: selectedHomeAddress.buildingNumber || undefined,
           complement: selectedHomeAddress.complement || undefined,
           postalCode: selectedHomeAddress.postalCode || '',
-          cityId: selectedHomeAddress.cityId || selectedHomeAddress.city?.id || null,
-          regionId: selectedHomeAddress.regionId || selectedHomeAddress.region?.id || null,
-          countryId: selectedHomeAddress.countryId || selectedHomeAddress.country?.id || null,
+          cityId: selectedHomeAddress.cityId || (selectedHomeAddress as Address).city?.id || null,
+          regionId: selectedHomeAddress.regionId || (selectedHomeAddress as Address).region?.id || null,
+          countryId: selectedHomeAddress.countryId || (selectedHomeAddress as Address).country?.id || null,
           latitude: selectedHomeAddress.latitude || undefined,
           longitude: selectedHomeAddress.longitude || undefined,
           placeId: selectedHomeAddress.placeId || undefined,
@@ -94,9 +116,9 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
           buildingNumber: selectedWorkAddress.buildingNumber || undefined,
           complement: selectedWorkAddress.complement || undefined,
           postalCode: selectedWorkAddress.postalCode || '',
-          cityId: selectedWorkAddress.cityId || selectedWorkAddress.city?.id || null,
-          regionId: selectedWorkAddress.regionId || selectedWorkAddress.region?.id || null,
-          countryId: selectedWorkAddress.countryId || selectedHomeAddress.country?.id || null,
+          cityId: selectedWorkAddress.cityId || (selectedWorkAddress as Address).city?.id || null,
+          regionId: selectedWorkAddress.regionId || (selectedWorkAddress as Address).region?.id || null,
+          countryId: selectedWorkAddress.countryId || (selectedWorkAddress as Address).country?.id || null,
           latitude: selectedWorkAddress.latitude || undefined,
           longitude: selectedWorkAddress.longitude || undefined,
           placeId: selectedWorkAddress.placeId || undefined,
@@ -225,27 +247,6 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
                 </div>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Adresses</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <AddressInput
-                  label="Adresse domicile"
-                  value={selectedHomeAddress}
-                  onChange={setSelectedHomeAddress}
-                  showMapPicker={true}
-                />
-                <AddressInput
-                  label="Adresse travail"
-                  value={selectedWorkAddress}
-                  onChange={setSelectedWorkAddress}
-                  showMapPicker={true}
-                />
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Rôle et permissions</CardTitle>
@@ -260,7 +261,7 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
                   </div>
                   <Switch
                     checked={isManager}
-                    onCheckedChange={setIsManager}
+                    onCheckedChange={(checked) => setIsManager(checked)}
                     disabled={loading}
                   />
                 </FormItem>
@@ -299,7 +300,7 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
                   name="subsidiaryId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Filiale</FormLabel>
+                      <FormLabel>Sous Organisation</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value} disabled={loading}>
                         <FormControl>
                           <SelectTrigger>
@@ -320,6 +321,28 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
                 />
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Adresses</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <AddressInput
+                  label="Adresse domicile"
+                  value={selectedHomeAddress}
+                  onChange={(addr) => setSelectedHomeAddress(toAddress(addr))}
+                  showMapPicker={true}
+                />
+                <AddressInput
+                  label="Adresse travail"
+                  value={selectedWorkAddress}
+                  onChange={(addr) => setSelectedWorkAddress(toAddress(addr))}
+                  showMapPicker={true}
+                />
+              </CardContent>
+            </Card>
+
+            
 
             <div className="flex justify-end space-x-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

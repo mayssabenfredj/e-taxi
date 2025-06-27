@@ -13,7 +13,7 @@ import { useRolesAndSubsidiaries } from '@/hooks/useRolesAndSubsidiaries';
 import { demandeService } from '@/services/demande.service';
 import { CreateTransportRequestDto, TransportType, SelectedPassenger, RecurringDateTime, RouteEstimation, DraftData, TransportDirection, GroupRoute } from '@/types/demande';
 import { ConfirmationView } from '@/components/transport/requestGroupTransport/ConfirmationView';
-import { CreateEmployee, Employee } from '@/types/employee';
+import { CreateEmployee, Employee, AddressDto } from '@/types/employee';
 import { useGoogleMaps } from '@/contexts/GoogleMapsContext';
 import { startOfDay } from 'date-fns';
 
@@ -257,7 +257,7 @@ export function CreateGroupTransportRequest() {
     saveDraftData();
   };
 
-  const updatePassengerAddress = (passengerId: string, field: 'departureAddressId' | 'arrivalAddressId', value: string) => {
+  const updatePassengerAddress = (passengerId: string, field: 'departureAddressId' | 'arrivalAddressId' | 'customAddresses', value: string | AddressDto | any[]) => {
     setSelectedPassengers((prev) =>
       prev.map((passenger) => (passenger.id === passengerId ? { ...passenger, [field]: value } : passenger))
     );
@@ -311,13 +311,32 @@ export function CreateGroupTransportRequest() {
         requestedById: user?.id || 'current-user-id',
         enterpriseId,
         Direction: isHomeToWorkTrip ? TransportDirection.HOMETOOFFICE : TransportDirection.OFFICETOHOME,
-        employeeTransports: selectedPassengers.map((passenger) => ({
-          employeeId: passenger.id,
-          note: passenger.note || undefined,
-          startTime: combineDateTime(scheduledDate, scheduledTime),
-          departureId: passenger.departureAddressId,
-          arrivalId: passenger.arrivalAddressId,
-        })),
+        employeeTransports: selectedPassengers.map((passenger) => {
+          // Gestion intelligente des adresses :
+          let departureId: string | undefined = undefined;
+          let arrivalId: string | undefined = undefined;
+          let departureAddress: any = undefined;
+          let arrivalAddress: any = undefined;
+          if (passenger.departureAddressId && typeof passenger.departureAddressId === 'string') {
+            departureId = passenger.departureAddressId;
+          } else if (passenger.departureAddressId && typeof passenger.departureAddressId === 'object') {
+            departureAddress = passenger.departureAddressId;
+          }
+          if (passenger.arrivalAddressId && typeof passenger.arrivalAddressId === 'string') {
+            arrivalId = passenger.arrivalAddressId;
+          } else if (passenger.arrivalAddressId && typeof passenger.arrivalAddressId === 'object') {
+            arrivalAddress = passenger.arrivalAddressId;
+          }
+          return {
+            employeeId: passenger.id,
+            note: passenger.note || undefined,
+            startTime: combineDateTime(scheduledDate, scheduledTime),
+            departureId: departureId || undefined,
+            arrivalId: arrivalId || undefined,
+            departureAddress: departureAddress || undefined,
+            arrivalAddress: arrivalAddress || undefined,
+          };
+        }),
       };
 
       if (isRecurring) {
