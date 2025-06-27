@@ -1,17 +1,17 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { AuthProvider } from './contexts/AuthContext';
-import { LanguageProvider } from './contexts/LanguageContext';
-import { GoogleMapsProvider } from './contexts/GoogleMapsContext';
-import { Toaster } from './components/ui/sonner';
-import { Dashboard } from './components/dashboard/Dashboard';
-import { ConfirmAccount } from './pages/ConfirmAccount';
+import { ThemeProvider } from './shareds/contexts/ThemeContext';
+import { AuthProvider } from './shareds/contexts/AuthContext';
+import { LanguageProvider } from './shareds/contexts/LanguageContext';
+import { GoogleMapsProvider } from './shareds/contexts/GoogleMapsContext';
+import { Toaster } from './shareds/components/ui/sonner';
+import { Dashboard } from './features/dashboard/pages/Dashboard';
+import { ConfirmAccount } from './features/auth/pages/ConfirmAccount';
 import './App.css';
-import Index from './pages/Index';
-import { AuthPage } from './pages/auth/AuthPage';
-import { ForgotPasswordPage } from './pages/auth/ForgetPasswordPage';
-import { UpdatePasswordPage } from './pages/auth/UpdatePasswordPage';
-import { LandingPage } from './pages/LandingPage';
+import Index from './Index';
+import { AuthPage } from './features/auth/pages/AuthPage';
+import { ForgotPasswordPage } from './features/auth/pages/ForgetPasswordPage';
+import { UpdatePasswordPage } from './features/auth/pages/UpdatePasswordPage';
+import { LandingPage } from './features/leanding/pages/LandingPage';
 
 function App() {
   return (

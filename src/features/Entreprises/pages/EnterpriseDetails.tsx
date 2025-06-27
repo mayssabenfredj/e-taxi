@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { TableWithPagination } from '@/components/ui/table-with-pagination';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shareds/components/ui/card';
+import { Button } from '@/shareds/components/ui/button';
+import { Badge } from '@/shareds/components/ui/badge';
+import { TableWithPagination } from '@/shareds/components/ui/table-with-pagination';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,24 +14,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from '@/shareds/components/ui/alert-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/shareds/components/ui/dropdown-menu';
 import { ArrowLeft, Edit, Plus, MoreHorizontal, PowerOff, Power, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { entrepriseService } from '@/services/entreprise.service';
-import SubsidiaryService from '@/services/subsidiarie.service';
-import { Enterprise as ApiEnterprise, EntityStatus } from '@/types/entreprise';
-import { Subsidiary, Manager, FormData } from '@/types/subsidiary';
+import SubsidiaryService from '@/features/Entreprises/services/subsidiarie.service';
+import { Enterprise as ApiEnterprise, EntityStatus } from '../types/entreprise';
+import { Subsidiary, Manager, FormData } from '../types/subsidiary';
 import { CreateEnterpriseForm } from './CreateEntrpriseForm';
-import { SubsidiaryTable } from '@/components/company/SubsidiaryTable';
-import SubsidiaryForm from '@/components/company/SubsidiaryForm';
-import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
-import EmployeeService from '@/services/employee.service';
+import { SubsidiaryTable } from '@/features/Entreprises/components/SubsidiaryTable';
+import SubsidiaryForm from '@/features/Entreprises/components/SubsidiaryForm';
+import { Dialog, DialogTrigger, DialogContent } from '@/shareds/components/ui/dialog';
+import { entrepriseService } from '../services/entreprise.service';
+import employeeService from '@/features/employees/services/employee.service';
 
 function LogoDetail({ logoUrl, alt }: { logoUrl?: string | null; alt: string }) {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
@@ -148,7 +148,7 @@ export function EnterpriseDetails() {
         includeAllData: false,
         status: 'ENABLED',
       };
-      const { data } = await EmployeeService.getAllEmployees(query);
+      const { data } = await employeeService.getAllEmployees(query);
       const mappedManagers: Manager[] = data.map((employee: any) => ({
         id: employee.id,
         name: employee.fullName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Sans nom',

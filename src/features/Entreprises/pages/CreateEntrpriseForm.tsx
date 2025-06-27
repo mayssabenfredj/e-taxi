@@ -3,8 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shareds/components/ui/card';
+import { Button } from '@/shareds/components/ui/button';
 import {
   Form,
   FormControl,
@@ -12,15 +12,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+} from '@/shareds/components/ui/form';
+import { Input } from '@/shareds/components/ui/input';
+import { Textarea } from '@/shareds/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shareds/components/ui/select';
 import { ArrowLeft, Save, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { EntityStatus, CreateEnterpriseDto, UpdateEnterpriseDto } from '@/types/entreprise';
-import { entrepriseService } from '@/services/entreprise.service';
-import { AddressInput } from '@/components/shared/AddressInput';
+import { EntityStatus, CreateEnterpriseDto, UpdateEnterpriseDto } from '../types/entreprise';
+import { AddressInput } from '@/shareds/components/addressComponent/AddressInput';
+import { entrepriseService } from '../services/entreprise.service';
 
 const enterpriseSchema = z.object({
   titre: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),

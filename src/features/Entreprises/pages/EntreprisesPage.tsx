@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TableWithPagination } from '@/components/ui/table-with-pagination';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TableWithPagination } from '@/shareds/components/ui/table-with-pagination';
+import { Button } from '@/shareds/components/ui/button';
+import { Badge } from '@/shareds/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shareds/components/ui/card';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,18 +14,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from '@/shareds/components/ui/alert-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/shareds/components/ui/dropdown-menu';
 import { Plus, MoreHorizontal, Eye, Edit, Power, PowerOff, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { entrepriseService } from '@/services/entreprise.service';
-import { EntityStatus, Enterprise as ApiEnterprise } from '@/types/entreprise';
-import { useAuth } from '@/contexts/AuthContext';
+import { EntityStatus, Enterprise as ApiEnterprise } from '../types/entreprise';
+import { useAuth } from '@/shareds/contexts/AuthContext';
+import { entrepriseService } from '../services/entreprise.service';
 
 function LogoCell({ logoUrl, alt }: { logoUrl?: string | null; alt: string }) {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
