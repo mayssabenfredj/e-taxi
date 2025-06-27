@@ -39,7 +39,11 @@ export function ConfirmationView({
   handleSubmit,
   subsidiaries,
 }: ConfirmationViewProps) {
-  const getFormattedAddress = (passenger: SelectedPassenger, addressId: string) => {
+  const getFormattedAddress = (passenger: SelectedPassenger, addressId: string | any) => {
+    // Si c'est un objet (adresse personnalisée)
+    if (addressId && typeof addressId === 'object') {
+      return addressId.label || addressId.formattedAddress || 'Adresse personnalisée';
+    }
     // Chercher d'abord dans les adresses personnelles
     const address = passenger.addresses?.find((addr) => addr.address.id === addressId);
     if (address) {
@@ -90,12 +94,6 @@ export function ConfirmationView({
                         <Badge variant="outline">{isHomeToWorkTrip ? 'Domicile → Travail' : 'Travail → Domicile'}</Badge>
                       </dd>
                     </div>
-                    {isRecurring && (
-                      <div>
-                        <dt className="font-medium">Récurrence:</dt>
-                        <dd className="text-sm mt-1">{recurringDates.length} date(s) programmée(s)</dd>
-                      </div>
-                    )}
                     {note && (
                       <div>
                         <dt className="font-medium">Note:</dt>
@@ -105,7 +103,28 @@ export function ConfirmationView({
                   </dl>
                 </CardContent>
               </Card>
-             
+              {isRecurring && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Récurrence</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-2 font-medium">{recurringDates.length} date(s) programmée(s)</div>
+                    <ul className="text-sm space-y-1">
+                      {recurringDates.map((rd, idx) => (
+                        <li key={idx}>
+                          {rd.date instanceof Date
+                            ? rd.date.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                            : rd.date}
+                          {rd.time && (
+                            <span> à {rd.time}</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
             </div>
             <Card>
               <CardHeader className="pb-2">

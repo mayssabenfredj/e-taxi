@@ -106,7 +106,7 @@ export function IndividualTransportPage() {
           id: req.id,
           requestId: req.id,
           reference: req.reference || `TR-${req.id}`,
-          type: 'group',
+          type: 'individual',
           requestedBy: req.requestedBy?.fullName || 'Inconnu',
           passengerCount: req.employeeTransports.length,
           departureLocation: req.employeeTransports[0]?.departure?.formattedAddress || 'Non spécifié',

@@ -45,9 +45,8 @@ export interface EmployeeTransportDto {
   departureAddress?: AddressDto;
   arrivalAddress?: AddressDto;
   employee?: any;
-  departure? : any;
+  departure?: any;
   arrival?: any;
- 
 }
 
 export interface CreateTransportRequestDto {
@@ -168,6 +167,7 @@ export interface SelectedPassenger extends Employee {
   arrivalAddressId?: string;
   isHomeToWork: boolean;
   note?: string;
+  customAddresses?: AddressDto[];
 }
 
 export interface RecurringDateTime {
@@ -192,7 +192,7 @@ export interface GroupRoute {
 }
 
 export interface DraftData {
-  draftId? : string;
+  draftId?: string;
   selectedEmployees: string[];
   selectedPassengers: SelectedPassenger[];
   transportType: "public" | "private";
