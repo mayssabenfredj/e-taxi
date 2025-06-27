@@ -23,6 +23,9 @@ import { EditTransportRequest } from './EditTransportRequest';
 import { SubsidariesPage } from '@/pages/dashboard/company/SubsidiariesPage';
 import { EmployeeDetails } from '@/pages/dashboard/employee/EmployeeDetails';
 import { CreateGroupTransportRequest } from '@/pages/dashboard/transport/groupTransport/CreateGroupTransportRequest';
+import { EnterprisesPage } from '@/features/Entreprises/pages/EntreprisesPage';
+import { EnterpriseDetails } from '@/features/Entreprises/pages/EnterpriseDetails';
+import { CreateEnterpriseForm } from '@/features/Entreprises/pages/CreateEntrpriseForm';
 
 export function Dashboard() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -81,6 +84,15 @@ export function Dashboard() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/claims" element={<ClaimsPage />} />
         <Route path="/assign-taxi" element={<TaxiAssignmentPage />} />
+        {/* Admin Route */}
+        <Route path="/companys" element={<EnterprisesPage />} />
+        <Route path="/companys/:id" element={<EnterpriseDetails />} />
+        <Route path="/companys/create" element={<CreateEnterpriseForm mode="create" />} />
+        <Route path="/companys/create/:id" element={<CreateEnterpriseForm mode="update" />} />
+
+
+
+
         
         {/* Catch all route - redirect to dashboard */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

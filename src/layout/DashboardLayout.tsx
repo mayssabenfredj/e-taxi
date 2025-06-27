@@ -75,6 +75,8 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
   const navigation = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, path: '/dashboard' },
     { id: 'company', name: t('company'), icon: Building2, path: '/company' },
+        { id: 'companys', name: t('companys'), icon: Building2, path: '/companys' },
+
     { id: 'subsidiaries', name: 'Sous Organisation', icon: Home, path: '/subsidiaries' },
     { id: 'employees', name: t('employees'), icon: Users, path: '/employees' },
     { 
@@ -90,9 +92,25 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
     },
   ];
 
+  // Détermination des rôles
+  const userRoles = user?.roles?.map(r => typeof r === 'string' ? r : r.role?.name) || [];
+  const isAdmin = userRoles.includes('ADMIN');
+  const isAdminEntreprise = userRoles.includes('ADMIN_ENTREPRISE');
+  const isAdminFiliale = userRoles.includes('ADMIN_FILIALE');
+
+  // Navigation filtrée selon le rôle
+  let filteredNavigation = navigation;
+  if (isAdmin) {
+    filteredNavigation = navigation.filter(item => item.id === 'companys');
+  } else if (isAdminEntreprise || isAdminFiliale) {
+    filteredNavigation = navigation.filter(item => item.id !== 'companys');
+  }
+
   const getActivePage = (path: string) => {
     if (path.startsWith('/dashboard')) return 'dashboard';
     if (path.startsWith('/company')) return 'company';
+        if (path.startsWith('/companys')) return 'companys';
+
     if (path.startsWith('/subsidiaries')) return 'subsidiaries';
     if (path.startsWith('/employees')) return 'employees';
     if (path.startsWith('/transport')) return 'transport';
@@ -137,7 +155,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
       </div>
 
       <nav className="flex-1 space-y-1 px-4">
-        {navigation.map((item) => (
+        {filteredNavigation.map((item) => (
           <div key={item.id}>
             {item.hasSubmenu ? (
               <Collapsible 

@@ -27,6 +27,7 @@ const translations = {
     // Dashboard
     'dashboard': 'Tableau de bord',
     'company': 'Organisation ',
+    'companys': 'Organisations ',
     'employees': 'Collaborateurs',
     'transportRequests': 'Demandes de transport',
     'profile': 'Profil',

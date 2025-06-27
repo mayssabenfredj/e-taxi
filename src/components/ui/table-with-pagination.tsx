@@ -20,7 +20,8 @@ interface TableWithPaginationProps<T> {
   take: number;
   onPageChange: (skip: number, take: number) => void;
   onFilterChange?: (filters: Record<string, string>) => void; // Added to support multiple filters
-    onRowClick?: (item: T) => void; // Added to support row click handling
+  onRowClick?: (item: T) => void; // Added to support row click handling
+  emptyMessage?: string; // Message à afficher si aucune donnée
 }
 
 export function TableWithPagination<T>({
@@ -34,8 +35,8 @@ export function TableWithPagination<T>({
   take,
   onPageChange,
   onFilterChange,
-    onRowClick,
-
+  onRowClick,
+  emptyMessage,
 }: TableWithPaginationProps<T>) {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({});
@@ -75,18 +76,21 @@ export function TableWithPagination<T>({
     return passesFilters && passesSearch;
   });
 
-  const totalPages = Math.ceil(total / take);
-  const currentPage = Math.floor(skip / take) + 1;
+  // Pagination sécurisée
+  const safeTotal = isNaN(total) || total <= 0 ? 0 : total;
+  const safeTake = isNaN(take) || take <= 0 ? 1 : take;
+  const totalPages = safeTotal === 0 ? 0 : Math.ceil(safeTotal / safeTake);
+  const currentPage = safeTotal === 0 ? 0 : Math.floor(skip / safeTake) + 1;
 
   const handlePrevious = () => {
     if (skip > 0) {
-      onPageChange(skip - take, take);
+      onPageChange(skip - safeTake, safeTake);
     }
   };
 
   const handleNext = () => {
-    if (skip + take < total) {
-      onPageChange(skip + take, take);
+    if (skip + safeTake < safeTotal) {
+      onPageChange(skip + safeTake, safeTake);
     }
   };
 
@@ -135,22 +139,32 @@ export function TableWithPagination<T>({
             {actions && <th className="p-2 text-left text-sm font-medium">Actions</th>}
           </tr>
         </thead>
-        <tbody>
-          {filteredData.map((item, index) => (
-               <tr
-              key={index}
-              className={onRowClick ? 'cursor-pointer hover:bg-gray-100' : ''}
-              onClick={() => onRowClick && onRowClick(item)}
-            >
-              {columns.map((col) => (
-                <td key={col.accessor} className="p-2 text-start">
-                  {col.render ? col.render(item) : (item as any)[col.accessor]}
-                </td>
-              ))}
-              {actions && <td className="p-2">{actions(item)}</td>}
+        {filteredData.length === 0 ? (
+          <tbody>
+            <tr>
+              <td colSpan={columns.length + (actions ? 1 : 0)} className="p-4 text-center text-muted-foreground">
+                {emptyMessage || 'Aucune donnée à afficher.'}
+              </td>
             </tr>
-          ))}
-        </tbody>
+          </tbody>
+        ) : (
+          <tbody>
+            {filteredData.map((item, index) => (
+              <tr
+                key={index}
+                className={onRowClick ? 'cursor-pointer hover:bg-gray-100' : ''}
+                onClick={() => onRowClick && onRowClick(item)}
+              >
+                {columns.map((col) => (
+                  <td key={col.accessor} className="p-2 text-start">
+                    {col.render ? col.render(item) : (item as any)[col.accessor]}
+                  </td>
+                ))}
+                {actions && <td className="p-2">{actions(item)}</td>}
+              </tr>
+            ))}
+          </tbody>
+        )}
       </table>
       <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
         <div className="flex items-center gap-2">
@@ -160,7 +174,7 @@ export function TableWithPagination<T>({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-            <SelectItem value="2">2</SelectItem>
+              <SelectItem value="2">2</SelectItem>
               <SelectItem value="10">10</SelectItem>
               <SelectItem value="20">20</SelectItem>
               <SelectItem value="50">50</SelectItem>
@@ -172,7 +186,7 @@ export function TableWithPagination<T>({
             variant="outline"
             size="sm"
             onClick={handlePrevious}
-            disabled={skip === 0}
+            disabled={skip === 0 || safeTotal === 0}
           >
             Précédent
           </Button>
@@ -183,7 +197,7 @@ export function TableWithPagination<T>({
             variant="outline"
             size="sm"
             onClick={handleNext}
-            disabled={skip + take >= total}
+            disabled={skip + take >= safeTotal || safeTotal === 0}
           >
             Suivant
           </Button>
