@@ -18,7 +18,9 @@ export interface CreateEnterpriseDto {
   secteurActivite?: string;
   matriculeFiscal?: string;
   status?: EntityStatus;
+  logoUrl?: string;
   address?: AddressDto;
+  website?: string;
 }
 export interface SignUpEntrepriseDto {
   titre: string;

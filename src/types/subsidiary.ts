@@ -18,9 +18,11 @@ export interface SubsidiaryQueryParams {
 }
 export interface Admin {
   id: string;
-  email?: string; 
+  email?: string;
+  fullName? :string
   firstName?: string;
   lastName?: string;
+
 }
 
 export interface Subsidiary {
