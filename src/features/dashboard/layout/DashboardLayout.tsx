@@ -75,10 +75,11 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
   const navigation = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, path: '/dashboard' },
     { id: 'company', name: t('company'), icon: Building2, path: '/company' },
-        { id: 'companys', name: t('companys'), icon: Building2, path: '/companys' },
-
+    { id: 'companys', name: t('companys'), icon: Building2, path: '/companys' },
     { id: 'subsidiaries', name: 'Sous Organisation', icon: Home, path: '/subsidiaries' },
     { id: 'employees', name: t('employees'), icon: Users, path: '/employees' },
+    { id: 'taxis', name: 'Gestion des taxis', icon: Car, path: '/taxis' },
+    { id: 'assign-taxi', name: 'Assignation taxi', icon: Navigation, path: '/assign-taxi' },
     { 
       id: 'transport', 
       name: t('transportRequests'), 
@@ -101,18 +102,23 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
   // Navigation filtrée selon le rôle
   let filteredNavigation = navigation;
   if (isAdmin) {
-    filteredNavigation = navigation.filter(item => item.id === 'companys');
+    // Pour les admins, afficher dashboard, companys, taxis et assign-taxi
+    filteredNavigation = navigation.filter(item => 
+      ['dashboard', 'companys', 'taxis', 'assign-taxi'].includes(item.id)
+    );
   } else if (isAdminEntreprise || isAdminFiliale) {
+    // Pour les autres rôles, exclure companys mais inclure dashboard
     filteredNavigation = navigation.filter(item => item.id !== 'companys');
   }
 
   const getActivePage = (path: string) => {
     if (path.startsWith('/dashboard')) return 'dashboard';
     if (path.startsWith('/company')) return 'company';
-        if (path.startsWith('/companys')) return 'companys';
-
+    if (path.startsWith('/companys')) return 'companys';
     if (path.startsWith('/subsidiaries')) return 'subsidiaries';
     if (path.startsWith('/employees')) return 'employees';
+    if (path.startsWith('/taxis')) return 'taxis';
+    if (path.startsWith('/assign-taxi')) return 'assign-taxi';
     if (path.startsWith('/transport')) return 'transport';
     if (path.startsWith('/profile')) return 'profile';
     return 'dashboard';

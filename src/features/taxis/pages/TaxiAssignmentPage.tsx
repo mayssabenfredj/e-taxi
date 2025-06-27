@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shareds/components/ui/card';
 import { Button } from '@/shareds/components/ui/button';
@@ -31,6 +30,8 @@ interface TransportRequest {
 export function TaxiAssignmentPage() {
   const [selectedOption, setSelectedOption] = useState<'preferred' | 'dispatch'>('preferred');
   const [selectedTaxi, setSelectedTaxi] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   const mockRequest: TransportRequest = {
     id: '1',
@@ -97,7 +98,7 @@ export function TaxiAssignmentPage() {
   const taxiColumns = [
     {
       header: 'Taxi',
-      accessor: 'name' as keyof TaxiOption,
+      accessor: 'name',
       render: (item: TaxiOption) => (
         <div className="flex items-center space-x-2">
           <Car className="h-4 w-4 text-etaxi-yellow" />
@@ -107,7 +108,7 @@ export function TaxiAssignmentPage() {
     },
     {
       header: 'Capacité',
-      accessor: 'capacity' as keyof TaxiOption,
+      accessor: 'capacity',
       render: (item: TaxiOption) => (
         <div className="flex items-center space-x-1">
           <Users className="h-3 w-3 text-muted-foreground" />
@@ -117,7 +118,7 @@ export function TaxiAssignmentPage() {
     },
     {
       header: 'Position',
-      accessor: 'currentLocation' as keyof TaxiOption,
+      accessor: 'currentLocation',
       render: (item: TaxiOption) => (
         <div className="flex items-center space-x-1">
           <MapPin className="h-3 w-3 text-muted-foreground" />
@@ -127,7 +128,7 @@ export function TaxiAssignmentPage() {
     },
     {
       header: 'Arrivée estimée',
-      accessor: 'estimatedArrival' as keyof TaxiOption,
+      accessor: 'estimatedArrival',
       render: (item: TaxiOption) => (
         <div className="flex items-center space-x-1">
           <Clock className="h-3 w-3 text-muted-foreground" />
@@ -137,7 +138,7 @@ export function TaxiAssignmentPage() {
     },
     {
       header: 'Note',
-      accessor: 'rating' as keyof TaxiOption,
+      accessor: 'rating',
       render: (item: TaxiOption) => (
         <Badge variant="outline">⭐ {item.rating}</Badge>
       )
@@ -276,12 +277,29 @@ export function TaxiAssignmentPage() {
       )}
 
       {/* Available Taxis List */}
-      <TableWithPagination
-        data={availableTaxisOnly}
-        columns={taxiColumns}
-        title={`Taxis Disponibles (${availableTaxisOnly.length})`}
-        searchPlaceholder="Rechercher un taxi..."
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Car className="h-5 w-5" />
+            <span>Taxis Disponibles ({availableTaxisOnly.length})</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <TableWithPagination
+            data={availableTaxisOnly}
+            columns={taxiColumns}
+            searchPlaceholder="Rechercher un taxi..."
+            total={availableTaxisOnly.length}
+            skip={currentPage * itemsPerPage}
+            take={itemsPerPage}
+            onPageChange={(skip, take) => {
+              setCurrentPage(Math.floor(skip / take));
+              setItemsPerPage(take);
+            }}
+            emptyMessage="Aucun taxi disponible"
+          />
+        </CardContent>
+      </Card>
 
       {/* Action Buttons */}
       <div className="flex items-center justify-end space-x-4">
