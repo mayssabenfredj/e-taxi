@@ -17,6 +17,7 @@ class EmployeeService {
       });
 
       const { data, meta } = response.data;
+      console.log("dataaaaaa ***", data);
       const transformedData: Employee[] = data.map((item: any) => ({
         ...item,
         status: item.enabled ? "ENABLED" : "DISABLED",

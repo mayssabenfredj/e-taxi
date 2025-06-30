@@ -1,5 +1,5 @@
 import { Enterprise } from "@/features/Entreprises/types/entreprise";
-import { Role } from "./role";
+import { Role } from "../../features/employees/types/role";
 import { Subsidiary } from "@/features/Entreprises/types/subsidiary";
 
 export interface LoginResponse {

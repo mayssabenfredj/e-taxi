@@ -32,6 +32,7 @@ export interface Employee {
   accountVerified?: boolean;
   enabled?: boolean;
   subsidiary: any;
+  entreprise : any
   createdAt: string;
   updatedAt?: string;
   lastLoginAt?: string;

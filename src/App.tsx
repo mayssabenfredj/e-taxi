@@ -12,34 +12,39 @@ import { AuthPage } from './features/auth/pages/AuthPage';
 import { ForgotPasswordPage } from './features/auth/pages/ForgetPasswordPage';
 import { UpdatePasswordPage } from './features/auth/pages/UpdatePasswordPage';
 import { LandingPage } from './features/leanding/pages/LandingPage';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <LanguageProvider>
-          <GoogleMapsProvider>
-          <Router>
-            <div className="min-h-screen bg-background">
-              <Routes>
-                {/* Public routes */}
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/update-password/:token" element={<UpdatePasswordPage />} />
-                <Route path="/confirm-account/:token" element={<ConfirmAccount />} />
-                
-                {/* Protected routes - handled by Dashboard component */}
-                <Route path="/*" element={<Dashboard />} />
-              </Routes>
-              <Toaster />
-            </div>
-            </Router>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <AuthProvider>
+          <LanguageProvider>
+            <GoogleMapsProvider>
+              <Router>
+                <div className="min-h-screen bg-background">
+                  <Routes>
+                    {/* Public routes */}
+                    <Route path="/" element={<Index />} />
+                    <Route path="/auth" element={<AuthPage />} />
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/update-password/:token" element={<UpdatePasswordPage />} />
+                    <Route path="/confirm-account/:token" element={<ConfirmAccount />} />
+                    
+                    {/* Protected routes - handled by Dashboard component */}
+                    <Route path="/*" element={<Dashboard />} />
+                  </Routes>
+                  <Toaster />
+                </div>
+              </Router>
             </GoogleMapsProvider>
-        </LanguageProvider>
-      </AuthProvider>
-    </ThemeProvider>
+          </LanguageProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

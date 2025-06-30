@@ -104,7 +104,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
   if (isAdmin) {
     // Pour les admins, afficher dashboard, companys, taxis et assign-taxi
     filteredNavigation = navigation.filter(item => 
-      ['dashboard', 'companys', 'taxis', 'assign-taxi'].includes(item.id)
+      ['dashboard', 'companys', 'taxis', 'assign-taxi' , 'employees'].includes(item.id)
     );
   } else if (isAdminEntreprise || isAdminFiliale) {
     // Pour les autres rôles, exclure companys mais inclure dashboard

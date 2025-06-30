@@ -22,6 +22,7 @@ interface TableWithPaginationProps<T> {
   onFilterChange?: (filters: Record<string, string>) => void; // Added to support multiple filters
   onRowClick?: (item: T) => void; // Added to support row click handling
   emptyMessage?: string; // Message à afficher si aucune donnée
+  isShowingSearchPagination?: boolean; // Ajout optionnel
 }
 
 export function TableWithPagination<T>({
@@ -37,6 +38,7 @@ export function TableWithPagination<T>({
   onFilterChange,
   onRowClick,
   emptyMessage,
+  isShowingSearchPagination = true,
 }: TableWithPaginationProps<T>) {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({});
@@ -101,33 +103,35 @@ export function TableWithPagination<T>({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-2">
-        <Input
-          placeholder={searchPlaceholder}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-9 text-sm"
-        />
-        {filterGroups.map((group) => (
-          <Select
-            key={String(group.field)}
-            value={filters[String(group.field)] || 'all'}
-            onValueChange={(value) => handleFilterChange(String(group.field), value)}
-          >
-            <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder={`Filtrer par ${String(group.field)}`} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tous</SelectItem>
-              {group.options.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ))}
-      </div>
+      {isShowingSearchPagination && (
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input
+            placeholder={searchPlaceholder}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-9 text-sm"
+          />
+          {filterGroups.map((group) => (
+            <Select
+              key={String(group.field)}
+              value={filters[String(group.field)] || 'all'}
+              onValueChange={(value) => handleFilterChange(String(group.field), value)}
+            >
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder={`Filtrer par ${String(group.field)}`} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                {group.options.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ))}
+        </div>
+      )}
       <table className="w-full border-collapse">
         <thead>
           <tr>

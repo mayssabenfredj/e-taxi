@@ -24,11 +24,16 @@ import { CreateGroupTransportRequest } from '@/features/transports/pages/groupTr
 import { EnterprisesPage } from '@/features/Entreprises/pages/EntreprisesPage';
 import { EnterpriseDetails } from '@/features/Entreprises/pages/EnterpriseDetails';
 import { CreateEnterpriseForm } from '@/features/Entreprises/pages/CreateEntrpriseForm';
+import { RoleManagementPage } from '@/features/employees/pages/RolePage';
+import { GlobalEmployeesPage } from '@/features/employees/pages/GlobalEmployeesPage';
+import { ADMIN_ROLE } from '@/shareds/lib/const';
 
 export function Dashboard() {
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const navigate = useNavigate();
+
+  const isAdmin = user?.roles?.some(r => r.role?.name === ADMIN_ROLE);
 
   const handlePageChange = (page: string) => {
     setCurrentPage(page);
@@ -62,9 +67,19 @@ export function Dashboard() {
         <Route path="/dashboard" element={<DashboardHome />} />
         <Route path="/company" element={<CompanyPage />} />
         <Route path="/employees" element={<EmployeesLayout />}>
-          <Route index element={<Navigate to="list" replace />} />
-          <Route path="list" element={<EmployeesPage />} />
-          <Route path="requests" element={<EmployeeRequestsPage />} />
+          {isAdmin ? (
+            <>
+              <Route path="roles" element={<RoleManagementPage />} />
+              <Route path="management" element={<GlobalEmployeesPage />} />
+              <Route index element={<Navigate to="management" replace />} />
+            </>
+          ) : (
+            <>
+              <Route path="list" element={<EmployeesPage />} />
+              <Route path="requests" element={<EmployeeRequestsPage />} />
+              <Route index element={<Navigate to="list" replace />} />
+            </>
+          )}
         </Route>
         <Route path="/employees/:id" element={<EmployeeDetails />} />
         <Route path="/transport/individual" element={<IndividualTransportPage />} />
