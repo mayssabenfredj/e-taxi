@@ -13,8 +13,11 @@ interface EmployeeTableProps {
   take: number;
   onPageChange: (newSkip: number, newTake: number) => void;
   onFilterChange: (filters: Record<string, string>) => void;
-  onDelete: (employee: Employee) => void;
-  onToggleStatus: (employee: Employee) => void;
+  onDelete?: (employee: Employee) => void;
+  onToggleStatus?: (employee: Employee) => void;
+  canUpdate?: boolean;
+  canEnable?: boolean;
+  canAssignRoles?: boolean;
 }
 
 export const EmployeeTable: React.FC<EmployeeTableProps> = ({
@@ -26,6 +29,9 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
   onFilterChange,
   onDelete,
   onToggleStatus,
+  canUpdate = false,
+  canEnable = false,
+  canAssignRoles = false,
 }) => {
   const navigate = useNavigate();
 
@@ -138,23 +144,25 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
       >
         <Eye className="h-4 w-4" />
       </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleStatus(employee);
-        }}
-        title={employee.status === 'ENABLED' ? 'Désactiver' : 'Activer'}
-        className={employee.status === 'ENABLED' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
-      >
-        {employee.status === 'ENABLED' ? (
-          <UserX className="h-4 w-4" />
-        ) : (
-          <UserCheck className="h-4 w-4" />
-        )}
-      </Button>
-    
+      {canEnable && onToggleStatus && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleStatus(employee);
+          }}
+          title={employee.status === 'ENABLED' ? 'Désactiver' : 'Activer'}
+          className={employee.status === 'ENABLED' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
+        >
+          {employee.status === 'ENABLED' ? (
+            <UserX className="h-4 w-4" />
+          ) : (
+            <UserCheck className="h-4 w-4" />
+          )}
+        </Button>
+      )}
+     
     </div>
   );
 
@@ -171,7 +179,6 @@ export const EmployeeTable: React.FC<EmployeeTableProps> = ({
       skip={skip}
       onPageChange={onPageChange}
       onFilterChange={onFilterChange}
-      onRowAction={(employee) => navigate(`/employees/${employee.id}`)}
       actions={getActions}
       emptyMessage="Aucun Collaborateur trouvé"
         />

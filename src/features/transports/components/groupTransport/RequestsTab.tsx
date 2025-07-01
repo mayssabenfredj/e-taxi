@@ -33,6 +33,11 @@ interface RequestsTabProps {
   onFilterChange: (value: string | null) => void;
   isLoading: boolean;
   fetchRequests: (resetPagination?: boolean) => Promise<void>;
+  canCreate?: boolean;
+  canUpdate?: boolean;
+  canDelete?: boolean;
+  canApprove?: boolean;
+  canAssign?: boolean;
 }
 
 export function RequestsTab({
@@ -48,6 +53,11 @@ export function RequestsTab({
   onFilterChange,
   isLoading,
   fetchRequests,
+  canCreate = false,
+  canUpdate = false,
+  canDelete = false,
+  canApprove = false,
+  canAssign = false,
 }: RequestsTabProps) {
   const navigate = useNavigate();
 
@@ -210,7 +220,8 @@ export function RequestsTab({
       request.scheduledDate &&
       (request.status === TransportStatus.PENDING || request.status === TransportStatus.APPROVED) &&
       scheduledTime &&
-      currentTime < scheduledTime - thirtyMinutesInMs;
+      currentTime < scheduledTime - thirtyMinutesInMs &&
+      canDelete;
 
     return (
       <div className="flex items-center space-x-2">
@@ -225,29 +236,33 @@ export function RequestsTab({
         >
           <Eye className="h-4 w-4" />
         </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDuplicateRequest(request);
-          }}
-          title="Dupliquer"
-        >
-          <Copy className="h-4 w-4" />
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDispatchRequest(request);
-          }}
-          title="Dispatcher"
-          className="text-etaxi-yellow hover:text-yellow-600"
-        >
-          <Navigation className="h-4 w-4" />
-        </Button>
+        {canCreate && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDuplicateRequest(request);
+            }}
+            title="Dupliquer"
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
+        )}
+        {canAssign && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDispatchRequest(request);
+            }}
+            title="Dispatcher"
+            className="text-etaxi-yellow hover:text-yellow-600"
+          >
+            <Navigation className="h-4 w-4" />
+          </Button>
+        )}
         {canCancel && (
           <AlertDialog>
             <AlertDialogTrigger asChild>

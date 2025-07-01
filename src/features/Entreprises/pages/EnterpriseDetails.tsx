@@ -32,6 +32,8 @@ import SubsidiaryForm from '@/features/Entreprises/components/SubsidiaryForm';
 import { Dialog, DialogTrigger, DialogContent } from '@/shareds/components/ui/dialog';
 import { entrepriseService } from '../services/entreprise.service';
 import employeeService from '@/features/employees/services/employee.service';
+import { hasPermission } from '@/shareds/lib/utils';
+import { useAuth } from '@/shareds/contexts/AuthContext';
 
 function LogoDetail({ logoUrl, alt }: { logoUrl?: string | null; alt: string }) {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
@@ -55,6 +57,7 @@ function LogoDetail({ logoUrl, alt }: { logoUrl?: string | null; alt: string }) 
 export function EnterpriseDetails() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { user, isLoading: authLoading } = useAuth();
   const [enterprise, setEnterprise] = useState<ApiEnterprise | null>(null);
   const [subsidiaries, setSubsidiaries] = useState<Subsidiary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -264,6 +267,13 @@ export function EnterpriseDetails() {
     }
   };
 
+  const canCreate = user && hasPermission(user, 'subsidiaries:create');
+  const canUpdate = user && hasPermission(user, 'subsidiaries:update');
+
+  if (!authLoading && !hasPermission(user, 'enterprises:read')) {
+    return <div className="p-8 text-center text-red-600 font-bold text-xl">Accès refusé : vous n'avez pas la permission de voir cette page.</div>;
+  }
+
   if (editMode) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -439,8 +449,9 @@ export function EnterpriseDetails() {
               </CardDescription>
             </div>
             <Button 
-              onClick={handleAddSubsidiary}
-              className="bg-etaxi-yellow hover:bg-etaxi-yellow/90 text-black"
+              onClick={canCreate ? handleAddSubsidiary : undefined}
+              className={`bg-etaxi-yellow hover:bg-etaxi-yellow/90 text-black ${!canCreate ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!canCreate}
             >
               <Plus className="mr-2 h-4 w-4" />
               Ajouter une filiale
@@ -455,8 +466,9 @@ export function EnterpriseDetails() {
             take={subsidiaryTake}
             onPageChange={handleSubsidiaryPageChange}
             onFilterChange={handleSubsidiaryFilterChange}
-            onEdit={handleEditSubsidiary}
-            onUpdateStatus={(subsidiary, newStatus) => handleUpdateSubsidiaryStatus(subsidiary, newStatus)}
+            onEdit={canUpdate ? handleEditSubsidiary : undefined}
+            onUpdateStatus={canUpdate ? (subsidiary, newStatus) => handleUpdateSubsidiaryStatus(subsidiary, newStatus) : undefined}
+            canUpdate={canUpdate}
           />
         </CardContent>
       </Card>

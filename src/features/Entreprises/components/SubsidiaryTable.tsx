@@ -13,8 +13,9 @@ interface SubsidiaryTableProps {
   take: number;
   onPageChange: (newSkip: number, newTake: number) => void;
   onFilterChange: (filters: Record<string, string>) => void;
-  onEdit: (subsidiary: Subsidiary) => void;
-  onUpdateStatus: (subsidiary: Subsidiary, newStatus: EntityStatus) => void;
+  onEdit?: (subsidiary: Subsidiary) => void;
+  onUpdateStatus?: (subsidiary: Subsidiary, newStatus: EntityStatus) => void;
+  canUpdate?: boolean;
 }
 
 export const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
@@ -26,6 +27,7 @@ export const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
   onFilterChange,
   onEdit,
   onUpdateStatus,
+  canUpdate = false,
 }) => {
   const navigate = useNavigate();
 
@@ -111,30 +113,34 @@ export const SubsidiaryTable: React.FC<SubsidiaryTableProps> = ({
 
   const getActions = (subsidiary: Subsidiary) => (
     <div className="flex items-center space-x-2">
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={(e) => {
-          e.stopPropagation();
-          onEdit(subsidiary);
-        }}
-        title="Modifier"
-      >
-        <Edit className="h-4 w-4" />
-      </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={(e) => {
-          e.stopPropagation();
-          const newStatus = subsidiary.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-          onUpdateStatus(subsidiary, newStatus as EntityStatus);
-        }}
-        title={subsidiary.status === 'ACTIVE' ? 'Désactiver' : 'Activer'}
-        className={subsidiary.status === 'ACTIVE' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
-      >
-        {subsidiary.status === 'ACTIVE' ? 'Désactiver' : 'Activer'}
-      </Button>
+      {canUpdate && onEdit && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(subsidiary);
+          }}
+          title="Modifier"
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+      )}
+      {canUpdate && onUpdateStatus && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => {
+            e.stopPropagation();
+            const newStatus = subsidiary.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+            onUpdateStatus(subsidiary, newStatus as EntityStatus);
+          }}
+          title={subsidiary.status === 'ACTIVE' ? 'Désactiver' : 'Activer'}
+          className={subsidiary.status === 'ACTIVE' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
+        >
+          {subsidiary.status === 'ACTIVE' ? 'Désactiver' : 'Activer'}
+        </Button>
+      )}
     </div>
   );
 

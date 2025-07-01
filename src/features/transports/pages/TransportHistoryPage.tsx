@@ -7,6 +7,8 @@ import { useLanguage } from '@/shareds/contexts/LanguageContext';
 import { Car, Clock, Eye, History, MapPin, Star, User } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/shareds/contexts/AuthContext';
+import { hasPermission } from '@/shareds/lib/utils';
 
 interface TransportHistory {
   id: string;
@@ -35,6 +37,11 @@ export function TransportHistoryPage() {
   const navigate = useNavigate();
   const [selectedHistory, setSelectedHistory] = useState<TransportHistory | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const { user } = useAuth();
+
+  if (!hasPermission(user, 'transports:read')) {
+    return <div className="text-center text-red-500 py-12">Accès refusé : vous n'avez pas la permission de voir les transports.</div>;
+  }
 
   const [history] = useState<TransportHistory[]>([
     {

@@ -8,6 +8,8 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shareds/components/ui/tabs';
 import { DraftData } from '@/features/transports/types/demande';
+import { useAuth } from '@/shareds/contexts/AuthContext';
+import { hasPermission } from '@/shareds/lib/utils';
 
 interface DraftRequest {
   id: string;
@@ -30,6 +32,8 @@ interface DispatchDraft {
 }
 
 export function DraftRequestsPage() {
+  const { user } = useAuth();
+  const canDelete = hasPermission(user, 'transports:delete');
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'requests' | 'dispatch'>('requests');
   const [drafts, setDrafts] = useState<DraftRequest[]>([]);
@@ -264,18 +268,20 @@ export function DraftRequestsPage() {
       >
         <Edit className="h-4 w-4" />
       </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDeleteDraft(draft.id);
-        }}
-        title="Supprimer"
-        className="text-red-500 hover:text-red-700"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      {canDelete && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteDraft(draft.id);
+          }}
+          title="Supprimer"
+          className="text-red-500 hover:text-red-700"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 
@@ -292,18 +298,20 @@ export function DraftRequestsPage() {
       >
         <Navigation className="h-4 w-4" />
       </Button>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDeleteDispatchDraft(draft);
-        }}
-        title="Supprimer"
-        className="text-red-500 hover:text-red-700"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      {canDelete && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDeleteDispatchDraft(draft);
+          }}
+          title="Supprimer"
+          className="text-red-500 hover:text-red-700"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 

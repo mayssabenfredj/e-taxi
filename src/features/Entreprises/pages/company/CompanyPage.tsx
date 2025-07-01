@@ -12,6 +12,7 @@ import { addressService } from '@/shareds/services/address.service';
 import { AddressInput } from '@/shareds/components/addressComponent/AddressInput';
 import { entrepriseService } from '../../services/entreprise.service';
 import { Enterprise ,EntityStatus, UpdateEnterpriseDto } from '../../types/entreprise';
+import { hasPermission } from '@/shareds/lib/utils';
 
 export function CompanyPage() {
   const { user, refreshUser } = useAuth();
@@ -25,6 +26,12 @@ export function CompanyPage() {
   const [regions, setRegions] = useState<Region[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const canUpdate = user && hasPermission(user, 'enterprises:update');
+
+  if (user && !hasPermission(user, 'enterprises:read')) {
+    return <div className="p-8 text-center text-red-600 font-bold text-xl">Accès refusé : vous n'avez pas la permission de voir cette page.</div>;
+  }
 
   // Helper pour convertir Address en AddressDto
   function toAddressDto(address: Address): AddressDto {
@@ -270,7 +277,7 @@ export function CompanyPage() {
           <h2 className="text-2xl font-bold text-left">Gestion d'Organisation</h2>
         </div>
 
-        {!isEditing ? (
+        {canUpdate && (!isEditing ? (
           <Button onClick={() => setIsEditing(true)} className="bg-etaxi-yellow hover:bg-yellow-500 text-black">
             <Edit className="mr-2 h-4 w-4" />
             Modifier
@@ -286,7 +293,7 @@ export function CompanyPage() {
               Enregistrer
             </Button>
           </div>
-        )}
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

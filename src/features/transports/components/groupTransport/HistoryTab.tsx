@@ -15,6 +15,7 @@ interface HistoryTabProps {
   setTake: (take: number) => void;
   setSelectedHistory: (history: TransportHistory | null) => void;
   setHistoryDetailsOpen: (open: boolean) => void;
+  canDelete?: boolean;
 }
 
 export function HistoryTab({
@@ -26,6 +27,7 @@ export function HistoryTab({
   setTake,
   setSelectedHistory,
   setHistoryDetailsOpen,
+  canDelete = false,
 }: HistoryTabProps) {
   const getStatusBadge = (status: TransportHistory['status']) => {
     const variants = {

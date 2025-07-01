@@ -38,6 +38,8 @@ import { fr } from 'date-fns/locale';
 import { useEmployees } from '@/shareds/hooks/useEmployees';
 import SubsidiaryService from '@/features/Entreprises/services/subsidiarie.service';
 import { Subsidiary } from '@/features/Entreprises/types/subsidiary';
+import { useAuth } from '@/shareds/contexts/AuthContext';
+import { hasPermission } from '@/shareds/lib/utils';
 
 interface Passenger {
   id: string;
@@ -74,6 +76,11 @@ export function EditTransportRequest() {
   const [subsidiaries, setSubsidiaries] = useState<Subsidiary[]>([]);
   const [selectedSubsidiaryId, setSelectedSubsidiaryId] = useState<string>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const { user } = useAuth();
+
+  if (!hasPermission(user, 'transports:update')) {
+    return <div className="text-center text-red-500 py-12">Accès refusé : vous n'avez pas la permission de modifier les transports.</div>;
+  }
 
   // Utiliser le hook useEmployees pour charger les employés
   const { employees: availableEmployees, loading: employeesLoading } = useEmployees({

@@ -45,6 +45,7 @@ import {
 import { cn } from '@/shareds/lib/utils';
 import { Logo } from '@/shareds/Logo';
 import { toast } from 'sonner';
+import { hasPermission } from '@/shareds/lib/utils';
 
 
 interface DashboardLayoutProps {
@@ -72,23 +73,32 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
     }
   }, [location.pathname]);
 
-  const navigation = [
+  const navigation: Array<{
+    id: string;
+    name: string;
+    icon: React.ElementType;
+    path: string;
+    permission?: string;
+    hasSubmenu?: boolean;
+    submenu?: Array<{ id: string; name: string; path: string; permission?: string }>;
+  }> = [
     { id: 'dashboard', name: 'Dashboard', icon: BarChart3, path: '/dashboard' },
-    { id: 'company', name: t('company'), icon: Building2, path: '/company' },
-    { id: 'companys', name: t('companys'), icon: Building2, path: '/companys' },
-    { id: 'subsidiaries', name: 'Sous Organisation', icon: Home, path: '/subsidiaries' },
-    { id: 'employees', name: t('employees'), icon: Users, path: '/employees' },
-    { id: 'taxis', name: 'Gestion des taxis', icon: Car, path: '/taxis' },
-    { id: 'assign-taxi', name: 'Assignation taxi', icon: Navigation, path: '/assign-taxi' },
+    { id: 'company', name: t('company'), icon: Building2, path: '/company', permission: 'enterprises:read' },
+    { id: 'companys', name: t('companys'), icon: Building2, path: '/companys', permission: 'enterprises:read' },
+    { id: 'subsidiaries', name: 'Sous Organisation', icon: Home, path: '/subsidiaries', permission: 'subsidiaries:read' },
+    { id: 'employees', name: t('employees'), icon: Users, path: '/employees', permission: 'users:read' },
+    { id: 'taxis', name: 'Gestion des taxis', icon: Car, path: '/taxis', permission: 'taxis:read' },
+    { id: 'assign-taxi', name: 'Assignation taxi', icon: Navigation, path: '/assign-taxi', permission: 'taxis:assign' },
     { 
       id: 'transport', 
       name: t('transportRequests'), 
       icon: Car, 
       path: '/transport',
+      permission: 'transports:read',
       hasSubmenu: true,
       submenu: [
-        { id: 'transport-individual', name: 'Demandes individuelles', path: '/transport/individual' },
-        { id: 'transport-group', name: 'Demandes de groupe', path: '/transport/group' }
+        { id: 'transport-individual', name: 'Demandes individuelles', path: '/transport/individual', permission: 'transports:read' },
+        { id: 'transport-group', name: 'Demandes de groupe', path: '/transport/group', permission: 'transports:read' }
       ]
     },
   ];
@@ -99,17 +109,27 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
   const isAdminEntreprise = userRoles.includes('ADMIN_ENTREPRISE');
   const isAdminFiliale = userRoles.includes('ADMIN_FILIALE');
 
-  // Navigation filtrée selon le rôle
+  // Navigation filtrée selon le rôle ET les permissions
   let filteredNavigation = navigation;
   if (isAdmin) {
-    // Pour les admins, afficher dashboard, companys, taxis et assign-taxi
     filteredNavigation = navigation.filter(item => 
-      ['dashboard', 'companys', 'taxis', 'assign-taxi' , 'employees'].includes(item.id)
+      ['dashboard', 'companys', 'taxis', 'assign-taxi', 'employees'].includes(item.id)
     );
   } else if (isAdminEntreprise || isAdminFiliale) {
-    // Pour les autres rôles, exclure companys mais inclure dashboard
     filteredNavigation = navigation.filter(item => item.id !== 'companys');
   }
+  // Filtrage par permission
+  filteredNavigation = filteredNavigation.filter(item => !item.permission || hasPermission(user, item.permission));
+  // Filtrage des sous-menus par permission
+  filteredNavigation = filteredNavigation.map(item => {
+    if (item.hasSubmenu && item.submenu) {
+      return {
+        ...item,
+        submenu: item.submenu.filter(sub => !sub.permission || hasPermission(user, sub.permission))
+      };
+    }
+    return item;
+  });
 
   const getActivePage = (path: string) => {
     if (path.startsWith('/dashboard')) return 'dashboard';

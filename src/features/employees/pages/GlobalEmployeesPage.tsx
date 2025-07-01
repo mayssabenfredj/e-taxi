@@ -17,6 +17,8 @@ import SubsidiaryService from '@/features/Entreprises/services/subsidiarie.servi
 import { Role } from '@/features/employees/types/role';
 import { Enterprise } from '@/features/Entreprises/types/entreprise';
 import { Subsidiary } from '@/features/Entreprises/types/subsidiary';
+import { hasPermission } from '@/shareds/lib/utils';
+import { useAuth } from '@/shareds/contexts/AuthContext';
 
 export function GlobalEmployeesPage() {
   const navigate = useNavigate();
@@ -42,6 +44,14 @@ export function GlobalEmployeesPage() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [employeeToToggle, setEmployeeToToggle] = useState<Employee | null>(null);
   const [toggleAction, setToggleAction] = useState<'enable' | 'disable'>('enable');
+
+  const { user } = useAuth();
+  const canRead = user && hasPermission(user, 'users:read');
+  const canEnable = user && hasPermission(user, 'users:enable');
+  const canUpdate = user && hasPermission(user, 'users:update');
+  const canCreate = user && hasPermission(user, 'users:create');
+  const canDelete = user && hasPermission(user, 'users:delete');
+  const canAssignRoles = user && hasPermission(user, 'users:assign_roles');
 
   // Charger les rôles
   useEffect(() => {
@@ -211,31 +221,36 @@ export function GlobalEmployeesPage() {
           >
             <Eye className="h-4 w-4" />
           </Button>
-          {employee.status === 'ENABLED' ? (
+          {canEnable && (
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-              title="Désactiver"
+              className={employee.status === 'ENABLED' ? 'h-8 w-8 p-0 text-red-600 hover:text-red-700' : 'h-8 w-8 p-0 text-green-600 hover:text-green-700'}
+              title={employee.status === 'ENABLED' ? 'Désactiver' : 'Activer'}
               onClick={() => handleRequestToggleStatus(employee)}
             >
-              <Ban className="h-4 w-4" />
+              {employee.status === 'ENABLED' ? <Ban className="h-4 w-4" /> : <Check className="h-4 w-4" />}
             </Button>
-          ) : (
+          )}
+          {canAssignRoles && (
             <Button
               size="icon"
               variant="ghost"
-              className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-              title="Activer"
-              onClick={() => handleRequestToggleStatus(employee)}
+              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+              title="Assigner un rôle"
+              disabled
             >
-              <Check className="h-4 w-4" />
+              <span className="font-bold">R</span>
             </Button>
           )}
         </div>
       ),
     },
   ];
+
+  if (!canRead) {
+    return <div className="p-8 text-center text-red-600 font-bold text-xl">Accès refusé : vous n'avez pas la permission de voir les employés.</div>;
+  }
 
   return (
     <div className="space-y-4">
