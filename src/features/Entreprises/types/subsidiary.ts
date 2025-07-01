@@ -1,4 +1,4 @@
-import { Address } from "./addresse";
+import { Address } from "@/shareds/types/addresse";
 
 
 export enum EntityStatus {

@@ -58,9 +58,11 @@ export const entrepriseService = {
   }): Promise<EnterpriseResponse> {
     try {
       const response = await apiClient.get("/entreprise", { params });
+      console.log("response", response);
       return response.data;
     } catch (error) {
       throw error;
+      console.log("error", error);
     }
   },
 

@@ -42,7 +42,7 @@ export const useEmployeeDetails = ({
 
   const updateEmployee = async (updatedData: Partial<Employee>) => {
     try {
-      const updatedEmployee = await EmployeeService.updateEmployee(
+      const updatedEmployee = await employeeService.updateEmployee(
         id,
         updatedData
       );

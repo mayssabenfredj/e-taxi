@@ -5,12 +5,18 @@ import { Input } from '@/shareds/components/ui/input';
 import { Badge } from '@/shareds/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shareds/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/shareds/components/ui/alert-dialog';
-import { UserCog, Search, Filter, Eye, Edit, Building2, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { UserCog, Search, Filter, Eye, Edit, Check, Ban, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import employeeService from '@/features/employees/services/employee.service';
-import { useRolesAndSubsidiaries } from '@/shareds/hooks/useRolesAndSubsidiaries';
 import { Employee, UserStatus } from '@/features/employees/types/employee';
+import { TableWithPagination } from '@/shareds/components/ui/table-with-pagination';
+import { roleService } from '@/features/employees/services/role.service';
+import { entrepriseService } from '@/features/Entreprises/services/entreprise.service';
+import SubsidiaryService from '@/features/Entreprises/services/subsidiarie.service';
+import { Role } from '@/features/employees/types/role';
+import { Enterprise } from '@/features/Entreprises/types/entreprise';
+import { Subsidiary } from '@/features/Entreprises/types/subsidiary';
 
 export function GlobalEmployeesPage() {
   const navigate = useNavigate();
@@ -21,20 +27,47 @@ export function GlobalEmployeesPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [itemsPerPage, setItemsPerPage] = useState(6);
   const [skip, setSkip] = useState(0);
+    const [take, setTake] = useState(100);
+
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  // Charger dynamiquement les rôles et filiales/entreprises
-  const { roles, subsidiaries, loading: loadingRoles, error: errorRoles } = useRolesAndSubsidiaries(enterpriseFilter !== 'all' ? enterpriseFilter : undefined);
+  // Nouveaux états pour les filtres dynamiques
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [enterprises, setEnterprises] = useState<Enterprise[]>([]);
+  const [subsidiaries, setSubsidiaries] = useState<Subsidiary[]>([]);
 
-  // Charger les entreprises pour le filtre principal (on prend toutes les entreprises des filiales)
-  const [allEnterprises, setAllEnterprises] = useState<string[]>([]);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [employeeToToggle, setEmployeeToToggle] = useState<Employee | null>(null);
+  const [toggleAction, setToggleAction] = useState<'enable' | 'disable'>('enable');
+
+  // Charger les rôles
   useEffect(() => {
-    // Extraire toutes les entreprises uniques depuis les filiales
-    setAllEnterprises(Array.from(new Set(subsidiaries.map(sub => sub.name))));
-  }, [subsidiaries]);
+    roleService.getAllRoles()
+      .then((data) => setRoles(data))
+      .catch(() => toast.error('Erreur lors du chargement des rôles'));
+  }, []);
+
+  // Charger les entreprises
+  useEffect(() => {
+          const params: any = { skip, take };
+    entrepriseService.findAll(params)
+      .then((res) => setEnterprises(res.data || []))
+      .catch(() => toast.error('Erreur lors du chargement des entreprises'));
+  }, []);
+
+  // Charger les filiales selon l'entreprise sélectionnée
+  useEffect(() => {
+    if (enterpriseFilter === 'all') {
+      setSubsidiaries([]);
+      return;
+    }
+    SubsidiaryService.getAllSubsidiaries({ enterpriseId: enterpriseFilter, include: true })
+      .then((res) => setSubsidiaries(res.data || []))
+      .catch(() => toast.error('Erreur lors du chargement des filiales'));
+  }, [enterpriseFilter]);
 
   // Charger les employés depuis l'API/service
   useEffect(() => {
@@ -47,14 +80,11 @@ export function GlobalEmployeesPage() {
       subsidiaryId: subsidiaryFilter !== 'all' ? subsidiaryFilter : undefined,
       roleName: roleFilter !== 'all' ? roleFilter : undefined,
       searchTerm: searchTerm || undefined,
-      status: statusFilter !== 'all' ? (statusFilter === 'active' ? true : false) : undefined,
       includeAllData: true,
     };
     employeeService.getAllEmployees(query)
       .then(res => {
         setEmployees(res.data);
-            console.log("employeeess", res);
-
         setTotal(res.total);
       })
       .catch(err => {
@@ -82,131 +112,145 @@ export function GlobalEmployeesPage() {
     }
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'Administrateur': return 'bg-red-100 text-red-800';
-      case 'Manager': return 'bg-blue-100 text-blue-800';
-      case 'Développeur': return 'bg-purple-100 text-purple-800';
-      case 'Employé': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+ 
+
+  // Fonction pour activer/désactiver un employé avec confirmation
+  const handleRequestToggleStatus = (employee: Employee) => {
+    setEmployeeToToggle(employee);
+    setToggleAction(employee.status === 'ENABLED' ? 'disable' : 'enable');
+    setConfirmDialogOpen(true);
   };
 
-  const handleDeleteEmployee = async (employeeId: string) => {
+  const handleConfirmToggleStatus = async () => {
+    if (!employeeToToggle) return;
     try {
-      await employeeService.deleteEmployee(employeeId);
-      setEmployees(prev => prev.filter(emp => emp.id !== employeeId));
-      setTotal(prev => prev - 1);
-      toast.success('Employé supprimé avec succès');
+      await employeeService.updateEmployeeStatus(employeeToToggle.id, employeeToToggle.status !== 'ENABLED');
+      setEmployees(prev => prev.map(emp =>
+        emp.id === employeeToToggle.id ? { ...emp, status: emp.status === 'ENABLED' ? 'DISABLED' as UserStatus : 'ENABLED' as UserStatus } : emp
+      ));
+      toast.success(`Employé ${employeeToToggle.status === 'ENABLED' ? 'désactivé' : 'activé'} avec succès`);
     } catch (err: any) {
-      toast.error(err.message || 'Erreur lors de la suppression');
+      toast.error(err.message || 'Erreur lors du changement de statut');
+    } finally {
+      setConfirmDialogOpen(false);
+      setEmployeeToToggle(null);
     }
   };
 
-  // Pagination helpers
-  const totalPages = Math.ceil(total / itemsPerPage);
-  const currentPage = Math.floor(skip / itemsPerPage) + 1;
-
-  const handlePageChange = (page: number) => {
-    setSkip((page - 1) * itemsPerPage);
+  // Ajout d'un bouton pour reset les filtres
+  const resetFilters = () => {
+    setSearchTerm('');
+    setEnterpriseFilter('all');
+    setSubsidiaryFilter('all');
+    setRoleFilter('all');
+    setStatusFilter('all');
+    setSkip(0);
   };
 
-  const EmployeeCard = ({ employee }: { employee: Employee }) => (
-    <div 
-      className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-colors bg-white"
-      onClick={() => navigate(`/dashboard/employees/${employee.id}`)}
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2 mb-2">
-            <h3 className="font-medium text-sm truncate">{employee.fullName || employee.email}</h3>
-            <Badge className={`${getStatusColor(employee.status as string)} text-xs px-2 py-1`}>
-              {getStatusText(employee.status as string)}
-            </Badge>
-          </div>
-          <p className="text-xs text-muted-foreground mb-1 truncate">{employee.email}</p>
-          <p className="text-xs text-muted-foreground mb-2">{employee.phone}</p>
-          <div className="space-y-1 text-xs">
-            <div className="truncate">
-              <span className="font-medium">Filiale:</span> {employee.subsidiary?.name || '-'}
-            </div>
-            <div className="flex items-center justify-between">
-              <Badge className={`${getRoleColor(employee.roles?.[0] || '')} text-xs px-2 py-1`}>
-                {employee.roles?.[0] || '-'}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                {employee.lastLoginAt ? new Date(employee.lastLoginAt).toLocaleDateString('fr-FR') : ''}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center space-x-1 ml-2">
+  // Colonnes pour TableWithPagination
+  const columns = [
+    {
+      header: 'Nom',
+      accessor: 'fullName',
+      render: (employee: Employee) => (
+        <span>{employee.fullName || employee.email}</span>
+      ),
+    },
+    {
+      header: 'Email',
+      accessor: 'email',
+      render: (employee: Employee) => <span>{employee.email}</span>,
+    },
+    {
+      header: 'Téléphone',
+      accessor: 'phone',
+      render: (employee: Employee) => <span>{employee.phone || '-'}</span>,
+    },
+    {
+      header: 'Entreprise',
+      accessor: 'entreprise',
+      render: (employee: Employee) => <span>{employee['enterprise']?.name || employee['entreprise']?.name || '-'}</span>,
+    },
+    {
+      header: 'Filiale',
+      accessor: 'subsidiary',
+      render: (employee: Employee) => <span>{employee.subsidiary?.name || '-'}</span>,
+    },
+    {
+      header: 'Rôle',
+      accessor: 'roles',
+      render: (employee: Employee) => <span>{employee.roles?.[0] || '-'}</span>,
+    },
+    {
+      header: 'Statut',
+      accessor: 'status',
+      render: (employee: Employee) => (
+        <Badge className={`${getStatusColor(employee.status as string)} text-xs px-2 py-1`}>
+          {getStatusText(employee.status as string)}
+        </Badge>
+      ),
+    },
+    {
+      header: 'Dernière connexion',
+      accessor: 'lastLoginAt',
+      render: (employee: Employee) => (
+        <span>{employee.lastLoginAt ? new Date(employee.lastLoginAt).toLocaleDateString('fr-FR') : '-'}</span>
+      ),
+    },
+    {
+      header: 'Actions',
+      accessor: 'actions',
+      render: (employee: Employee) => (
+        <div className="flex flex-wrap items-center gap-1">
           <Button
-            size="sm"
+            size="icon"
             variant="ghost"
             className="h-8 w-8 p-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/dashboard/employees/${employee.id}`);
-            }}
+            title="Voir"
+            onClick={() => navigate(`/employees/${employee.id}`)}
           >
             <Eye className="h-4 w-4" />
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 w-8 p-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              // Edit employee logic
-            }}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Supprimer l'employé</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Êtes-vous sûr de vouloir supprimer l'employé <strong>{employee.fullName || employee.email}</strong> ? 
-                  Cette action est irréversible.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => handleDeleteEmployee(employee.id)}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Supprimer
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {employee.status === 'ENABLED' ? (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+              title="Désactiver"
+              onClick={() => handleRequestToggleStatus(employee)}
+            >
+              <Ban className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+              title="Activer"
+              onClick={() => handleRequestToggleStatus(employee)}
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+          )}
         </div>
-      </div>
-    </div>
-  );
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center space-x-2">
           <UserCog className="h-6 w-6 text-etaxi-yellow" />
           <h2 className="text-2xl font-bold">Gestion globale des employés ({total})</h2>
         </div>
+        <Button
+          variant="outline"
+          className="bg-gray-50 hover:bg-gray-100 text-gray-700 border-gray-200"
+          onClick={resetFilters}
+        >
+          Réinitialiser les filtres
+        </Button>
       </div>
 
       {/* Filters */}
@@ -219,17 +263,17 @@ export function GlobalEmployeesPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="relative">
+            <div className="relative w-full">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Rechercher..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 w-full"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Statut" />
               </SelectTrigger>
               <SelectContent>
@@ -239,7 +283,7 @@ export function GlobalEmployeesPage() {
               </SelectContent>
             </Select>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Rôle" />
               </SelectTrigger>
               <SelectContent>
@@ -253,7 +297,7 @@ export function GlobalEmployeesPage() {
               setItemsPerPage(Number(value));
               setSkip(0);
             }}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -266,18 +310,18 @@ export function GlobalEmployeesPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Select value={enterpriseFilter} onValueChange={setEnterpriseFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Entreprise" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les entreprises</SelectItem>
-                {subsidiaries.map(sub => (
-                  <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>
+                {enterprises.map(ent => (
+                  <SelectItem key={ent.id} value={ent.id}>{ent.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select value={subsidiaryFilter} onValueChange={setSubsidiaryFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Filiale" />
               </SelectTrigger>
               <SelectContent>
@@ -291,79 +335,48 @@ export function GlobalEmployeesPage() {
         </CardContent>
       </Card>
 
-      {/* Employees Display */}
+      {/* Table des employés */}
       <Card>
-        <CardContent className="p-6">
-          {loading ? (
-            <div className="text-center py-8">Chargement...</div>
-          ) : error ? (
-            <div className="text-center py-8 text-red-500">{error}</div>
-          ) : employees.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Aucun employé trouvé avec les filtres actuels</p>
+        <CardContent className="p-0">
+          <div className="w-full overflow-x-auto">
+            <div className="min-w-[900px]">
+              <TableWithPagination
+                data={employees}
+                columns={columns}
+                total={total}
+                skip={skip}
+                take={itemsPerPage}
+                onPageChange={(newSkip, newTake) => {
+                  setSkip(newSkip);
+                  setItemsPerPage(newTake);
+                }}
+                emptyMessage="Aucun employé trouvé avec les filtres actuels"
+                isShowingSearchPagination={false}
+              />
             </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {employees.map(employee => (
-                  <EmployeeCard key={employee.id} employee={employee} />
-                ))}
-              </div>
-              {/* Pagination */}
-              <div className="flex justify-between items-center mt-6">
-                <div className="text-sm text-muted-foreground">
-                  Affichage {skip + 1}-{Math.min(skip + itemsPerPage, total)} sur {total} employés
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Précédent
-                  </Button>
-                  <div className="flex items-center space-x-1">
-                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                      let pageNumber;
-                      if (totalPages <= 5) {
-                        pageNumber = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNumber = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNumber = totalPages - 4 + i;
-                      } else {
-                        pageNumber = currentPage - 2 + i;
-                      }
-                      return (
-                        <Button
-                          key={pageNumber}
-                          variant={currentPage === pageNumber ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handlePageChange(pageNumber)}
-                          className="w-8 h-8 p-0"
-                        >
-                          {pageNumber}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Suivant
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
+          </div>
         </CardContent>
       </Card>
+
+      {/* Dialog de confirmation pour activation/désactivation */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {toggleAction === 'disable' ? 'Désactiver' : 'Activer'} l'employé
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir {toggleAction === 'disable' ? 'désactiver' : 'activer'} l'employé <strong>{employeeToToggle?.fullName || employeeToToggle?.email}</strong> ?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmToggleStatus} className={toggleAction === 'disable' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}>
+              {toggleAction === 'disable' ? 'Désactiver' : 'Activer'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
