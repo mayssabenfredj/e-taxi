@@ -179,7 +179,7 @@ export function RequestsTab({
             {request.requestedBy?.fullName || 'Inconnu'}
           </div>
           <div className="text-sm text-muted-foreground">
-            <Badge variant="secondary">Groupe</Badge>
+            <Badge variant="secondary">{request.employeeTransports.length === 1 ? 'Individual' : 'Groupe'}</Badge>
           </div>
         </div>
       ),

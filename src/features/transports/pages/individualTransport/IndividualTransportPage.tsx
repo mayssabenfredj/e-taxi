@@ -88,48 +88,8 @@ export function IndividualTransportPage() {
       if (resetPagination) {
         setHistorySkip(0);
       }
-      const query: GetTransportRequestsQueryDto = {
-        page: Math.floor(historySkip / historyTake) + 1,
-        limit: historyTake,
-      };
-
-      if (user) {
-        const userRoles = user.roles.map((r) => r.role.name);
-        if (userRoles.includes('ADMIN_ENTREPRISE') && user.enterpriseId) {
-          query.enterpriseId = user.enterpriseId;
-          if (selectedSubsidiary) {
-            query.subsidiaryId = selectedSubsidiary;
-          }
-        } else if (userRoles.includes('ADMIN_FILIALE') && user.enterpriseId && user.subsidiaryId) {
-          query.enterpriseId = user.enterpriseId;
-          query.subsidiaryId = user.subsidiaryId;
-          if (selectedStatus) {
-            query.status = selectedStatus;
-          }
-        }
-      }
-
-      const response = await demandeService.getTransportRequests(query);
-      setHistory(
-        response.data.map((req) => ({
-          id: req.id,
-          requestId: req.id,
-          reference: req.reference || `TR-${req.id}`,
-          type: 'individual',
-          requestedBy: req.requestedBy?.fullName || 'Inconnu',
-          passengerCount: req.employeeTransports.length,
-          departureLocation: req.employeeTransports[0]?.departure?.formattedAddress || 'Non spécifié',
-          arrivalLocation: req.employeeTransports[0]?.arrival?.formattedAddress || 'Non spécifié',
-          scheduledDate: req.scheduledDate || new Date().toISOString(),
-          completedDate: req.updatedAt || new Date().toISOString(),
-          status: (req.status === 'COMPLETED' ? 'completed' : 'cancelled') as TransportHistory['status'],
-          taxiCount: req.employeeTransports.length,
-          courses: [],
-          totalCost: 0,
-          note: req.note || '',
-        }))
-      );
-      setHistoryTotal(response.pagination.total);
+      setHistory([]);
+      setHistoryTotal(0);
     } catch (error) {
       toast.error('Échec du chargement de l\'historique des transports');
     } finally {
@@ -197,7 +157,7 @@ export function IndividualTransportPage() {
         <TabsList>
           <TabsTrigger value="requests" className="flex items-center space-x-2">
             <Car className="h-4 w-4" />
-            <span>Demandes ({requestsTotal})</span>
+            <span>Demandes ({requests.length})</span>
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center space-x-2">
             <History className="h-4 w-4" />

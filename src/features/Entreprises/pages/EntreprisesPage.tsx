@@ -27,6 +27,7 @@ import { EntityStatus, Enterprise as ApiEnterprise } from '../types/entreprise';
 import { useAuth } from '@/shareds/contexts/AuthContext';
 import { entrepriseService } from '../services/entreprise.service';
 import { hasPermission } from '@/shareds/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shareds/components/ui/select';
 
 function LogoCell({ logoUrl, alt }: { logoUrl?: string | null; alt: string }) {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
@@ -72,12 +73,12 @@ export function EnterprisesPage() {
     try {
       const params: any = { skip, take };
       if (filters.status) {
-        params.status = filters.status === 'active' ? EntityStatus.ACTIVE : EntityStatus.INACTIVE;
+        params.status = filters.status === 'ACTIVE' ? EntityStatus.ACTIVE : EntityStatus.INACTIVE;
       }
       const res = await entrepriseService.findAll(params);
       console.log("entrepriseeee", res);
-      setEnterprises(res.data || []);
-      setTotal(res.data?.total || 0);
+      setEnterprises(res.data.data || []);
+      setTotal(res.data?.meta?.total || 0);
     } catch (e) {
       toast.error('Erreur lors du chargement des Organisations');
     } finally {
@@ -177,8 +178,8 @@ export function EnterprisesPage() {
   ];
 
   const filterOptions = [
-    { label: 'Actives', value: 'active', field: 'status' as keyof ApiEnterprise },
-    { label: 'Inactives', value: 'inactive', field: 'status' as keyof ApiEnterprise },
+    { label: 'Actives', value: 'ACTIVE', field: 'status' as keyof ApiEnterprise },
+    { label: 'Inactives', value: 'INACTIVE', field: 'status' as keyof ApiEnterprise },
   ];
 
   const canCreate = user && hasPermission(user, 'enterprises:create');
@@ -270,14 +271,27 @@ export function EnterprisesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Liste des Organisations</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex flex-col sm:flex-row gap-2">
+            <Select
+              value={filters.status || 'all'}
+              onValueChange={(value) => handleFilterChange({ ...filters, status: value === 'all' ? undefined : value })}
+            >
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Filtrer par statut" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous</SelectItem>
+                <SelectItem value="ACTIVE">Actives</SelectItem>
+                <SelectItem value="INACTIVE">Inactives</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <TableWithPagination
             data={enterprises}
             columns={columns}
             searchPlaceholder="Rechercher par nom, email..."
-            filterOptions={filterOptions}
             actions={renderActions}
             onRowClick={(enterprise) => navigate(`/companys/${enterprise.id}`)}
             total={total}
@@ -285,6 +299,7 @@ export function EnterprisesPage() {
             take={take}
             onPageChange={handlePageChange}
             onFilterChange={handleFilterChange}
+            isFiltered={false}
           />
         </CardContent>
       </Card>

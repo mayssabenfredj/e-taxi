@@ -23,6 +23,7 @@ interface TableWithPaginationProps<T> {
   onRowClick?: (item: T) => void; // Added to support row click handling
   emptyMessage?: string; // Message à afficher si aucune donnée
   isShowingSearchPagination?: boolean; // Ajout optionnel
+  isFiltered?: boolean; // Ajout de la prop pour activer/désactiver le filtrage local
 }
 
 export function TableWithPagination<T>({
@@ -39,6 +40,7 @@ export function TableWithPagination<T>({
   onRowClick,
   emptyMessage,
   isShowingSearchPagination = true,
+  isFiltered = true, // Par défaut true pour compatibilité
 }: TableWithPaginationProps<T>) {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState<Record<string, string>>({});
@@ -60,23 +62,34 @@ export function TableWithPagination<T>({
     onFilterChange?.(newFilters); // Notify parent component of filter changes
   };
 
-  const filteredData = data.filter((item) => {
-    // Apply all active filters
-    const passesFilters = Object.entries(filters).every(([field, value]) => {
-      if (value === 'all') return true;
-      const filterOption = filterOptions?.find((opt) => opt.field === field && opt.value === value);
-      return filterOption ? (item[field] as any) === value : true;
+  // Filtrage local seulement si isFiltered ET filterOptions existent
+  let filteredData = data;
+  if (isFiltered && filterOptions) {
+    filteredData = data.filter((item) => {
+      // Appliquer tous les filtres actifs
+      const passesFilters = Object.entries(filters).every(([field, value]) => {
+        if (value === 'all') return true;
+        const filterOption = filterOptions?.find((opt) => opt.field === field && opt.value === value);
+        return filterOption ? (item[field] as any) === value : true;
+      });
+      // Appliquer la recherche
+      const passesSearch = search
+        ? columns.some((col) =>
+            String((item as any)[col.accessor]).toLowerCase().includes(search.toLowerCase())
+          )
+        : true;
+      return passesFilters && passesSearch;
     });
-
-    // Apply search
-    const passesSearch = search
-      ? columns.some((col) =>
-          String((item as any)[col.accessor]).toLowerCase().includes(search.toLowerCase())
+  } else {
+    // Sinon, juste la recherche locale (ou rien)
+    filteredData = search
+      ? data.filter((item) =>
+          columns.some((col) =>
+            String((item as any)[col.accessor]).toLowerCase().includes(search.toLowerCase())
+          )
         )
-      : true;
-
-    return passesFilters && passesSearch;
-  });
+      : data;
+  }
 
   // Pagination sécurisée
   const safeTotal = isNaN(total) || total <= 0 ? 0 : total;

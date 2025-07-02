@@ -43,6 +43,7 @@ export interface UpdateEnterpriseDto {
 export interface EnterpriseResponse {
   success: boolean;
   data?: any;
+  meta?: any;
   error?: string;
   code?: string;
 }
