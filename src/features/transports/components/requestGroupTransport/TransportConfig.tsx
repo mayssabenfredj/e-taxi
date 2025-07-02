@@ -9,7 +9,7 @@ import { Calendar } from '@/shareds/components/ui/calendar';
 import { Checkbox } from '@/shareds/components/ui/checkbox';
 import { Switch } from '@/shareds/components/ui/switch';
 import { ScrollArea } from '@/shareds/components/ui/scroll-area';
-import { Home, Briefcase, Phone, Mail, Building2 } from 'lucide-react';
+import { Home, Briefcase, Phone, Mail, Building2, X } from 'lucide-react';
 import { format, addHours, isToday, startOfDay, setHours, setMinutes } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { RecurringDateTime, SelectedPassenger } from '@/features/transports/types/demande';
@@ -39,6 +39,7 @@ interface TransportConfigProps {
   setShowEmployeeList: (show: boolean) => void;
   handleShowConfirmation: () => void;
   subsidiaries: any[];
+  onRemovePassenger?: (passengerId: string) => void;
 }
 
 export function TransportConfig({
@@ -63,6 +64,7 @@ export function TransportConfig({
   setShowEmployeeList,
   handleShowConfirmation,
   subsidiaries,
+  onRemovePassenger,
 }: TransportConfigProps) {
   // Set default transport type to 'private' if not set
   useEffect(() => {
@@ -209,6 +211,7 @@ export function TransportConfig({
                     <TableHead className="text-xs">Contact</TableHead>
                     <TableHead className="text-xs">Départ</TableHead>
                     <TableHead className="text-xs">Arrivée</TableHead>
+                    {onRemovePassenger && <TableHead className="text-xs min-w-[32px] text-center">Action</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -397,6 +400,18 @@ export function TransportConfig({
                             )}
                           </div>
                         </TableCell>
+                        {onRemovePassenger && (
+                          <TableCell className="p-2 text-center min-w-[32px]">
+                            <button
+                              type="button"
+                              aria-label="Retirer le passager"
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => onRemovePassenger(passenger.id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })}
