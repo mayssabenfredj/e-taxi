@@ -72,6 +72,8 @@ export interface GetTransportRequestsQueryDto {
   priority?: RequestPriority;
   enterpriseId?: string;
   subsidiaryId?: string;
+  mode?: string;
+  search?: string;
 }
 
 export interface EnterpriseDto {

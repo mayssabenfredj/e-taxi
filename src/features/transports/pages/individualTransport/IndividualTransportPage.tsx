@@ -52,6 +52,7 @@ export function IndividualTransportPage() {
       const query: GetTransportRequestsQueryDto = {
         page: Math.floor(requestsSkip / requestsTake) + 1,
         limit: requestsTake,
+        mode:'individual',
       };
 
       if (user) {
@@ -71,9 +72,7 @@ export function IndividualTransportPage() {
       }
 
       const response = await demandeService.getTransportRequests(query);
-      // Filtrer pour les transports individuels (exactement un passager)
-      const responsesFiltered: TransportRequestResponse[] = response.data.filter(req => req.employeeTransports.length === 1);
-      setRequests(responsesFiltered);
+      setRequests(response.data);
       setRequestsTotal(response.pagination.total);
     } catch (error) {
       toast.error('Échec du chargement des demandes de transport');

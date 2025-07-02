@@ -52,6 +52,8 @@ export function GroupTransportPage() {
       const query: GetTransportRequestsQueryDto = {
         page: Math.floor(requestsSkip / requestsTake) + 1,
         limit: requestsTake,
+        mode:'group',
+
       };
 
       if (user) {
@@ -71,8 +73,7 @@ export function GroupTransportPage() {
       }
 
       const response = await demandeService.getTransportRequests(query);
-      const responsesFiltered: TransportRequestResponse[] = response.data.filter(req => req.employeeTransports.length !== 1);
-      setRequests(responsesFiltered);
+      setRequests(response.data);
       setRequestsTotal(response.pagination.total);
     } catch (error) {
       toast.error('Échec du chargement des demandes de transport');
