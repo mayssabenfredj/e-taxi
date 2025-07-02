@@ -43,6 +43,7 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate
       alternativePhone: '',
       roleIds: [],
       subsidiaryId: '',
+      enterpriseId: '',
       addresses: [],
     },
   });
@@ -258,12 +259,16 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate
                   <FormField
                     control={form.control}
                     name="phone"
-                    rules={{ required: 'Le téléphone est requis' }}
+                    rules={{ 
+                      required: 'Le téléphone est requis',
+                      minLength: { value: 12, message: 'Le téléphone doit contenir exactement 12 caractères (ex: +21658063152)' },
+                      maxLength: { value: 12, message: 'Le téléphone doit contenir exactement 12 caractères (ex: +21658063152)' }
+                    }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Téléphone *</FormLabel>
                         <FormControl>
-                          <Input placeholder="+33 6 12 34 56 78" {...field} />
+                          <Input placeholder="+21658063152" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -77,7 +77,7 @@ export const useEmployees = ({
       lastName: employeeData.lastName || undefined,
       phone: employeeData.phone,
       alternativePhone: employeeData.alternativePhone || undefined,
-      enterpriseId,
+      enterpriseId : employeeData.enterpriseId || enterpriseId,
       subsidiaryId: employeeData.subsidiaryId || undefined,
       managerId: employeeData.managerId || undefined,
       roleIds: employeeData.roleIds || [],
