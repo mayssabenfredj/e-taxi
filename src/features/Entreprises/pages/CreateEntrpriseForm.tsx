@@ -3,8 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shareds/components/ui/card';
+import { Button } from '@/shareds/components/ui/button';
 import {
   Form,
   FormControl,
@@ -12,15 +12,17 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+} from '@/shareds/components/ui/form';
+import { Input } from '@/shareds/components/ui/input';
+import { Textarea } from '@/shareds/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shareds/components/ui/select';
 import { ArrowLeft, Save, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { EntityStatus, CreateEnterpriseDto, UpdateEnterpriseDto } from '@/types/entreprise';
-import { entrepriseService } from '@/services/entreprise.service';
-import { AddressInput } from '@/components/shared/AddressInput';
+import { EntityStatus, CreateEnterpriseDto, UpdateEnterpriseDto } from '../types/entreprise';
+import { AddressInput } from '@/shareds/components/addressComponent/AddressInput';
+import { entrepriseService } from '../services/entreprise.service';
+import { hasPermission } from '@/shareds/lib/utils';
+import { useAuth } from '@/shareds/contexts/AuthContext';
 
 const enterpriseSchema = z.object({
   titre: z.string().min(2, 'Le nom doit contenir au moins 2 caractères'),
@@ -55,6 +57,12 @@ export function CreateEnterpriseForm(props: EnterpriseFormProps = { mode: 'creat
   const [loading, setLoading] = useState(false);
   const [formDataLoaded, setFormDataLoaded] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(logoUrlPreview || null);
+  const { user, isLoading: authLoading } = useAuth();
+
+  const permission = mode === 'create' ? 'enterprises:create' : 'enterprises:update';
+  if (!authLoading && !hasPermission(user, permission)) {
+    return <div className="p-8 text-center text-red-600 font-bold text-xl">Accès refusé : vous n'avez pas la permission de {mode === 'create' ? 'créer' : 'modifier'} une organisation.</div>;
+  }
 
   const form = useForm<EnterpriseFormData>({
     resolver: zodResolver(enterpriseSchema),
