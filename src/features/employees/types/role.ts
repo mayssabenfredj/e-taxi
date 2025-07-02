@@ -4,7 +4,7 @@ export interface Role {
   id: string;
   name: string;
   description: string;
-  permissions: Permission[];
+  permissions: any[];
   isSystem: boolean;
   createdAt: string;
   updatedAt: string;

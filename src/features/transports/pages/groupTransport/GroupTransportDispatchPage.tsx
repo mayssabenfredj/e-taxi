@@ -12,6 +12,8 @@ import { TransportRequestResponse, EmployeeTransportDto } from '@/features/trans
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/shareds/components/ui/dialog';
 import { Switch } from '@/shareds/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shareds/components/ui/table';
+import { useAuth } from '@/shareds/contexts/AuthContext';
+import { hasPermission } from '@/shareds/lib/utils';
 
 interface Passenger {
   id: string;
@@ -43,6 +45,11 @@ export function GroupTransportDispatchPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { isGoogleMapsLoaded } = useGoogleMaps();
+  const { user } = useAuth();
+
+  if (!hasPermission(user, 'transports:read')) {
+    return <div className="text-center text-red-500 py-12">Accès refusé : vous n'avez pas la permission de voir les transports.</div>;
+  }
 
   const [draggedPassenger, setDraggedPassenger] = useState<Passenger | null>(null);
   const [hasDraftChanges, setHasDraftChanges] = useState(false);

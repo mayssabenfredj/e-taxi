@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import { RoleForm } from '../components/role/AddRoleForm';
 import { roleService } from '../services/role.service';
 import { Role } from '../types/role';
+import { hasPermission } from '@/shareds/lib/utils';
+import { useAuth } from '@/shareds/contexts/AuthContext';
 
 export function RoleManagementPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,6 +29,13 @@ export function RoleManagementPage() {
   const [skip, setSkip] = useState(0);
   const [take, setTake] = useState(10);
   const [loading, setLoading] = useState(false);
+
+  const { user } = useAuth();
+  const canRead = user && hasPermission(user, 'roles:read');
+  const canCreate = user && hasPermission(user, 'roles:create');
+  const canUpdate = user && hasPermission(user, 'roles:update');
+  const canDelete = user && hasPermission(user, 'roles:delete');
+  const canAssignPermissions = user && hasPermission(user, 'roles:assign_permissions');
 
   // Charger les rôles depuis l'API
   useEffect(() => {
@@ -160,53 +169,58 @@ export function RoleManagementPage() {
       accessor: 'actions',
       render: (role: Role) => (
         <div className="flex items-center space-x-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleEditRole(role);
-            }}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-red-600 hover:text-red-700"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Supprimer le rôle</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Êtes-vous sûr de vouloir supprimer le rôle <strong>{role.name}</strong> ?
-                  {(role as any).employeeCount > 0 && (
-                    <span className="text-red-600 block mt-2">
-                      Ce rôle est assigné à {(role as any).employeeCount} employé(s). La suppression est impossible.
-                    </span>
-                  )}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => handleDeleteRole(role.id)}
-                  className="bg-red-600 hover:bg-red-700"
-                  disabled={(role as any).employeeCount > 0}
+          {canRead && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditRole(role);
+              }}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          {canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-red-600 hover:text-red-700"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  Supprimer
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Supprimer le rôle</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Êtes-vous sûr de vouloir supprimer le rôle <strong>{role.name}</strong> ?
+                    {(role as any).employeeCount > 0 && (
+                      <span className="text-red-600 block mt-2">
+                        Ce rôle est assigné à {(role as any).employeeCount} employé(s). La suppression est impossible.
+                      </span>
+                    )}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => handleDeleteRole(role.id)}
+                    className="bg-red-600 hover:bg-red-700"
+                    disabled={(role as any).employeeCount > 0}
+                  >
+                    Supprimer
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          
         </div>
       )
     }
@@ -216,6 +230,10 @@ export function RoleManagementPage() {
     setSkip(newSkip);
     setTake(newTake);
   };
+
+  if (!canRead) {
+    return <div className="p-8 text-center text-red-600 font-bold text-xl">Accès refusé : vous n'avez pas la permission de voir les rôles.</div>;
+  }
 
   return (
     <div className="space-y-6">

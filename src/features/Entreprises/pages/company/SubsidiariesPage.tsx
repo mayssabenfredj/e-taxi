@@ -12,6 +12,7 @@ import SubsidiaryForm from '@/features/Entreprises/components/SubsidiaryForm';
 import SubsidiaryStats from '@/features/Entreprises/components/SubsidiaryStats';
 import { SubsidiaryTable } from '@/features/Entreprises/components/SubsidiaryTable';
 import employeeService from '@/features/employees/services/employee.service';
+import { hasPermission } from '@/shareds/lib/utils';
 
 export function SubsidariesPage() {
   const { t } = useLanguage();
@@ -251,6 +252,13 @@ export function SubsidariesPage() {
     }
   };
 
+  const canCreate = user && hasPermission(user, 'subsidiaries:create');
+  const canUpdate = user && hasPermission(user, 'subsidiaries:update');
+
+  if (user && !hasPermission(user, 'subsidiaries:read')) {
+    return <div className="p-8 text-center text-red-600 font-bold text-xl">Accès refusé : vous n'avez pas la permission de voir cette page.</div>;
+  }
+
   if (!enterpriseId) {
     return (
       <div className="p-4 text-center">
@@ -264,24 +272,26 @@ export function SubsidariesPage() {
       {loading && <div>Chargement...</div>}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <SubsidiaryStats total={total} subsidiaries={subsidiaries} />
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-etaxi-yellow hover:bg-yellow-500 text-black h-8 text-sm w-full sm:w-auto">
-              <Plus className="mr-1 h-3 w-3" />
-              Nouvelle Filiale
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <SubsidiaryForm
-              editingSubsidiary={editingSubsidiary}
-              formData={formData}
-              setFormData={setFormData}
-              managers={managers}
-              onSubmit={handleSubmit}
-              onCancel={resetForm}
-            />
-          </DialogContent>
-        </Dialog>
+        {canCreate && (
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-etaxi-yellow hover:bg-yellow-500 text-black h-8 text-sm w-full sm:w-auto">
+                <Plus className="mr-1 h-3 w-3" />
+                Nouvelle Filiale
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <SubsidiaryForm
+                editingSubsidiary={editingSubsidiary}
+                formData={formData}
+                setFormData={setFormData}
+                managers={managers}
+                onSubmit={handleSubmit}
+                onCancel={resetForm}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
       <SubsidiaryTable
         subsidiaries={subsidiaries}
@@ -290,8 +300,9 @@ export function SubsidariesPage() {
         take={take}
         onPageChange={handlePageChange}
         onFilterChange={handleFilterChange}
-        onEdit={handleEdit}
-        onUpdateStatus={handleUpdateStatus}
+        onEdit={canUpdate ? handleEdit : undefined}
+        onUpdateStatus={canUpdate ? handleUpdateStatus : undefined}
+        canUpdate={canUpdate}
       />
       <Dialog open={confirmDialog.open} onOpenChange={() => setConfirmDialog({ open: false, subsidiary: null, newStatus: null })}>
         <DialogContent>

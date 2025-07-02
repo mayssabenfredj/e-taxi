@@ -101,7 +101,7 @@ export const useEmployees = ({
       );
     }
 
-    const newEmployee = await EmployeeService.createEmployee(createData);
+    const newEmployee = await employeeService.createEmployee(createData);
     setEmployees((prev) => [newEmployee, ...prev]);
     setTotal((prev) => prev + 1);
     toast.success("Collaborateur ajouté avec succès !");
@@ -111,7 +111,7 @@ export const useEmployees = ({
 
   // Delete employee
   const deleteEmployee = async (id: string) => {
-    await EmployeeService.deleteEmployee(id);
+    await employeeService.deleteEmployee(id);
     setEmployees((prev) => prev.filter((emp) => emp.id !== id));
     setTotal((prev) => prev - 1);
     toast.success("Collaborateur supprimé avec succès !");
@@ -121,7 +121,7 @@ export const useEmployees = ({
   // Toggle employee status
   const toggleEmployeeStatus = async (id: string, currentStatus: string) => {
     const enabled = currentStatus !== "ENABLED";
-    const updatedEmployee = await EmployeeService.updateEmployeeStatus(
+    const updatedEmployee = await employeeService.updateEmployeeStatus(
       id,
       enabled
     );
@@ -142,7 +142,7 @@ export const useEmployees = ({
         users: importedEmployees,
         continueOnError: true,
       };
-      const result = await EmployeeService.createMultipleEmployees(payload);
+      const result = await employeeService.createMultipleEmployees(payload);
 
       // Affichage du message détaillé
       if (result?.results) {

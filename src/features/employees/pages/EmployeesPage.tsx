@@ -12,6 +12,7 @@ import { useEmployees } from '@/shareds/hooks/useEmployees';
 import { useAuth } from '@/shareds/contexts/AuthContext';
 import { CreateEmployee, Employee } from '@/features/employees/types/employee';
 import { useRolesAndSubsidiaries } from '@/shareds/hooks/useRolesAndSubsidiaries';
+import { hasPermission } from '@/shareds/lib/utils';
 
 export function EmployeesPage() {
   const { user } = useAuth();
@@ -38,6 +39,12 @@ export function EmployeesPage() {
   });
 
   const { roles, subsidiaries, loading: loadingRolesSubs } = useRolesAndSubsidiaries(enterpriseId);
+
+  const canCreate = user && hasPermission(user, 'users:create');
+  const canUpdate = user && hasPermission(user, 'users:update');
+  const canRead = user && hasPermission(user, 'users:read');
+  const canEnable = user && hasPermission(user, 'users:enable');
+  const canAssignRoles = user && hasPermission(user, 'users:assign_roles');
 
   const handleEmployeeAdded = async (employeeData: CreateEmployee) => {
     try {
@@ -95,6 +102,12 @@ export function EmployeesPage() {
     );
   }
 
+  if (!canRead) {
+    return (
+      <div className="p-8 text-center text-red-600 font-bold text-xl">Accès refusé : vous n'avez pas la permission de voir les collaborateurs.</div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {loading && <div>Chargement...</div>}
@@ -104,21 +117,25 @@ export function EmployeesPage() {
           <h2 className="text-2xl font-bold">Gestion des Collaborateurs</h2>
         </div>
         <div className="flex flex-col md:flex-row gap-2 md:gap-2 w-full md:w-auto">
-          <Button
-            variant="outline"
-            className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 w-full md:w-auto"
-            onClick={() => setCsvImportOpen(true)}
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Importer CSV
-          </Button>
-          <Button
-            className="bg-etaxi-yellow hover:bg-yellow-500 text-black w-full md:w-auto"
-            onClick={() => setAddEmployeeOpen(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Ajouter un Collaborateur
-          </Button>
+          {canCreate && (
+            <Button
+              variant="outline"
+              className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 w-full md:w-auto"
+              onClick={() => setCsvImportOpen(true)}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Importer CSV
+            </Button>
+          )}
+          {canCreate && (
+            <Button
+              className="bg-etaxi-yellow hover:bg-yellow-500 text-black w-full md:w-auto"
+              onClick={() => setAddEmployeeOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Ajouter un Collaborateur
+            </Button>
+          )}
         </div>
       </div>
 
@@ -145,26 +162,31 @@ export function EmployeesPage() {
         take={take}
         onPageChange={handlePageChange}
         onFilterChange={handleFilterChange}
-        onDelete={(employee) => {
+        onDelete={canUpdate ? (employee) => {
           setSelectedEmployee(employee);
           setDeleteDialogOpen(true);
-        }}
-        onToggleStatus={(employee) => {
+        } : undefined}
+        onToggleStatus={canEnable ? (employee) => {
           setSelectedEmployee(employee);
           setStatusDialogOpen(true);
-        }}
+        } : undefined}
+        canUpdate={canUpdate}
+        canEnable={canEnable}
+        canAssignRoles={canAssignRoles}
       />
 
       <AddEmployeeForm
         open={addEmployeeOpen}
         onOpenChange={setAddEmployeeOpen}
         onEmployeeAdded={handleEmployeeAdded}
+        canCreate={canCreate}
       />
 
       <AddEmployeeFromCSV
         open={csvImportOpen}
         onOpenChange={setCsvImportOpen}
         onEmployeesImported={handleEmployeesImported}
+        canCreate={canCreate}
       />
 
       <EmployeeDialogs

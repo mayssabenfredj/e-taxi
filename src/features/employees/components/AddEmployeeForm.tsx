@@ -9,8 +9,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shareds/components/ui/dialog';
 import { AddressInput } from '@/shareds/components/addressComponent/AddressInput';
 import { UserPlus } from 'lucide-react';
-import { Address, AddressType } from '@/shareds/types/addresse';
-import { CreateEmployee, UserAddressDto, AddressDto } from '@/features/employees/types/employee';
+import { Address, AddressDto, AddressType } from '@/shareds/types/addresse';
+import { CreateEmployee, UserAddressDto } from '@/features/employees/types/employee';
 import { useAuth } from '@/shareds/contexts/AuthContext';
 import { useRolesAndSubsidiaries } from '@/shareds/hooks/useRolesAndSubsidiaries';
 import { toast } from 'sonner';
@@ -19,9 +19,10 @@ interface AddEmployeeFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEmployeeAdded: (employee: CreateEmployee) => void;
+  canCreate?: boolean;
 }
 
-export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmployeeFormProps) {
+export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate = true }: AddEmployeeFormProps) {
   const [selectedHomeAddress, setSelectedHomeAddress] = useState<Address | null>(null);
   const [selectedWorkAddress, setSelectedWorkAddress] = useState<Address | null>(null);
   const [isManager, setIsManager] = useState(false);
@@ -156,7 +157,9 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
             <span>Ajouter un nouvel Collaborateur</span>
           </DialogTitle>
         </DialogHeader>
-
+        {!canCreate ? (
+          <div className="text-center text-red-600 font-bold py-8">Accès refusé : vous n'avez pas la permission d'ajouter un collaborateur.</div>
+        ) : (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <Card>
@@ -355,6 +358,7 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded }: AddEmpl
             </div>
           </form>
         </Form>
+        )}
       </DialogContent>
     </Dialog>
   );

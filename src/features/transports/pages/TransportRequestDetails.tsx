@@ -35,6 +35,8 @@ import { demandeService } from '@/features/transports/services/demande.service';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { AddressDto } from '@/shareds/types/addresse';
+import { useAuth } from '@/shareds/contexts/AuthContext';
+import { hasPermission } from '@/shareds/lib/utils';
 
 export function TransportRequestDetails() {
   const { id } = useParams<{ id: string }>();
@@ -43,6 +45,11 @@ export function TransportRequestDetails() {
   const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [request, setRequest] = useState<TransportRequestResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  if (!hasPermission(user, 'transports:read')) {
+    return <div className="text-center text-red-500 py-12">Accès refusé : vous n'avez pas la permission de voir les transports.</div>;
+  }
 
   useEffect(() => {
     const fetchRequest = async () => {
@@ -193,6 +200,11 @@ export function TransportRequestDetails() {
       return groups;
     }, {} as Record<string, EmployeeTransportDto[]>) || {};
 
+  const canUpdate = hasPermission(user, 'transports:update');
+  const canApprove = hasPermission(user, 'transports:approve');
+  const canAssign = hasPermission(user, 'transports:assign');
+  const canDelete = hasPermission(user, 'transports:delete');
+
   if (loading) {
     return <div className="flex justify-center py-12">Chargement...</div>;
   }
@@ -226,13 +238,13 @@ export function TransportRequestDetails() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {(request.status === TransportStatus.PENDING || request.status === TransportStatus.APPROVED) && (
+          {(canUpdate && (request.status === TransportStatus.PENDING || request.status === TransportStatus.APPROVED)) && (
             <Button variant="outline" size="sm" onClick={handleEdit} className="flex-1 sm:flex-none">
               <Edit className="mr-1 h-3 w-3" />
               <span className="hidden sm:inline">Modifier</span>
             </Button>
           )}
-          {request.status === TransportStatus.PENDING && (
+          {(canApprove && request.status === TransportStatus.PENDING) && (
             <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
               <AlertDialogTrigger asChild>
                 <Button
@@ -266,7 +278,7 @@ export function TransportRequestDetails() {
               </AlertDialogContent>
             </AlertDialog>
           )}
-          {(request.status === TransportStatus.APPROVED || request.status === TransportStatus.PENDING) && (
+          {(canAssign && (request.status === TransportStatus.APPROVED || request.status === TransportStatus.PENDING)) && (
             <Button
               size="sm"
               className="bg-etaxi-yellow hover:bg-yellow-500 text-black flex-1 sm:flex-none"
@@ -276,7 +288,7 @@ export function TransportRequestDetails() {
               <span className="hidden sm:inline">Dispatcher</span>
             </Button>
           )}
-          {canCancel() && (
+          {(canDelete && canCancel()) && (
             <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="sm" className="flex-1 sm:flex-none">

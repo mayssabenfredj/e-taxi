@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { EntityStatus, Enterprise as ApiEnterprise } from '../types/entreprise';
 import { useAuth } from '@/shareds/contexts/AuthContext';
 import { entrepriseService } from '../services/entreprise.service';
+import { hasPermission } from '@/shareds/lib/utils';
 
 function LogoCell({ logoUrl, alt }: { logoUrl?: string | null; alt: string }) {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
@@ -49,6 +50,10 @@ function LogoCell({ logoUrl, alt }: { logoUrl?: string | null; alt: string }) {
 export function EnterprisesPage() {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
+
+  if (!authLoading && !hasPermission(user, 'enterprises:read')) {
+    return <div className="p-8 text-center text-red-600 font-bold text-xl">Accès refusé : vous n'avez pas la permission de voir cette page.</div>;
+  }
 
   // Pagination states
   const [enterprises, setEnterprises] = useState<ApiEnterprise[]>([]);
@@ -176,6 +181,9 @@ export function EnterprisesPage() {
     { label: 'Inactives', value: 'inactive', field: 'status' as keyof ApiEnterprise },
   ];
 
+  const canCreate = user && hasPermission(user, 'enterprises:create');
+  const canUpdate = user && hasPermission(user, 'enterprises:update');
+
   const renderActions = (enterprise: ApiEnterprise) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -188,45 +196,49 @@ export function EnterprisesPage() {
           <Eye className="mr-2 h-4 w-4" />
           Voir détails
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={e => { e.stopPropagation(); navigate(`/companys/create/${enterprise.id}`); }}>
-          <Edit className="mr-2 h-4 w-4" />
-          Modifier
-        </DropdownMenuItem>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <DropdownMenuItem onClick={e => e.stopPropagation()} onSelect={e => e.preventDefault()}>
-              {enterprise.status === EntityStatus.ACTIVE ? (
-                <>
-                  <PowerOff className="mr-2 h-4 w-4" />
-                  Désactiver
-                </>
-              ) : (
-                <>
-                  <Power className="mr-2 h-4 w-4" />
-                  Activer
-                </>
-              )}
-            </DropdownMenuItem>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                {enterprise.status === EntityStatus.ACTIVE ? 'Désactiver' : 'Activer'} l'entreprise
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Êtes-vous sûr de vouloir {enterprise.status === EntityStatus.ACTIVE ? 'désactiver' : 'activer'}
-                l'entreprise "{enterprise.name}" ?
-                {enterprise.status === EntityStatus.ACTIVE && " Cette action rendra l'Organisation inaccessible."}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={() => handleStatusToggle(enterprise)}>
-                Confirmer
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {canUpdate && (
+          <DropdownMenuItem onClick={e => { e.stopPropagation(); navigate(`/companys/create/${enterprise.id}`); }}>
+            <Edit className="mr-2 h-4 w-4" />
+            Modifier
+          </DropdownMenuItem>
+        )}
+        {canUpdate && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <DropdownMenuItem onClick={e => e.stopPropagation()} onSelect={e => e.preventDefault()}>
+                {enterprise.status === EntityStatus.ACTIVE ? (
+                  <>
+                    <PowerOff className="mr-2 h-4 w-4" />
+                    Désactiver
+                  </>
+                ) : (
+                  <>
+                    <Power className="mr-2 h-4 w-4" />
+                    Activer
+                  </>
+                )}
+              </DropdownMenuItem>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {enterprise.status === EntityStatus.ACTIVE ? 'Désactiver' : 'Activer'} l'entreprise
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Êtes-vous sûr de vouloir {enterprise.status === EntityStatus.ACTIVE ? 'désactiver' : 'activer'}
+                  l'entreprise "{enterprise.name}" ?
+                  {enterprise.status === EntityStatus.ACTIVE && " Cette action rendra l'Organisation inaccessible."}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={() => handleStatusToggle(enterprise)}>
+                  Confirmer
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -248,10 +260,12 @@ export function EnterprisesPage() {
             Gérez toutes les Organisations et leurs Sous Organisations
           </p>
         </div>
-        <Button onClick={() => navigate('/companys/create')} className="bg-etaxi-yellow hover:bg-etaxi-yellow/90 text-black">
-          <Plus className="mr-2 h-4 w-4" />
-          Nouvelle Organisation
-        </Button>
+        {canCreate && (
+          <Button onClick={() => navigate('/companys/create')} className="bg-etaxi-yellow hover:bg-etaxi-yellow/90 text-black">
+            <Plus className="mr-2 h-4 w-4" />
+            Nouvelle Organisation
+          </Button>
+        )}
       </div>
 
       <Card>

@@ -13,9 +13,10 @@ import { useRolesAndSubsidiaries } from '@/shareds/hooks/useRolesAndSubsidiaries
 import { demandeService } from '@/features/transports/services/demande.service';
 import { CreateTransportRequestDto, TransportType, SelectedPassenger, RecurringDateTime, RouteEstimation, DraftData, TransportDirection, GroupRoute } from '@/features/transports/types/demande';
 import { ConfirmationView } from '@/features/transports/components/requestGroupTransport/ConfirmationView';
-import { CreateEmployee, Employee, AddressDto } from '@/features/employees/types/employee';
-import { useGoogleMaps } from '@/shareds/contexts/GoogleMapsContext';
+import { CreateEmployee } from '@/features/employees/types/employee';
 import { startOfDay } from 'date-fns';
+import { hasPermission } from '@/shareds/lib/utils';
+import { AddressDto } from '@/shareds/types/addresse';
 
 // Fonction pour générer un UUID
 const generateUUID = () => {
@@ -32,6 +33,10 @@ export function CreateGroupTransportRequest() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const enterpriseId = user?.enterpriseId;
+
+  if (!hasPermission(user, 'transports:create')) {
+    return <div className="text-center text-red-500 py-12">Accès refusé : vous n'avez pas la permission de créer des transports.</div>;
+  }
 
   const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [selectedPassengers, setSelectedPassengers] = useState<SelectedPassenger[]>([]);

@@ -32,9 +32,10 @@ interface AddEmployeeFromCSVProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEmployeesImported: (employees: CreateEmployee[]) => void;
+  canCreate?: boolean;
 }
 
-export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: AddEmployeeFromCSVProps) {
+export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, canCreate = true }: AddEmployeeFromCSVProps) {
   const { user } = useAuth();
   const { roles, subsidiaries, loading } = useRolesAndSubsidiaries(user?.enterpriseId);
   const [excelFile, setExcelFile] = useState<File | null>(null);
@@ -49,20 +50,20 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
     const exampleSubsidiary = subsidiaries[0]?.name || 'TechCorp Paris';
     const data = [
       {
-        firstName: 'hamadi',
+        firstName: 'iheb',
         lastName: 'bf',
-        email: 'hamadi.bf@example.tn',
-        phone: '+216123456444',
+        email: 'iheb.bf@example.tn',
+        phone: '+216123451254',
         role: exampleRole,
         subsidiary: exampleSubsidiary,
         homeAddress: '123 Rue Exemple, 75001 Paris',
         workAddress: '456 Boulevard Travail, 75002 Paris'
       },
        {
-        firstName: 'ahlem',
+        firstName: 'habib',
         lastName: 'bf',
-        email: 'ahlem@example.tn',
-        phone: '+216123456777',
+        email: 'habib@example.tn',
+        phone: '+216123456789',
         role: exampleRole,
         subsidiary: exampleSubsidiary,
         homeAddress: '123 Rue Paris,  Tuis',
@@ -310,6 +311,9 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
           </DialogTitle>
         </DialogHeader>
 
+        {!canCreate ? (
+          <div className="text-center text-red-600 font-bold py-8">Accès refusé : vous n'avez pas la permission d'importer des collaborateurs.</div>
+        ) : (
         <div className="space-y-6">
           {!showPreview ? (
             <Card className="border-border bg-card">
@@ -488,6 +492,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported }: 
             )}
           </div>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );

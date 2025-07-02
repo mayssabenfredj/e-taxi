@@ -11,9 +11,13 @@ import { demandeService } from '@/features/transports/services/demande.service';
 import { toast } from 'sonner';
 import { useAuth } from '@/shareds/contexts/AuthContext';
 import { useRolesAndSubsidiaries, Subsidiary } from '@/shareds/hooks/useRolesAndSubsidiaries';
+import { hasPermission } from '@/shareds/lib/utils';
 
 export function GroupTransportPage() {
   const { user } = useAuth();
+  if (!hasPermission(user, 'transports:read')) {
+    return <div className="text-center text-red-500 py-12">Accès refusé : vous n'avez pas la permission de voir les transports.</div>;
+  }
   const { subsidiaries, loading: subsidiariesLoading, error: subsidiariesError } = useRolesAndSubsidiaries(user?.enterpriseId);
   const [activeTab, setActiveTab] = useState<'requests' | 'history' | 'dispatch'>('requests');
   const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
@@ -33,6 +37,11 @@ export function GroupTransportPage() {
   const [selectedSubsidiary, setSelectedSubsidiary] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<TransportStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const canCreate = hasPermission(user, 'transports:create');
+  const canUpdate = hasPermission(user, 'transports:update');
+  const canDelete = hasPermission(user, 'transports:delete');
+  const canApprove = hasPermission(user, 'transports:approve');
+  const canAssign = hasPermission(user, 'transports:assign');
 
   const fetchRequests = async (resetPagination: boolean = false) => {
     setLoading(true);
@@ -209,6 +218,11 @@ export function GroupTransportPage() {
             onFilterChange={user?.roles.some((r) => r.role.name === 'ADMIN_ENTREPRISE') ? handleSubsidiaryFilterChange : handleStatusFilterChange}
             isLoading={subsidiariesLoading || loading}
             fetchRequests={fetchRequests}
+            canCreate={canCreate}
+            canUpdate={canUpdate}
+            canDelete={canDelete}
+            canApprove={canApprove}
+            canAssign={canAssign}
           />
         </TabsContent>
        
@@ -222,6 +236,7 @@ export function GroupTransportPage() {
             setTake={() => {}} // Placeholder, as setTake is not used
             setSelectedHistory={setSelectedHistory}
             setHistoryDetailsOpen={setHistoryDetailsOpen}
+            canDelete={canDelete}
           />
         </TabsContent>
       </Tabs>
