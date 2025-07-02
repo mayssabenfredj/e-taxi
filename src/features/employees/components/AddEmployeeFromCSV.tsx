@@ -79,6 +79,8 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
   const downloadTemplate = () => {
     const exampleRole = roles.find((role) => role.name === 'EMPLOYEE_ENTREPRISE')?.name || 'EMPLOYEE_ENTREPRISE';
     const exampleAdminRole = roles.find((role) => role.name === 'ADMIN_FILIAL')?.name || 'ADMIN_FILIAL';
+    const exampleWorkAdreese = subsidiaries[0]?.address.formattedAddress|| '123 Rue Exemple, 75001 Paris';
+
     let data;
     if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
       const exEnterprises = enterprises.slice(0, 2);
@@ -99,7 +101,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
           role: exampleRole,
           subsidiary: sub.name,
           homeAddress: `1 rue ${sub.name}, 7500${i}${j} Paris`,
-          workAddress: `2 rue ${sub.name}, 7500${i}${j} Paris`,
+          workAddress: exampleWorkAdreese,
           enterprise: ent.name
         }));
       });
@@ -112,7 +114,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
           role: exampleRole,
           subsidiary: subsidiaries[0]?.name || 'Filiale Paris',
           homeAddress: '1 rue Paris, 75001 Paris',
-          workAddress: '2 rue Paris, 75001 Paris',
+          workAddress: exampleWorkAdreese ,
           enterprise: exEnterprises[0]?.name || 'Entreprise Démo'
         }];
       }
@@ -126,7 +128,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
           role: exampleRole,
           subsidiary: subsidiaries[0]?.name || 'TechCorp Paris',
           homeAddress: '123 Rue Exemple, 75001 Paris',
-          workAddress: '456 Boulevard Travail, 75002 Paris'
+          workAddress: exampleWorkAdreese ,
         },
         {
           firstName: 'habib',
@@ -136,7 +138,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
           role: exampleRole,
           subsidiary: subsidiaries[1]?.name || 'TechCorp Lyon',
           homeAddress: '123 Rue Paris, Tunis',
-          workAddress: 'Avenue habib bourguiba, Tunis'
+          workAddress:  exampleWorkAdreese
         },
       ];
     }

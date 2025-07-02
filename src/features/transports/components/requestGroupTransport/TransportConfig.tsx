@@ -9,7 +9,7 @@ import { Calendar } from '@/shareds/components/ui/calendar';
 import { Checkbox } from '@/shareds/components/ui/checkbox';
 import { Switch } from '@/shareds/components/ui/switch';
 import { ScrollArea } from '@/shareds/components/ui/scroll-area';
-import { Home, Briefcase, Phone, Mail, Building2 } from 'lucide-react';
+import { Home, Briefcase, Phone, Mail, Building2, X } from 'lucide-react';
 import { format, addHours, isToday, startOfDay, setHours, setMinutes } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { RecurringDateTime, SelectedPassenger } from '@/features/transports/types/demande';
@@ -39,6 +39,7 @@ interface TransportConfigProps {
   setShowEmployeeList: (show: boolean) => void;
   handleShowConfirmation: () => void;
   subsidiaries: any[];
+  onRemovePassenger?: (passengerId: string) => void;
 }
 
 export function TransportConfig({
@@ -63,6 +64,7 @@ export function TransportConfig({
   setShowEmployeeList,
   handleShowConfirmation,
   subsidiaries,
+  onRemovePassenger,
 }: TransportConfigProps) {
   // Set default transport type to 'private' if not set
   useEffect(() => {
@@ -209,6 +211,7 @@ export function TransportConfig({
                     <TableHead className="text-xs">Contact</TableHead>
                     <TableHead className="text-xs">Départ</TableHead>
                     <TableHead className="text-xs">Arrivée</TableHead>
+                    {onRemovePassenger && <TableHead className="text-xs min-w-[32px] text-center">Action</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -397,6 +400,18 @@ export function TransportConfig({
                             )}
                           </div>
                         </TableCell>
+                        {onRemovePassenger && (
+                          <TableCell className="p-2 text-center min-w-[32px]">
+                            <button
+                              type="button"
+                              aria-label="Retirer le passager"
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => onRemovePassenger(passenger.id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })}
@@ -414,6 +429,48 @@ export function TransportConfig({
             className="text-sm h-16"
           />
         </div>
+
+        {((selectedPassengers.length === 0) || selectedPassengers.some(passenger => {
+          // Compare departure and arrival addresses (handle string or object)
+          const dep = passenger.departureAddressId;
+          const arr = passenger.arrivalAddressId;
+          if (dep == null || arr == null) return false;
+          if (typeof dep === 'string' && typeof arr === 'string') return dep === arr;
+          if (typeof dep === 'object' && typeof arr === 'object' && dep !== null && arr !== null) {
+            // Compare by label or id if available
+            if ('label' in dep && 'label' in arr && dep.label === arr.label) return true;
+            if ('id' in dep && 'id' in arr && dep.id === arr.id) return true;
+            return false;
+          }
+          return false;
+        })) && (
+          <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-3 rounded flex flex-col gap-1 mb-2">
+            {selectedPassengers.length === 0 && (
+              <div className="flex items-center gap-2">
+                <span className="font-bold">⚠️</span>
+                <span>Aucun passager sélectionné. Veuillez ajouter au moins un passager pour continuer.</span>
+              </div>
+            )}
+            {selectedPassengers.some(passenger => {
+              const dep = passenger.departureAddressId;
+              const arr = passenger.arrivalAddressId;
+              if (dep == null || arr == null) return false;
+              if (typeof dep === 'string' && typeof arr === 'string') return dep === arr;
+              if (typeof dep === 'object' && typeof arr === 'object' && dep !== null && arr !== null) {
+                if ('label' in dep && 'label' in arr && dep.label === arr.label) return true;
+                if ('id' in dep && 'id' in arr && dep.id === arr.id) return true;
+                return false;
+              }
+              return false;
+            }) && (
+              <div className="flex items-center gap-2">
+                <span className="font-bold">⚠️</span>
+                <span>Pour au moins un passager, l'adresse de départ est identique à l'adresse d'arrivée. Veuillez corriger cela.</span>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex justify-end">
           <Button
             onClick={handleShowConfirmation}
