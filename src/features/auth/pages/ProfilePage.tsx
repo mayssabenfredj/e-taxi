@@ -50,14 +50,14 @@ export function ProfilePage() {
   const handleSave = async () => {
     try {
       if (!employee) return;
-      await EmployeeService.updateEmployee(employee.id, {
+      await employeeService.updateEmployee(employee.id, {
         ...profileData,
         addresses,
       } as any); // addresses n'est pas dans UpdateEmployee, mais on force ici
       toast.success('Profil mis à jour avec succès!');
       setIsEditing(false);
       // Recharger l'employé pour avoir les données à jour
-      const emp = await EmployeeService.getEmployeeById(employee.id);
+      const emp = await employeeService.getEmployeeById(employee.id);
       setEmployee(emp);
       setAddresses(emp.addresses || []);
     } catch (error) {
