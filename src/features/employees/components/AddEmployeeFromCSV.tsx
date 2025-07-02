@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shareds/components/ui/card';
 import { Button } from '@/shareds/components/ui/button';
 import { Input } from '@/shareds/components/ui/input';
@@ -14,6 +14,9 @@ import { CreateEmployee, UserAddressDto } from '@/features/employees/types/emplo
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { AddressType } from '@/shareds/types/addresse';
+import { entrepriseService } from '@/features/Entreprises/services/entreprise.service';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shareds/components/ui/select';
+import SubsidiaryService from '@/features/Entreprises/services/subsidiarie.service';
 
 interface ExcelEmployee {
   firstName: string;
@@ -24,6 +27,7 @@ interface ExcelEmployee {
   subsidiary: string;
   homeAddress: string;
   workAddress: string;
+  enterprise?: string;
   isValid: boolean;
   errors: string[];
 }
@@ -43,43 +47,105 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [enterprises, setEnterprises] = useState<any[]>([]);
+  const [selectedEnterpriseId, setSelectedEnterpriseId] = useState<string>('');
+  const [filteredSubsidiaries, setFilteredSubsidiaries] = useState<any[]>(subsidiaries);
+
+  useEffect(() => {
+    const fetchEnterprises = async () => {
+      if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
+                    const params: any = { skip : 0, take : 100 };
+
+        const res = await entrepriseService.findAll(params);
+        setEnterprises(res.data || []);
+      }
+    };
+    fetchEnterprises();
+  }, [user]);
+
+  useEffect(() => {
+    if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
+      if (selectedEnterpriseId && selectedEnterpriseId !== 'none') {
+        SubsidiaryService.getAllSubsidiaries({ enterpriseId: selectedEnterpriseId, include: true })
+          .then(res => setFilteredSubsidiaries(res.data || []));
+      } else {
+        setFilteredSubsidiaries([]);
+      }
+    } else {
+      setFilteredSubsidiaries(subsidiaries);
+    }
+  }, [selectedEnterpriseId, subsidiaries, user]);
 
   const downloadTemplate = () => {
     const exampleRole = roles.find((role) => role.name === 'EMPLOYEE_ENTREPRISE')?.name || 'EMPLOYEE_ENTREPRISE';
     const exampleAdminRole = roles.find((role) => role.name === 'ADMIN_FILIAL')?.name || 'ADMIN_FILIAL';
-    const exampleSubsidiary = subsidiaries[0]?.name || 'TechCorp Paris';
-    const data = [
-      {
-        firstName: 'iheb',
-        lastName: 'bf',
-        email: 'iheb.bf@example.tn',
-        phone: '+216123451254',
-        role: exampleRole,
-        subsidiary: exampleSubsidiary,
-        homeAddress: '123 Rue Exemple, 75001 Paris',
-        workAddress: '456 Boulevard Travail, 75002 Paris'
-      },
-       {
-        firstName: 'habib',
-        lastName: 'bf',
-        email: 'habib@example.tn',
-        phone: '+216123456789',
-        role: exampleRole,
-        subsidiary: exampleSubsidiary,
-        homeAddress: '123 Rue Paris,  Tuis',
-        workAddress: 'Avenue habib bourguiba,  Tunis'
-      },
-     
-    ];
-
+    let data;
+    if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
+      const exEnterprises = enterprises.slice(0, 2);
+      data = exEnterprises.flatMap((ent, i) => {
+        let exSubs = [];
+        if (subsidiaries.length > 0 && (subsidiaries[0] as any).entreprise) {
+          exSubs = subsidiaries.filter(s => (s as any).entreprise?.name === ent.name).slice(0, 2);
+        } else if (subsidiaries.length > 0 && (subsidiaries[0] as any).enterprise) {
+          exSubs = subsidiaries.filter(s => (s as any).enterprise?.name === ent.name).slice(0, 2);
+        } else {
+          exSubs = subsidiaries.slice(0, 2);
+        }
+        return exSubs.map((sub, j) => ({
+          firstName: `prenom${i}${j}`,
+          lastName: `nom${i}${j}`,
+          email: `user${i}${j}@example.com`,
+          phone: `+3312345678${i}${j}`,
+          role: exampleRole,
+          subsidiary: sub.name,
+          homeAddress: `1 rue ${sub.name}, 7500${i}${j} Paris`,
+          workAddress: `2 rue ${sub.name}, 7500${i}${j} Paris`,
+          enterprise: ent.name
+        }));
+      });
+      if (data.length === 0) {
+        data = [{
+          firstName: 'prenom',
+          lastName: 'nom',
+          email: 'user@example.com',
+          phone: '+33123456789',
+          role: exampleRole,
+          subsidiary: subsidiaries[0]?.name || 'Filiale Paris',
+          homeAddress: '1 rue Paris, 75001 Paris',
+          workAddress: '2 rue Paris, 75001 Paris',
+          enterprise: exEnterprises[0]?.name || 'Entreprise Démo'
+        }];
+      }
+    } else {
+      data = [
+        {
+          firstName: 'iheb',
+          lastName: 'bf',
+          email: 'iheb.bf@example.tn',
+          phone: '+216123451254',
+          role: exampleRole,
+          subsidiary: subsidiaries[0]?.name || 'TechCorp Paris',
+          homeAddress: '123 Rue Exemple, 75001 Paris',
+          workAddress: '456 Boulevard Travail, 75002 Paris'
+        },
+        {
+          firstName: 'habib',
+          lastName: 'bf',
+          email: 'habib@example.tn',
+          phone: '+216123456789',
+          role: exampleRole,
+          subsidiary: subsidiaries[1]?.name || 'TechCorp Lyon',
+          homeAddress: '123 Rue Paris, Tunis',
+          workAddress: 'Avenue habib bourguiba, Tunis'
+        },
+      ];
+    }
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Collaborateurs');
-    
     const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, 'template_employes.xlsx');
-    
     toast.success('Modèle Excel téléchargé');
   };
 
@@ -101,6 +167,10 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
     if (!employee.homeAddress?.toString().trim()) errors.push('Adresse domicile manquante');
     if (!employee.workAddress?.toString().trim()) errors.push('Adresse travail manquante');
 
+    if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
+      if (!employee.enterprise?.toString().trim()) errors.push('Entreprise manquante');
+    }
+
     return { isValid: errors.length === 0, errors };
   };
 
@@ -119,6 +189,9 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
 
       const headers = Object.keys(json[0]);
       const requiredColumns = ['firstName', 'lastName', 'email', 'phone', 'role', 'subsidiary', 'homeAddress', 'workAddress'];
+      if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
+        requiredColumns.push('enterprise');
+      }
       const missingColumns = requiredColumns.filter(col => !headers.includes(col));
       
       if (missingColumns.length > 0) {
@@ -137,6 +210,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
           subsidiary: employee.subsidiary?.toString() || '',
           homeAddress: employee.homeAddress?.toString() || '',
           workAddress: employee.workAddress?.toString() || '',
+          enterprise: employee.enterprise?.toString() || '',
           isValid: validation.isValid,
           errors: validation.errors
         };
@@ -208,7 +282,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
     }
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     const validEmployees = parsedEmployees.filter(emp => emp.isValid);
     
     if (validEmployees.length === 0) {
@@ -216,10 +290,21 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
       return;
     }
 
-    const formattedEmployees: CreateEmployee[] = validEmployees.map(emp => {
+    const formattedEmployees: CreateEmployee[] = await Promise.all(validEmployees.map(async emp => {
+      let enterpriseId: string | undefined = undefined;
+      if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
+        const ent = enterprises.find(e => e.name === emp.enterprise);
+        enterpriseId = ent?.id;
+      } else {
+        enterpriseId = user?.enterpriseId;
+      }
+      let subsidiaryId: string | undefined = undefined;
+      if (emp.subsidiary && enterpriseId) {
+        const res = await SubsidiaryService.getAllSubsidiaries({ enterpriseId, include: true });
+        const sub = res.data.find((s: any) => s.name === emp.subsidiary);
+        subsidiaryId = sub?.id;
+      }
       const role = roles.find(r => r.name === emp.role);
-      const subsidiary = subsidiaries.find(s => s.name === emp.subsidiary);
-      
       const addresses: UserAddressDto[] = [];
       if (emp.homeAddress) {
         addresses.push({
@@ -251,7 +336,6 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
           isDefault: true
         });
       }
-
       return {
         email: emp.email,
         password: 'Default123',
@@ -259,14 +343,12 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
         firstName: emp.firstName,
         lastName: emp.lastName,
         phone: emp.phone,
-        enterpriseId: user?.enterpriseId,
-        subsidiaryId: subsidiary?.id,
+        enterpriseId,
+        subsidiaryId,
         roleIds: role ? [role.id] : [],
         addresses
       };
-    });
-
-    // Log the formatted employees array
+    }));
 
     onEmployeesImported(formattedEmployees);
     
@@ -298,7 +380,8 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
     'role',
     'subsidiary',
     'homeAddress',
-    'workAddress'
+    'workAddress',
+    ...(user?.roles?.some((r: any) => r.role?.name === 'ADMIN') ? ['enterprise'] : [])
   ];
 
   return (
@@ -415,6 +498,9 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
                       <TableHead className="text-left break-words">Filiale</TableHead>
                       <TableHead className="text-left break-words">Adresse domicile</TableHead>
                       <TableHead className="text-left break-words">Adresse travail</TableHead>
+                      {user?.roles?.some((r: any) => r.role?.name === 'ADMIN') && (
+                        <TableHead className="text-left break-words">Entreprise</TableHead>
+                      )}
                       <TableHead className="text-left break-words">Erreurs</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -443,6 +529,9 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
                         <TableCell className="break-words">{employee.subsidiary}</TableCell>
                         <TableCell className="break-words">{employee.homeAddress}</TableCell>
                         <TableCell className="break-words">{employee.workAddress}</TableCell>
+                        {user?.roles?.some((r: any) => r.role?.name === 'ADMIN') && (
+                          <TableCell className="break-words">{employee.enterprise}</TableCell>
+                        )}
                         <TableCell className="break-words">
                           {employee.errors.length > 0 && (
                             <div className="text-xs text-red-600 dark:text-red-400">
@@ -457,6 +546,8 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
               </div>
             </div>
           )}
+
+         
 
           <div className="flex justify-end space-x-4">
             <Button

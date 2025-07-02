@@ -39,15 +39,10 @@ export const useEmployees = ({
   // Fetch employees
   useEffect(() => {
     const fetchEmployees = async () => {
-      if (!enterpriseId) {
-        setLoading(false);
-        return;
-      }
-
       try {
         setLoading(true);
         const query: GetEmployeesPagination = {
-          enterpriseId,
+          ...(enterpriseId ? { enterpriseId } : {}),
           subsidiaryId:
             subsidiaryFilter !== "all" ? subsidiaryFilter : undefined,
           roleName: roleFilter !== "all" ? roleFilter : undefined,

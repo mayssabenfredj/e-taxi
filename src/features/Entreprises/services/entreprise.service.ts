@@ -52,8 +52,8 @@ export const entrepriseService = {
   },
 
   async findAll(params: {
-    skip?: number;
-    take?: number;
+    skip?: number | 0;
+    take?: number | 100;
     status?: EntityStatus;
   }): Promise<EnterpriseResponse> {
     try {

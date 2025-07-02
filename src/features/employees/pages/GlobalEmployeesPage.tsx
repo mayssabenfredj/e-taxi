@@ -5,7 +5,7 @@ import { Input } from '@/shareds/components/ui/input';
 import { Badge } from '@/shareds/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shareds/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/shareds/components/ui/alert-dialog';
-import { UserCog, Search, Filter, Eye, Edit, Check, Ban, Trash2 } from 'lucide-react';
+import { UserCog, Search, Filter, Eye, Edit, Check, Ban, Trash2, Upload, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import employeeService from '@/features/employees/services/employee.service';
@@ -19,6 +19,9 @@ import { Enterprise } from '@/features/Entreprises/types/entreprise';
 import { Subsidiary } from '@/features/Entreprises/types/subsidiary';
 import { hasPermission } from '@/shareds/lib/utils';
 import { useAuth } from '@/shareds/contexts/AuthContext';
+import { AddEmployeeForm } from '@/features/employees/components/AddEmployeeForm';
+import { AddEmployeeFromCSV } from '@/features/employees/components/AddEmployeeFromCSV';
+import { useEmployees } from '@/shareds/hooks/useEmployees';
 
 export function GlobalEmployeesPage() {
   const navigate = useNavigate();
@@ -29,7 +32,7 @@ export function GlobalEmployeesPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [itemsPerPage, setItemsPerPage] = useState(6);
   const [skip, setSkip] = useState(0);
-    const [take, setTake] = useState(100);
+  const [take, setTake] = useState(100);
 
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -44,6 +47,10 @@ export function GlobalEmployeesPage() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [employeeToToggle, setEmployeeToToggle] = useState<Employee | null>(null);
   const [toggleAction, setToggleAction] = useState<'enable' | 'disable'>('enable');
+
+  // Ajout des états pour les dialogues d'ajout et d'import CSV
+  const [addEmployeeOpen, setAddEmployeeOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
 
   const { user } = useAuth();
   const canRead = user && hasPermission(user, 'users:read');
@@ -62,7 +69,7 @@ export function GlobalEmployeesPage() {
 
   // Charger les entreprises
   useEffect(() => {
-          const params: any = { skip, take };
+    const params: any = { skip, take };
     entrepriseService.findAll(params)
       .then((res) => setEnterprises(res.data || []))
       .catch(() => toast.error('Erreur lors du chargement des entreprises'));
@@ -79,30 +86,23 @@ export function GlobalEmployeesPage() {
       .catch(() => toast.error('Erreur lors du chargement des filiales'));
   }, [enterpriseFilter]);
 
-  // Charger les employés depuis l'API/service
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-    const query: any = {
-      skip,
-      take: itemsPerPage,
-      enterpriseId: enterpriseFilter !== 'all' ? enterpriseFilter : undefined,
-      subsidiaryId: subsidiaryFilter !== 'all' ? subsidiaryFilter : undefined,
-      roleName: roleFilter !== 'all' ? roleFilter : undefined,
-      searchTerm: searchTerm || undefined,
-      includeAllData: true,
-    };
-    employeeService.getAllEmployees(query)
-      .then(res => {
-        setEmployees(res.data);
-        setTotal(res.total);
-      })
-      .catch(err => {
-        setError(err.message || 'Erreur lors du chargement des employés');
-        toast.error(err.message || 'Erreur lors du chargement des employés');
-      })
-      .finally(() => setLoading(false));
-  }, [skip, itemsPerPage, enterpriseFilter, subsidiaryFilter, roleFilter, searchTerm, statusFilter]);
+  // Utilisation du hook useEmployees pour la gestion globale
+  const {
+    employees: globalEmployees,
+    total: globalTotal,
+    loading: globalLoading,
+    createEmployee,
+    importEmployees,
+    setStatusFilter: setEmployeeStatusFilter,
+  } = useEmployees({
+    // Pas d'enterpriseId pour le global
+    enterpriseId: undefined,
+    roleFilter,
+    subsidiaryFilter,
+    statusFilter,
+    skip,
+    take: itemsPerPage,
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -121,8 +121,6 @@ export function GlobalEmployeesPage() {
       default: return status;
     }
   };
-
- 
 
   // Fonction pour activer/désactiver un employé avec confirmation
   const handleRequestToggleStatus = (employee: Employee) => {
@@ -155,6 +153,28 @@ export function GlobalEmployeesPage() {
     setRoleFilter('all');
     setStatusFilter('all');
     setSkip(0);
+  };
+
+  // Callback pour l'ajout d'un collaborateur
+  const handleEmployeeAdded = async (employeeData: any) => {
+    try {
+      await createEmployee(employeeData);
+      setAddEmployeeOpen(false);
+      setSkip(0);
+    } catch (error: any) {
+      toast.error('Erreur lors de l\'ajout de Collaborateur');
+    }
+  };
+
+  // Callback pour l'import CSV
+  const handleEmployeesImported = async (employees: any[]) => {
+    try {
+      await importEmployees(employees);
+      setCsvImportOpen(false);
+      setSkip(0);
+    } catch (error: any) {
+      toast.error('Erreur lors de l\'import CSV');
+    }
   };
 
   // Colonnes pour TableWithPagination
@@ -232,17 +252,7 @@ export function GlobalEmployeesPage() {
               {employee.status === 'ENABLED' ? <Ban className="h-4 w-4" /> : <Check className="h-4 w-4" />}
             </Button>
           )}
-          {canAssignRoles && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
-              title="Assigner un rôle"
-              disabled
-            >
-              <span className="font-bold">R</span>
-            </Button>
-          )}
+          
         </div>
       ),
     },
@@ -257,7 +267,28 @@ export function GlobalEmployeesPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center space-x-2">
           <UserCog className="h-6 w-6 text-etaxi-yellow" />
-          <h2 className="text-2xl font-bold">Gestion globale des employés ({total})</h2>
+          <h2 className="text-2xl font-bold">Gestion globale des employés ({globalTotal})</h2>
+        </div>
+        <div className="flex flex-col md:flex-row gap-2 md:gap-2 w-full md:w-auto">
+          {canCreate && (
+            <Button
+              variant="outline"
+              className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 w-full md:w-auto"
+              onClick={() => setCsvImportOpen(true)}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Importer CSV
+            </Button>
+          )}
+          {canCreate && (
+            <Button
+              className="bg-etaxi-yellow hover:bg-yellow-500 text-black w-full md:w-auto"
+              onClick={() => setAddEmployeeOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Ajouter un Collaborateur
+            </Button>
+          )}
         </div>
         <Button
           variant="outline"
@@ -356,9 +387,9 @@ export function GlobalEmployeesPage() {
           <div className="w-full overflow-x-auto">
             <div className="min-w-[900px]">
               <TableWithPagination
-                data={employees}
+                data={globalEmployees}
                 columns={columns}
-                total={total}
+                total={globalTotal}
                 skip={skip}
                 take={itemsPerPage}
                 onPageChange={(newSkip, newTake) => {
@@ -392,6 +423,20 @@ export function GlobalEmployeesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialogues d'ajout et d'import CSV */}
+      <AddEmployeeForm
+        open={addEmployeeOpen}
+        onOpenChange={setAddEmployeeOpen}
+        onEmployeeAdded={handleEmployeeAdded}
+        canCreate={canCreate}
+      />
+      <AddEmployeeFromCSV
+        open={csvImportOpen}
+        onOpenChange={setCsvImportOpen}
+        onEmployeesImported={handleEmployeesImported}
+        canCreate={canCreate}
+      />
     </div>
   );
 }

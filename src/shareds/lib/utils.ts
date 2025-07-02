@@ -17,8 +17,6 @@ export function hasPermission(user: any, permissionAction: string): boolean {
   const allPermissions = user.roles
     .map((ur: any) => ur.role?.permissions || [])
     .flat();
-  console.log("allPermissions", allPermissions);
-  console.log("permissionAction", permissionAction);
-  console.log("includes", allPermissions.includes(permissionAction));
+ 
   return allPermissions.includes(permissionAction);
 }

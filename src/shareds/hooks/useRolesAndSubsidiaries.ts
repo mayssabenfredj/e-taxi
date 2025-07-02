@@ -46,48 +46,53 @@ export const useRolesAndSubsidiaries = (
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!enterpriseId) {
-        setError("ID de l'entreprise non fourni");
-        return;
-      }
-
-      // Vérifie le cache
-      if (rolesSubsCache[enterpriseId]) {
-        setRoles(rolesSubsCache[enterpriseId].roles);
-        setSubsidiaries(rolesSubsCache[enterpriseId].subsidiaries);
-        setLoading(false);
-        return;
-      }
-
       setLoading(true);
       try {
         // Fetch roles
         const roleData = await roleService.getAllRoles();
-        const allowedRoles = [
-          "ADMIN_FILIAL",
-          "EMPLOYEE_ENTREPRISE",
-          "EMPLOYEE_ENTREPRISE_TRUSTED",
-        ];
-        const filteredRoles = roleData
-          .filter((role: any) => allowedRoles.includes(role.name))
-          .map((role: any) => ({ id: role.id, name: role.name }));
-        // Fetch subsidiaries
-        const subsidiaryData = await SubsidiaryService.getAllSubsidiaries({
-          include: true,
-          status: EntityStatus.ACTIVE,
-          enterpriseId,
-        });
-        console.log("subsidaryyyy ", subsidiaryData);
-        const mappedSubs = subsidiaryData.data.map((sub: any) => ({
-          id: sub.id,
-          name: sub.name,
-          address: sub.address,
-        }));
-        // Stocke dans le cache
-        rolesSubsCache[enterpriseId] = {
-          roles: filteredRoles,
-          subsidiaries: mappedSubs,
-        };
+        let filteredRoles;
+        if (enterpriseId) {
+          const allowedRoles = [
+            "ADMIN_FILIAL",
+            "EMPLOYEE_ENTREPRISE",
+            "EMPLOYEE_ENTREPRISE_TRUSTED",
+          ];
+          filteredRoles = roleData
+            .filter((role: any) => allowedRoles.includes(role.name))
+            .map((role: any) => ({ id: role.id, name: role.name }));
+        } else {
+          // Cas ADMIN : retourner tous les rôles
+          filteredRoles = roleData.map((role: any) => ({
+            id: role.id,
+            name: role.name,
+          }));
+        }
+        let mappedSubs = [];
+        if (enterpriseId) {
+          // Fetch subsidiaries pour une entreprise spécifique
+          const subsidiaryData = await SubsidiaryService.getAllSubsidiaries({
+            include: true,
+            status: EntityStatus.ACTIVE,
+            enterpriseId,
+          });
+          mappedSubs = subsidiaryData.data.map((sub: any) => ({
+            id: sub.id,
+            name: sub.name,
+            address: sub.address,
+          }));
+        } else {
+          // Cas ADMIN : charger toutes les filiales actives sans filtre
+          const subsidiaryData = await SubsidiaryService.getAllSubsidiaries({
+            include: true,
+            status: EntityStatus.ACTIVE,
+            take: 1000,
+          });
+          mappedSubs = subsidiaryData.data.map((sub: any) => ({
+            id: sub.id,
+            name: sub.name,
+            address: sub.address,
+          }));
+        }
         setRoles(filteredRoles);
         setSubsidiaries(mappedSubs);
       } catch (err) {
@@ -100,7 +105,6 @@ export const useRolesAndSubsidiaries = (
         setLoading(false);
       }
     };
-
     fetchData();
   }, [enterpriseId]);
 

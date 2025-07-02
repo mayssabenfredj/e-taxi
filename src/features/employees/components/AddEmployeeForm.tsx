@@ -14,6 +14,8 @@ import { CreateEmployee, UserAddressDto } from '@/features/employees/types/emplo
 import { useAuth } from '@/shareds/contexts/AuthContext';
 import { useRolesAndSubsidiaries } from '@/shareds/hooks/useRolesAndSubsidiaries';
 import { toast } from 'sonner';
+import { entrepriseService } from '@/features/Entreprises/services/entreprise.service';
+import SubsidiaryService from '@/features/Entreprises/services/subsidiarie.service';
 
 interface AddEmployeeFormProps {
   open: boolean;
@@ -28,6 +30,8 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate
   const [isManager, setIsManager] = useState(false);
   const { user } = useAuth();
   const { roles, subsidiaries, loading } = useRolesAndSubsidiaries(user?.enterpriseId);
+  const [enterprises, setEnterprises] = useState<any[]>([]);
+  const [filteredSubsidiaries, setFilteredSubsidiaries] = useState<any[]>(subsidiaries);
 
   const form = useForm<CreateEmployee>({
     defaultValues: {
@@ -84,8 +88,38 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate
     }
   }, [selectedSubsidiaryId, subsidiaries]);
 
+  useEffect(() => {
+    // Si ADMIN, charger la liste des entreprises
+    const fetchEnterprises = async () => {
+      if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
+            const params: any = { skip : 0, take : 100 };
+        const res = await entrepriseService.findAll(params);
+        console.log("reeeessss ***" , res.data)
+        setEnterprises(res.data || []);
+      }
+    };
+    fetchEnterprises();
+  }, [user]);
+
+  // Filtrage dynamique des filiales si ADMIN
+  useEffect(() => {
+    if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
+      const entId = form.getValues('enterpriseId');
+      if (entId && entId !== 'none') {
+        SubsidiaryService.getAllSubsidiaries({ enterpriseId: entId, include: true })
+          .then(res => setFilteredSubsidiaries(res.data || []));
+      } else {
+        setFilteredSubsidiaries([]);
+      }
+    } else {
+      setFilteredSubsidiaries(subsidiaries);
+    }
+  }, [form.watch('enterpriseId'), subsidiaries, user]);
+
   const onSubmit = (data: CreateEmployee) => {
     const addresses: UserAddressDto[] = [];
+    // Si ADMIN et entreprise 'none', on met undefined
+    let enterpriseId = data.enterpriseId === 'none' ? undefined : data.enterpriseId;
     if (selectedHomeAddress) {
       addresses.push({
         address: {
@@ -137,6 +171,7 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate
 
     const employeeData: CreateEmployee = {
       ...data,
+      enterpriseId,
       fullName: `${data.firstName} ${data.lastName}`,
       addresses,
     };
@@ -248,6 +283,8 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate
                     )}
                   />
                 </div>
+
+                
               </CardContent>
             </Card>
             <Card>
@@ -298,6 +335,32 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate
                   )}
                 />
 
+                    {/* Si ADMIN, afficher le select entreprise */}
+                {user?.roles?.some((r: any) => r.role?.name === 'ADMIN') && (
+                  <FormField
+                    control={form.control}
+                    name="enterpriseId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Entreprise (optionnel)</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Sélectionner une entreprise" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">Aucune</SelectItem>
+                            {enterprises.map((ent) => (
+                              <SelectItem key={ent.id} value={ent.id}>{ent.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 <FormField
                   control={form.control}
                   name="subsidiaryId"
@@ -311,7 +374,7 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {subsidiaries.map((subsidiary) => (
+                          {filteredSubsidiaries.map((subsidiary) => (
                             <SelectItem key={subsidiary.id} value={subsidiary.id}>
                               {subsidiary.name}
                             </SelectItem>
