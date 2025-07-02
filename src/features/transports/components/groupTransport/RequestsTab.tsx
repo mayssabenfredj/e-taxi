@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/shareds/components/ui/button';
 import { TableWithPagination } from '@/shareds/components/ui/table-with-pagination';
-import { Eye, Copy, Navigation, X, AlertTriangle } from 'lucide-react';
+import { Eye, Copy, Navigation, X, AlertTriangle, Edit } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -104,6 +104,10 @@ export function RequestsTab({
       toast.error("Échec de l'annulation de la demande de transport");
       return false;
     }
+  };
+
+  const handleEditRequest = (request: TransportRequestResponse) => {
+    navigate('/transport/create-transport', { state: { editData: request } });
   };
 
   const getStatusBadge = (status?: TransportStatus) => {
@@ -298,6 +302,20 @@ export function RequestsTab({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+        )}
+        {canUpdate && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEditRequest(request);
+            }}
+            title="Modifier"
+            className="text-blue-500 hover:text-blue-700"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
         )}
       </div>
     );

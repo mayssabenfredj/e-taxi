@@ -21,6 +21,7 @@ interface ConfirmationViewProps {
   setShowConfirmation: (show: boolean) => void;
   handleSubmit: () => void;
   subsidiaries: any[];
+  isEditMode?: boolean;
 }
 
 export function ConfirmationView({
@@ -38,6 +39,7 @@ export function ConfirmationView({
   setShowConfirmation,
   handleSubmit,
   subsidiaries,
+  isEditMode = false,
 }: ConfirmationViewProps) {
   const getFormattedAddress = (passenger: SelectedPassenger, addressId: string | any) => {
     // Si c'est un objet (adresse personnalisée)
@@ -68,7 +70,7 @@ export function ConfirmationView({
         <div className="flex justify-end mb-4">
           <Button onClick={handleSubmit} className="bg-etaxi-yellow hover:bg-yellow-500 text-black">
             <CheckCircle className="mr-2 h-4 w-4" />
-            Confirmer la demande
+            {isEditMode ? 'Confirmer la modification' : 'Confirmer la demande'}
           </Button>
         </div>
         <>

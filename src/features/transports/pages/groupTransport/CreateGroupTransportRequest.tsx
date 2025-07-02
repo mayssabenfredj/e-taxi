@@ -170,7 +170,34 @@ export function CreateGroupTransportRequest() {
 
   // Load draft data
   useEffect(() => {
-    if (location.state?.draftId || location.state?.draftData) {
+    if (location.state?.editData) {
+      const editData = location.state.editData;
+      // Prefill form fields from editData
+      setDraftId(editData.id || generateUUID());
+      setSelectedEmployees(editData.employeeTransports?.map((et: any) => et.employeeId) || []);
+      setSelectedPassengers(editData.employeeTransports?.map((et: any) => ({
+        ...et.employee,
+        departureAddressId: et.departure?.id || 'none',
+        arrivalAddressId: et.arrival?.id || 'none',
+        isHomeToWork: editData.Direction === 'HOMETOOFFICE',
+        note: et.note || '',
+      })) || []);
+      setTransportType(editData.transportType === 'public' ? 'public' : 'private');
+      setScheduledDate(editData.scheduledDate ? new Date(editData.scheduledDate) : new Date());
+      setScheduledTime(editData.scheduledDate ? new Date(editData.scheduledDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }) : '09:00');
+      setIsRecurring(editData.type === 'RECURRING');
+      setRecurringDates([]); // You can enhance this if recurring info is available
+      setNote(editData.note || '');
+      setIsHomeToWorkTrip(editData.Direction === 'HOMETOOFFICE');
+      setShowEmployeeList(true);
+      setCsvImportOpen(false);
+      setSubsidiaryFilter('all');
+      setRouteEstimations([]);
+      setTotalPrice(0);
+      setShowConfirmation(false);
+      setGroupRoute(null);
+      toast.info('Mode modification : formulaire pré-rempli');
+    } else if (location.state?.draftId || location.state?.draftData) {
       const draftData = location.state.draftData as DraftData;
       if (draftData && draftData.draftId) {
         setDraftId(draftData.draftId);
@@ -309,7 +336,7 @@ export function CreateGroupTransportRequest() {
         return combined.toISOString();
       };
 
-      const requestData: CreateTransportRequestDto = {
+      const requestData = {
         type: isRecurring ? TransportType.RECURRING : TransportType.SCHEDULED,
         note,
         scheduledDate: combineDateTime(scheduledDate, scheduledTime),
@@ -317,7 +344,6 @@ export function CreateGroupTransportRequest() {
         enterpriseId,
         Direction: isHomeToWorkTrip ? TransportDirection.HOMETOOFFICE : TransportDirection.OFFICETOHOME,
         employeeTransports: selectedPassengers.map((passenger) => {
-          // Gestion intelligente des adresses :
           let departureId: string | undefined = undefined;
           let arrivalId: string | undefined = undefined;
           let departureAddress: any = undefined;
@@ -344,7 +370,14 @@ export function CreateGroupTransportRequest() {
         }),
       };
 
-      if (isRecurring) {
+      if (location.state?.editData) {
+        // EDIT MODE: update existing request
+        const id = location.state.editData.id;
+        await demandeService.updateTransportRequest(id, requestData);
+        toast.success('Demande de transport de groupe modifiée avec succès');
+        navigate('/transport/group');
+      } else if (isRecurring) {
+        // CREATE MODE: recurring
         const requests = recurringDates.map((rd) => ({
           ...requestData,
           scheduledDate: combineDateTime(rd.date, rd.time),
@@ -354,8 +387,17 @@ export function CreateGroupTransportRequest() {
           })),
         }));
         await Promise.all(requests.map(demandeService.createTransportRequest));
+        toast.success('Demandes de transport de groupe créées avec succès');
+        navigate('/transport/group');
       } else {
+        // CREATE MODE: single
         await demandeService.createTransportRequest(requestData);
+        toast.success('Demande de transport de groupe créée avec succès');
+        if (requestData.employeeTransports.length === 1) {
+          navigate('/transport/individual');
+        } else {
+          navigate('/transport/group');
+        }
       }
 
       // Supprimer le brouillon soumis
@@ -363,14 +405,8 @@ export function CreateGroupTransportRequest() {
       const updatedDrafts = drafts.filter((d) => d.draftId !== draftId);
       localStorage.setItem('groupTransportDrafts', JSON.stringify(updatedDrafts));
       setDraftId(generateUUID()); // Générer un nouvel ID pour le prochain brouillon
-      toast.success('Demande de transport de groupe créée avec succès');
-      if (requestData.employeeTransports.length === 1) {
-        navigate('/transport/individual');
-      } else {
-        navigate('/transport/group');
-      }
     } catch (error) {
-      toast.error('Erreur lors de la création de la demande de transport');
+      toast.error('Erreur lors de la création ou modification de la demande de transport');
     }
   };
 
@@ -399,9 +435,20 @@ export function CreateGroupTransportRequest() {
     saveDraftData();
   };
 
-  const handleEmployeesImported = async (employees: CreateEmployee[]) => {
-    await importEmployees(employees);
-    setCsvImportOpen(false);
+  // Handler to import employees from CSV (convert CreateEmployee[] to Employee[] for EmployeeSelection)
+  const handleEmployeesImported = (employees: any[]) => {
+    // Map CreateEmployee to Employee (minimal fields for selection)
+    const mapped = employees.map((emp) => ({
+      id: emp.id || emp.email, // fallback to email if no id
+      fullName: emp.firstName && emp.lastName ? `${emp.firstName} ${emp.lastName}` : emp.fullName || '',
+      subsidiaryName: emp.subsidiaryName || emp.subsidiary || '',
+      addresses: emp.addresses || [],
+      // add other fields as needed
+    }));
+    // Set as selectable employees (if you want to add to the list)
+    // setEmployees(mapped); // Uncomment if you want to add to the list
+    // For now, just log or handle as needed
+    // You may want to merge with existing employees
   };
 
   const handleShowConfirmation = () => {
@@ -467,6 +514,7 @@ export function CreateGroupTransportRequest() {
           setShowConfirmation={setShowConfirmation}
           handleSubmit={handleSubmit}
           subsidiaries={subsidiaries}
+          isEditMode={Boolean(location.state?.editData)}
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
