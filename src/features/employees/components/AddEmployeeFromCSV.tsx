@@ -48,26 +48,29 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
     const exampleRole = roles.find((role) => role.name === 'EMPLOYEE_ENTREPRISE')?.name || 'EMPLOYEE_ENTREPRISE';
     const exampleAdminRole = roles.find((role) => role.name === 'ADMIN_FILIAL')?.name || 'ADMIN_FILIAL';
     const exampleSubsidiary = subsidiaries[0]?.name || 'TechCorp Paris';
+    const exampleWorkAdreese = subsidiaries[0]?.address.formattedAddress|| '123 Rue Exemple, 75001 Paris';
+
+
     const data = [
       {
         firstName: 'iheb',
         lastName: 'bf',
-        email: 'iheb.bf@example.tn',
-        phone: '+216123451254',
+        email: 'iheb.bf1@example.tn',
+        phone: '+216123551254',
         role: exampleRole,
         subsidiary: exampleSubsidiary,
         homeAddress: '123 Rue Exemple, 75001 Paris',
-        workAddress: '456 Boulevard Travail, 75002 Paris'
+        workAddress: exampleWorkAdreese
       },
        {
         firstName: 'habib',
         lastName: 'bf',
-        email: 'habib@example.tn',
-        phone: '+216123456789',
+        email: 'habib1@example.tn',
+        phone: '+216123656789',
         role: exampleRole,
         subsidiary: exampleSubsidiary,
         homeAddress: '123 Rue Paris,  Tuis',
-        workAddress: 'Avenue habib bourguiba,  Tunis'
+        workAddress: exampleWorkAdreese
       },
      
     ];
