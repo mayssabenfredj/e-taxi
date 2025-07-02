@@ -23,7 +23,11 @@ const EmployeeInfoTab: React.FC<EmployeeInfoTabProps> = ({
   isEditing,
 }) => {
   const { user } = useAuth();
-  const { roles, subsidiaries, loading } = useRolesAndSubsidiaries(user?.enterpriseId);
+  // Détection du rôle ADMIN
+  const userRoleNames = user?.roles?.map((r: any) => r.role?.name) || [];
+  const isAdmin = userRoleNames.includes('ADMIN');
+  // Appel du hook selon le rôle
+  const { roles, subsidiaries, loading } = useRolesAndSubsidiaries(isAdmin ? undefined : user?.enterpriseId);
   const isManager = employee.roles?.includes('ADMIN_FILIAL');
 
   // Set roleIds when entering edit mode
