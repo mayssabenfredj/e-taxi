@@ -43,7 +43,7 @@ export function CreateGroupTransportRequest() {
   const [note, setNote] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showEmployeeList, setShowEmployeeList] = useState(true);
-  const [isHomeToWorkTrip, setIsHomeToWorkTrip] = useState(true);
+  const [isHomeToWorkTrip, setIsHomeToWorkTrip] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('all');
   const [routeEstimations, setRouteEstimations] = useState<RouteEstimation[]>([]);
@@ -131,7 +131,7 @@ export function CreateGroupTransportRequest() {
     setNote('');
     setSearchTerm('');
     setShowEmployeeList(true);
-    setIsHomeToWorkTrip(true);
+    setIsHomeToWorkTrip(false);
     setCsvImportOpen(false);
     setSubsidiaryFilter('all');
     setRouteEstimations([]);
@@ -182,7 +182,7 @@ export function CreateGroupTransportRequest() {
           })) || []
         );
         setNote(draftData.note || '');
-        setIsHomeToWorkTrip(draftData.isHomeToWorkTrip !== undefined ? draftData.isHomeToWorkTrip : true);
+        setIsHomeToWorkTrip(draftData.isHomeToWorkTrip !== undefined ? draftData.isHomeToWorkTrip : false);
         toast.info('Brouillon chargé');
       }
     } else {
@@ -203,7 +203,7 @@ export function CreateGroupTransportRequest() {
           })) || []
         );
         setNote(latestDraft.note || '');
-        setIsHomeToWorkTrip(latestDraft.isHomeToWorkTrip !== undefined ? latestDraft.isHomeToWorkTrip : true);
+        setIsHomeToWorkTrip(latestDraft.isHomeToWorkTrip !== undefined ? latestDraft.isHomeToWorkTrip : false);
         toast.info('Dernier brouillon automatiquement restauré');
       }
     }
@@ -411,6 +411,13 @@ export function CreateGroupTransportRequest() {
     setShowConfirmation(true);
   };
 
+  // Handler to remove a passenger from the list
+  const handleRemovePassenger = (passengerId: string) => {
+    setSelectedPassengers((prev) => prev.filter((p) => p.id !== passengerId));
+    setSelectedEmployees((prev) => prev.filter((id) => id !== passengerId));
+    saveDraftData();
+  };
+
   const steps = [{ name: 'Configuration' }, { name: 'Confirmation' }];
 
   if (!enterpriseId) {
@@ -425,7 +432,7 @@ export function CreateGroupTransportRequest() {
             <ArrowLeft className="h-4 w-4 mr-1" />
             Retour
           </Button>
-          <h2 className="text-2xl font-bold">Nouvelle demande de transport</h2>
+          <h2 className="text-2xl font-bold"></h2>
         </div>
         <div className="flex space-x-2">
           <Button variant="outline" onClick={handleSaveDraft}>
@@ -496,6 +503,7 @@ export function CreateGroupTransportRequest() {
             setShowEmployeeList={setShowEmployeeList}
             handleShowConfirmation={handleShowConfirmation}
             subsidiaries={subsidiaries}
+            onRemovePassenger={handleRemovePassenger}
           />
         </div>
       )}

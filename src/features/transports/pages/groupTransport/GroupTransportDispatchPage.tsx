@@ -608,6 +608,14 @@ export function GroupTransportDispatchPage() {
                   <div className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-sm p-2 flex items-center space-x-2">
                     <AlertTriangle className="h-4 w-4" />
                     <span>{getTaxiWarning(taxi)}</span>
+                    <button
+                      className="ml-auto p-1 rounded hover:bg-yellow-200 focus:outline-none cursor-pointer"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {/* implement close logic if needed */}}
+                      title="Fermer l'alerte"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
                 )}
                 <div className="p-3">

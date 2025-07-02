@@ -9,7 +9,7 @@ import { Calendar } from '@/shareds/components/ui/calendar';
 import { Checkbox } from '@/shareds/components/ui/checkbox';
 import { Switch } from '@/shareds/components/ui/switch';
 import { ScrollArea } from '@/shareds/components/ui/scroll-area';
-import { Home, Briefcase, Phone, Mail, Building2 } from 'lucide-react';
+import { Home, Briefcase, Phone, Mail, Building2, X } from 'lucide-react';
 import { format, addHours, isToday, startOfDay, setHours, setMinutes } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { RecurringDateTime, SelectedPassenger } from '@/features/transports/types/demande';
@@ -39,6 +39,7 @@ interface TransportConfigProps {
   setShowEmployeeList: (show: boolean) => void;
   handleShowConfirmation: () => void;
   subsidiaries: any[];
+  onRemovePassenger?: (passengerId: string) => void;
 }
 
 export function TransportConfig({
@@ -63,6 +64,7 @@ export function TransportConfig({
   setShowEmployeeList,
   handleShowConfirmation,
   subsidiaries,
+  onRemovePassenger,
 }: TransportConfigProps) {
   // Set default transport type to 'private' if not set
   useEffect(() => {
@@ -157,11 +159,27 @@ export function TransportConfig({
               {isHomeToWorkTrip ? 'Domicile → Travail (heure d\'arrivée)' : 'Travail → Domicile (heure de départ)'}
             </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <Home className={`h-4 w-4 ${isHomeToWorkTrip ? 'text-etaxi-yellow' : 'text-muted-foreground'}`} />
-            <Switch checked={!isHomeToWorkTrip} onCheckedChange={handleToggleTripDirection} />
-            <Briefcase className={`h-4 w-4 ${!isHomeToWorkTrip ? 'text-etaxi-yellow' : 'text-muted-foreground'}`} />
-          </div>
+          <button
+            type="button"
+            onClick={handleToggleTripDirection}
+            className="flex items-center space-x-4 border border-etaxi-yellow rounded-full px-5 py-2 shadow-sm transition-all duration-200 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-etaxi-yellow focus:ring-offset-2"
+            title="Changer la direction du trajet"
+            style={{ minWidth: 90, background: 'transparent' }}
+          >
+            {isHomeToWorkTrip ? (
+              <>
+                <Home className="h-5 w-5 transition-colors duration-200 text-etaxi-yellow" />
+                <span className="mx-2 text-2xl font-extrabold text-gray-800">→</span>
+                <Briefcase className="h-5 w-5 transition-colors duration-200 text-muted-foreground" />
+              </>
+            ) : (
+              <>
+                <Briefcase className="h-5 w-5 transition-colors duration-200 text-etaxi-yellow" />
+                <span className="mx-2 text-2xl font-extrabold text-gray-800">→</span>
+                <Home className="h-5 w-5 transition-colors duration-200 text-muted-foreground" />
+              </>
+            )}
+          </button>
         </div>
         {isRecurring && (
           <div className="space-y-3 p-3 border rounded">
@@ -209,6 +227,7 @@ export function TransportConfig({
                     <TableHead className="text-xs">Contact</TableHead>
                     <TableHead className="text-xs">Départ</TableHead>
                     <TableHead className="text-xs">Arrivée</TableHead>
+                    <TableHead className="text-xs"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -396,6 +415,19 @@ export function TransportConfig({
                               </Dialog>
                             )}
                           </div>
+                        </TableCell>
+                        <TableCell className="p-2 text-right">
+                          {onRemovePassenger && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
+                              onClick={() => onRemovePassenger(passenger.id)}
+                              title="Désélectionner le passager"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
