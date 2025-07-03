@@ -9,7 +9,6 @@ import { Upload, FileText, CheckCircle, AlertCircle, Download, X } from 'lucide-
 import { toast } from 'sonner';
 import { cn } from '@/shareds/lib/utils';
 import { useAuth } from '@/shareds/contexts/AuthContext';
-import { useRolesAndSubsidiaries } from '@/shareds/hooks/useRolesAndSubsidiaries';
 import { CreateEmployee, UserAddressDto } from '@/features/employees/types/employee';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -37,11 +36,13 @@ interface AddEmployeeFromCSVProps {
   onOpenChange: (open: boolean) => void;
   onEmployeesImported: (employees: CreateEmployee[]) => void;
   canCreate?: boolean;
+  roles: { id: string; name: string }[];
+  subsidiaries: { id: string; name: string; address: any }[];
+  loading: boolean;
 }
 
-export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, canCreate = true }: AddEmployeeFromCSVProps) {
+export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, canCreate = true, roles, subsidiaries, loading }: AddEmployeeFromCSVProps) {
   const { user } = useAuth();
-  const { roles, subsidiaries, loading } = useRolesAndSubsidiaries(user?.enterpriseId);
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [parsedEmployees, setParsedEmployees] = useState<ExcelEmployee[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);

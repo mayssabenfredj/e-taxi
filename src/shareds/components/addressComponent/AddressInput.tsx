@@ -1,16 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/shareds/components/ui/button';
-import { Input } from '@/shareds/components/ui/input';
 import { Label } from '@/shareds/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/shareds/components/ui/select';
-import { toast } from 'sonner';
-import { Address, AddressType, City, Region, Country } from '@/shareds/types/addresse';
+
+import { Address, AddressType, City, Region, Country, AddressDto } from '@/shareds/types/addresse';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shareds/components/ui/tabs';
 
 import {
@@ -31,7 +23,6 @@ import { SavedAddressSelector } from './address/SavedAddressSelector';
 import { CoordinatesInput } from './address/CoordinatesInput';
 import { MapPicker } from './MapPicker';
 import { ManualAddressForm } from './address/ManualAddressForm';
-import { AddressDto } from '@/features/employees/types/employee';
 
 interface AddressInputProps {
   label: string;
@@ -69,7 +60,6 @@ export function AddressInput({
     setSelectedAddress(address);
     onChange(address);
     setOpen(false);
-    toast.success('Adresse sélectionnée');
   };
 
   // Pour la Map
@@ -100,7 +90,6 @@ export function AddressInput({
     console.log("adress Selectedd : ", address);
     handleAddressSelect(address);
     setMapOpen(false);
-    toast.success('Adresse sélectionnée depuis la carte');
   };
 
   return (

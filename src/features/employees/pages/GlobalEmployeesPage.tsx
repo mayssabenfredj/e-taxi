@@ -42,7 +42,7 @@ export function GlobalEmployeesPage() {
   // Nouveaux états pour les filtres dynamiques
   const [roles, setRoles] = useState<Role[]>([]);
   const [enterprises, setEnterprises] = useState<Enterprise[]>([]);
-  const [subsidiaries, setSubsidiaries] = useState<Subsidiary[]>([]);
+  const [subsidiaries, setSubsidiaries] = useState<{ id: string; name: string; address: any }[]>([]);
 
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [employeeToToggle, setEmployeeToToggle] = useState<Employee | null>(null);
@@ -82,7 +82,7 @@ export function GlobalEmployeesPage() {
       return;
     }
     SubsidiaryService.getAllSubsidiaries({ enterpriseId: enterpriseFilter, include: true })
-      .then((res) => setSubsidiaries(res.data || []))
+      .then((res) => setSubsidiaries((res.data as Subsidiary[] || []).map(({ id, name, address }) => ({ id, name, address: address || null }))))
       .catch(() => toast.error('Erreur lors du chargement des filiales'));
   }, [enterpriseFilter]);
 
@@ -430,12 +430,18 @@ export function GlobalEmployeesPage() {
         onOpenChange={setAddEmployeeOpen}
         onEmployeeAdded={handleEmployeeAdded}
         canCreate={canCreate}
+        roles={roles}
+        subsidiaries={subsidiaries}
+        loading={loading}
       />
       <AddEmployeeFromCSV
         open={csvImportOpen}
         onOpenChange={setCsvImportOpen}
         onEmployeesImported={handleEmployeesImported}
         canCreate={canCreate}
+        roles={roles}
+        subsidiaries={subsidiaries}
+        loading={loading}
       />
     </div>
   );

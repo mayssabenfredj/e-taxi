@@ -279,7 +279,6 @@ export function MapPicker({ onLocationSelect, initialLocation, className, initia
           marker.position = new google.maps.LatLng(newCoords.lat, newCoords.lng);
         }
         reverseGeocode(newCoords);
-        toast.success('Position actuelle obtenue !');
       },
       (error) => {
         toast.error("Impossible d'obtenir la position");
@@ -317,7 +316,6 @@ export function MapPicker({ onLocationSelect, initialLocation, className, initia
       return;
     }
     onLocationSelect(selectedLocation);
-    toast.success('Adresse confirmée');
   };
 
   return (

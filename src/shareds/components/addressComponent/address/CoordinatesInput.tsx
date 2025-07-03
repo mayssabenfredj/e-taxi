@@ -75,7 +75,6 @@ export function CoordinatesInput({ onSubmit, initialAddress }: CoordinatesInputP
 
     onSubmit(address);
     setCoordinates({ latitude: '', longitude: '', manualAddress: '' });
-    toast.success('Position GPS et adresse ajoutées');
   };
 
   const getCurrentLocation = () => {
@@ -95,7 +94,6 @@ export function CoordinatesInput({ onSubmit, initialAddress }: CoordinatesInputP
           longitude: lng.toString(),
         });
 
-        toast.success('Position actuelle obtenue !');
       },
       (error) => {
         toast.error("Impossible d'obtenir la position");

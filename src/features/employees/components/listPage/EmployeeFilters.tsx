@@ -3,7 +3,6 @@ import { Button } from '@/shareds/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shareds/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shareds/components/ui/select';
 import { Filter } from 'lucide-react';
-import { useRolesAndSubsidiaries } from '@/shareds/hooks/useRolesAndSubsidiaries';
 import { useAuth } from '@/shareds/contexts/AuthContext';
 import { UserStatus } from '@/features/employees/types/employee';
 

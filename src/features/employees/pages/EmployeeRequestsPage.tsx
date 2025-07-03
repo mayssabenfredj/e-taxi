@@ -168,10 +168,13 @@ export function EmployeeRequestsPage() {
       <TableWithPagination
         data={requests}
         columns={columns}
-        title="Liste des demandes des collaborateurs"
-        searchPlaceholder="Rechercher par nom, email ou filiale..."
+        total={requests.length}
+        skip={0}
+        take={10}
+        onPageChange={() => {}}
         actions={getActions}
-        filterOptions={filterOptions}
+        emptyMessage="Aucune demande trouvée"
+        isShowingSearchPagination={false}
       />
     </div>
   );

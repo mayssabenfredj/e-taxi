@@ -172,7 +172,6 @@ export function ManualAddressForm({ onSubmit, initialAddress }: ManualAddressFor
 
     console.log('Submitting address:', address); // Debugging
     onSubmit(address);
-    toast.success('Adresse enregistrée');
   };
 
   return (

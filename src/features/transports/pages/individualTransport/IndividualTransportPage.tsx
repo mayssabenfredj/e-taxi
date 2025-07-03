@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shareds/components/ui/tabs';
 import { Car, History } from 'lucide-react';
 import { Header } from '@/features/transports/components/groupTransport/Header';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/shareds/contexts/AuthContext';
 import { useRolesAndSubsidiaries } from '@/shareds/hooks/useRolesAndSubsidiaries';
 import { hasPermission } from '@/shareds/lib/utils';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/shareds/components/ui/select';
 
 export function IndividualTransportPage() {
   const { user } = useAuth();
@@ -29,21 +30,29 @@ export function IndividualTransportPage() {
   const [requests, setRequests] = useState<TransportRequestResponse[]>([]);
   const [history, setHistory] = useState<TransportHistory[]>([]);
   const [requestsSkip, setRequestsSkip] = useState(0);
-  const [requestsTake] = useState(10);
+  const [requestsTake, setRequestsTake] = useState(10);
   const [historySkip, setHistorySkip] = useState(0);
   const [historyTake] = useState(10);
   const [requestsTotal, setRequestsTotal] = useState(0);
   const [historyTotal, setHistoryTotal] = useState(0);
   const [selectedSubsidiary, setSelectedSubsidiary] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<TransportStatus | null>(null);
+  const [search, setSearch] = useState('');
+  const [searchValue, setSearchValue] = useState('');
   const [loading, setLoading] = useState(false);
   const canCreate = hasPermission(user, 'transports:create');
   const canUpdate = hasPermission(user, 'transports:update');
   const canDelete = hasPermission(user, 'transports:delete');
   const canApprove = hasPermission(user, 'transports:approve');
   const canAssign = hasPermission(user, 'transports:assign');
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchValueRef = useRef<string>('');
 
-  const fetchRequests = async (resetPagination: boolean = false) => {
+  const fetchRequests = useCallback(async (resetPagination: boolean = false, customParams?: {
+    status?: TransportStatus | null;
+    subsidiaryId?: string | null;
+    search?: string;
+  }) => {
     setLoading(true);
     try {
       if (resetPagination) {
@@ -59,16 +68,25 @@ export function IndividualTransportPage() {
         const userRoles = user.roles.map((r) => r.role.name);
         if (userRoles.includes('ADMIN_ENTREPRISE') && user.enterpriseId) {
           query.enterpriseId = user.enterpriseId;
-          if (selectedSubsidiary) {
-            query.subsidiaryId = selectedSubsidiary;
+          if (customParams?.subsidiaryId || selectedSubsidiary) {
+            query.subsidiaryId = customParams?.subsidiaryId || selectedSubsidiary;
           }
         } else if (userRoles.includes('ADMIN_FILIALE') && user.enterpriseId && user.subsidiaryId) {
           query.enterpriseId = user.enterpriseId;
           query.subsidiaryId = user.subsidiaryId;
-          if (selectedStatus) {
-            query.status = selectedStatus;
-          }
         }
+      }
+
+      if (customParams?.status !== undefined) {
+        query.status = customParams.status;
+      } else if (selectedStatus) {
+        query.status = selectedStatus;
+      }
+      
+      if (customParams?.search !== undefined) {
+        query.search = customParams.search;
+      } else if (searchValueRef.current) {
+        query.search = searchValueRef.current;
       }
 
       const response = await demandeService.getTransportRequests(query);
@@ -79,9 +97,9 @@ export function IndividualTransportPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [requestsSkip, requestsTake, user]);
 
-  const fetchHistory = async (resetPagination: boolean = false) => {
+  const fetchHistory = useCallback(async (resetPagination: boolean = false) => {
     setLoading(true);
     try {
       if (resetPagination) {
@@ -94,7 +112,7 @@ export function IndividualTransportPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [historySkip, historyTake]);
 
   useEffect(() => {
     if (subsidiariesError) {
@@ -105,14 +123,38 @@ export function IndividualTransportPage() {
     } else if (activeTab === 'history') {
       fetchHistory();
     }
-  }, [activeTab, requestsSkip, requestsTake, historySkip, historyTake, selectedSubsidiary, selectedStatus, subsidiariesError]);
+  }, [activeTab, subsidiariesError]);
+
+  useEffect(() => {
+    if (!search) {
+      return;
+    }
+    
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    const timeout = setTimeout(() => {
+      searchValueRef.current = search;
+      setRequestsSkip(0);
+      setHistorySkip(0);
+      if (activeTab === 'requests') {
+        fetchRequests(true, { search });
+      } else if (activeTab === 'history') {
+        fetchHistory(true);
+      }
+    }, 200);
+    
+    searchTimeoutRef.current = timeout;
+    return () => clearTimeout(timeout);
+  }, [search, activeTab]);
 
   const handleSubsidiaryFilterChange = (subsidiaryId: string | null) => {
     setSelectedSubsidiary(subsidiaryId);
     setRequestsSkip(0);
     setHistorySkip(0);
     if (activeTab === 'requests') {
-      fetchRequests(true);
+      fetchRequests(true, { subsidiaryId });
     } else if (activeTab === 'history') {
       fetchHistory(true);
     }
@@ -123,10 +165,14 @@ export function IndividualTransportPage() {
     setRequestsSkip(0);
     setHistorySkip(0);
     if (activeTab === 'requests') {
-      fetchRequests(true);
+      fetchRequests(true, { status });
     } else if (activeTab === 'history') {
       fetchHistory(true);
     }
+  };
+
+  const handleSearchChange = (searchValue: string) => {
+    setSearch(searchValue);
   };
 
   const subsidiaryFilterOptions = [
@@ -164,17 +210,62 @@ export function IndividualTransportPage() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="requests">
+          <div className="mb-4 flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              placeholder="Rechercher par demandeur, trajet..."
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="h-9 text-sm border rounded px-2"
+              disabled={loading}
+            />
+            {user?.roles.some((r) => r.role.name === 'ADMIN_ENTREPRISE') && (
+              <Select
+                value={selectedSubsidiary || 'all'}
+                onValueChange={(value) => handleSubsidiaryFilterChange(value === 'all' ? null : value)}
+              >
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue placeholder="Filtrer par filiale" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes les filiales</SelectItem>
+                  {subsidiaries.map((sub) => (
+                    <SelectItem key={sub.id} value={sub.id}>
+                      {sub.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Select
+              value={selectedStatus || 'all'}
+              onValueChange={(value) => handleStatusFilterChange(value === 'all' ? null : value as TransportStatus)}
+            >
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Filtrer par statut" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tous les statuts</SelectItem>
+                <SelectItem value={TransportStatus.PENDING}>En attente</SelectItem>
+                <SelectItem value={TransportStatus.APPROVED}>Approuvée</SelectItem>
+                <SelectItem value={TransportStatus.REJECTED}>Rejetée</SelectItem>
+                <SelectItem value={TransportStatus.COMPLETED}>Terminée</SelectItem>
+                <SelectItem value={TransportStatus.CANCELLED}>Annulée</SelectItem>
+                <SelectItem value={TransportStatus.DISPATCHED}>Dispatchée</SelectItem>
+                <SelectItem value={TransportStatus.ASSIGNED}>Assignée</SelectItem>
+                <SelectItem value={TransportStatus.IN_PROGRESS}>En cours</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <RequestsTab
             requests={requests}
             skip={requestsSkip}
             take={requestsTake}
             total={requestsTotal}
             setSkip={setRequestsSkip}
-            setTake={() => {}} // Placeholder, as setTake is not used
+            setTake={setRequestsTake}
             setSelectedRequest={setSelectedRequest}
             setDuplicateDialogOpen={setDuplicateDialogOpen}
-            filterOptions={user?.roles.some((r) => r.role.name === 'ADMIN_ENTREPRISE') ? subsidiaryFilterOptions : statusFilterOptions}
-            onFilterChange={user?.roles.some((r) => r.role.name === 'ADMIN_ENTREPRISE') ? handleSubsidiaryFilterChange : handleStatusFilterChange}
             isLoading={subsidiariesLoading || loading}
             fetchRequests={fetchRequests}
             canCreate={canCreate}

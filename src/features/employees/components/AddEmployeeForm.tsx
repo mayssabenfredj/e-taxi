@@ -12,8 +12,6 @@ import { UserPlus } from 'lucide-react';
 import { Address, AddressDto, AddressType } from '@/shareds/types/addresse';
 import { CreateEmployee, UserAddressDto } from '@/features/employees/types/employee';
 import { useAuth } from '@/shareds/contexts/AuthContext';
-import { useRolesAndSubsidiaries } from '@/shareds/hooks/useRolesAndSubsidiaries';
-import { toast } from 'sonner';
 import { entrepriseService } from '@/features/Entreprises/services/entreprise.service';
 import SubsidiaryService from '@/features/Entreprises/services/subsidiarie.service';
 
@@ -22,14 +20,16 @@ interface AddEmployeeFormProps {
   onOpenChange: (open: boolean) => void;
   onEmployeeAdded: (employee: CreateEmployee) => void;
   canCreate?: boolean;
+  roles: { id: string; name: string }[];
+  subsidiaries: { id: string; name: string; address: any }[];
+  loading: boolean;
 }
 
-export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate = true }: AddEmployeeFormProps) {
+export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate = true, roles, subsidiaries, loading }: AddEmployeeFormProps) {
   const [selectedHomeAddress, setSelectedHomeAddress] = useState<Address | null>(null);
   const [selectedWorkAddress, setSelectedWorkAddress] = useState<Address | null>(null);
   const [isManager, setIsManager] = useState(false);
   const { user } = useAuth();
-  const { roles, subsidiaries, loading } = useRolesAndSubsidiaries(user?.enterpriseId);
   const [enterprises, setEnterprises] = useState<any[]>([]);
   const [filteredSubsidiaries, setFilteredSubsidiaries] = useState<any[]>(subsidiaries);
 

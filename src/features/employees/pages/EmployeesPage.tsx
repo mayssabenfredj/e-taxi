@@ -180,6 +180,9 @@ export function EmployeesPage() {
         onOpenChange={setAddEmployeeOpen}
         onEmployeeAdded={handleEmployeeAdded}
         canCreate={canCreate}
+        roles={roles}
+        subsidiaries={subsidiaries}
+        loading={loadingRolesSubs}
       />
 
       <AddEmployeeFromCSV
@@ -187,6 +190,9 @@ export function EmployeesPage() {
         onOpenChange={setCsvImportOpen}
         onEmployeesImported={handleEmployeesImported}
         canCreate={canCreate}
+        roles={roles}
+        subsidiaries={subsidiaries}
+        loading={loadingRolesSubs}
       />
 
       <EmployeeDialogs

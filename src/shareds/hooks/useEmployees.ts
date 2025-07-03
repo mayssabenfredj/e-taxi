@@ -53,7 +53,6 @@ export const useEmployees = ({
         const { data, total } = await employeeService.getAllEmployees(query);
         setEmployees(data);
         setTotal(total);
-        toast.success("Collaborateurs chargés avec succès !");
       } catch (error: any) {
         toast.error(
           `Erreur lors du chargement des Collaborateurs : ${

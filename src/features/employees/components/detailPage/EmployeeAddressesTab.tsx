@@ -5,10 +5,10 @@ import { Input } from '@/shareds/components/ui/input';
 import { Label } from '@/shareds/components/ui/label';
 import { MapPin, FilePlus } from 'lucide-react';
 import { toast } from 'sonner';
-import { Employee, UserAddressDto, AddressDto } from '@/features/employees/types/employee';
+import { Employee, UserAddressDto} from '@/features/employees/types/employee';
 import { AddressInput } from '@/shareds/components/addressComponent/AddressInput';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shareds/components/ui/select';
-import { AddressType } from '@/shareds/types/addresse';
+import { AddressDto, AddressType } from '@/shareds/types/addresse';
 
 interface EmployeeAddressesTabProps {
   employee: Employee;

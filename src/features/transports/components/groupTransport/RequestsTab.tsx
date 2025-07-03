@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/shareds/components/ui/button';
 import { TableWithPagination } from '@/shareds/components/ui/table-with-pagination';
 import { Eye, Copy, Navigation, X, AlertTriangle, Edit } from 'lucide-react';
@@ -29,8 +29,6 @@ interface RequestsTabProps {
   setTake: (take: number) => void;
   setSelectedRequest: (request: TransportRequestResponse | null) => void;
   setDuplicateDialogOpen: (open: boolean) => void;
-  filterOptions: { label: string; value: string | null }[];
-  onFilterChange: (value: string | null) => void;
   isLoading: boolean;
   fetchRequests: (resetPagination?: boolean) => Promise<void>;
   canCreate?: boolean;
@@ -49,8 +47,6 @@ export function RequestsTab({
   setTake,
   setSelectedRequest,
   setDuplicateDialogOpen,
-  filterOptions,
-  onFilterChange,
   isLoading,
   fetchRequests,
   canCreate = false,
@@ -321,29 +317,8 @@ export function RequestsTab({
     );
   };
 
-  const handleFilterChange = (value: string) => {
-    onFilterChange(value === 'null' ? null : value);
-  };
-
   return (
     <div>
-      <div className="mb-4">
-        <Select onValueChange={handleFilterChange} disabled={isLoading}>
-          <SelectTrigger>
-            <SelectValue placeholder="Sélectionner un filtre" />
-          </SelectTrigger>
-          <SelectContent>
-            {filterOptions.map((option) => (
-              <SelectItem
-                key={option.value || 'null'}
-                value={option.value || 'null'}
-              >
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
       <TableWithPagination
         data={requests}
         columns={requestColumns}
@@ -355,7 +330,8 @@ export function RequestsTab({
           setSkip(newSkip);
           setTake(newTake);
         }}
-        searchPlaceholder="Rechercher par demandeur, trajet..."
+        isFiltered={false}
+        isShowingSearchPagination={false}
       />
     </div>
   );

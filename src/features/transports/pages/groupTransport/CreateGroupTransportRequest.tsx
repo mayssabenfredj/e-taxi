@@ -196,7 +196,6 @@ export function CreateGroupTransportRequest() {
       setTotalPrice(0);
       setShowConfirmation(false);
       setGroupRoute(null);
-      toast.info('Mode modification : formulaire pré-rempli');
     } else if (location.state?.draftId || location.state?.draftData) {
       const draftData = location.state.draftData as DraftData;
       if (draftData && draftData.draftId) {
@@ -215,7 +214,6 @@ export function CreateGroupTransportRequest() {
         );
         setNote(draftData.note || '');
         setIsHomeToWorkTrip(draftData.isHomeToWorkTrip !== undefined ? draftData.isHomeToWorkTrip : false);
-        toast.info('Brouillon chargé');
       }
     } else {
       const drafts = getDrafts();
@@ -236,7 +234,6 @@ export function CreateGroupTransportRequest() {
         );
         setNote(latestDraft.note || '');
         setIsHomeToWorkTrip(latestDraft.isHomeToWorkTrip !== undefined ? latestDraft.isHomeToWorkTrip : false);
-        toast.info('Dernier brouillon automatiquement restauré');
       }
     }
   }, [location.state]);

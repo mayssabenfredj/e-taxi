@@ -167,7 +167,6 @@ export function GroupTransportDispatchPage() {
     };
     localStorage.setItem(`groupDispatchDraft-${id}`, JSON.stringify(draftData));
     setHasDraftChanges(true);
-    toast.success('Brouillon sauvegardé automatiquement');
   };
 
   // Calculer les estimations de trajet
@@ -340,7 +339,6 @@ export function GroupTransportDispatchPage() {
       isCollapsed: false,
     };
     setVirtualTaxis(prev => [newTaxi, ...prev]);
-    toast.success(`Taxi virtuel #${newTaxiNumber} ajouté`);
     setHasDraftChanges(true);
   };
 
