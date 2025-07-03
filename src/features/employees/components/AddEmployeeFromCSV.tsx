@@ -67,21 +67,21 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
   }, [selectedEnterpriseId, subsidiaries, user]);
 
   const downloadTemplate = () => {
-    const exampleRole = roles.find((role) => role.name === 'EMPLOYEE_ENTREPRISE')?.name || 'EMPLOYEE_ENTREPRISE';
-    const exampleAdminRole = roles.find((role) => role.name === 'ADMIN_FILIAL')?.name || 'ADMIN_FILIAL';
-    const exampleWorkAdreese = subsidiaries[0]?.address.formattedAddress|| '123 Rue Exemple, 75001 Paris';
+    const exampleRole = (roles ?? []).find((role) => role.name === 'EMPLOYEE_ENTREPRISE')?.name || 'EMPLOYEE_ENTREPRISE';
+    const exampleAdminRole = (roles ?? []).find((role) => role.name === 'ADMIN_FILIAL')?.name || 'ADMIN_FILIAL';
+    const exampleWorkAdreese = (subsidiaries ?? []).length > 0 && (subsidiaries[0] as any).address ? (subsidiaries[0] as any).address.formattedAddress || '123 Rue Exemple, 75001 Paris' : '123 Rue Exemple, 75001 Paris';
 
     let data;
     if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
-      const exEnterprises = enterprises.slice(0, 2);
+      const exEnterprises = (enterprises ?? []).slice(0, 2);
       data = exEnterprises.flatMap((ent, i) => {
         let exSubs = [];
-        if (subsidiaries.length > 0 && (subsidiaries[0] as any).entreprise) {
-          exSubs = subsidiaries.filter(s => (s as any).entreprise?.name === ent.name).slice(0, 2);
-        } else if (subsidiaries.length > 0 && (subsidiaries[0] as any).enterprise) {
-          exSubs = subsidiaries.filter(s => (s as any).enterprise?.name === ent.name).slice(0, 2);
+        if ((subsidiaries ?? []).length > 0 && (subsidiaries[0] as any).entreprise) {
+          exSubs = (subsidiaries ?? []).filter(s => (s as any).entreprise?.name === ent.name).slice(0, 2);
+        } else if ((subsidiaries ?? []).length > 0 && (subsidiaries[0] as any).enterprise) {
+          exSubs = (subsidiaries ?? []).filter(s => (s as any).enterprise?.name === ent.name).slice(0, 2);
         } else {
-          exSubs = subsidiaries.slice(0, 2);
+          exSubs = (subsidiaries ?? []).slice(0, 2);
         }
         return exSubs.map((sub, j) => ({
           firstName: `prenom${i}${j}`,
@@ -102,10 +102,10 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
           email: 'user@example.com',
           phone: '+33123456789',
           role: exampleRole,
-          subsidiary: subsidiaries[0]?.name || 'Filiale Paris',
+          subsidiary: (subsidiaries ?? []).length > 0 ? (subsidiaries[0] as any).name || 'Filiale Paris' : 'Filiale Paris',
           homeAddress: '1 rue Paris, 75001 Paris',
           workAddress: exampleWorkAdreese ,
-          enterprise: exEnterprises[0]?.name || 'Entreprise Démo'
+          enterprise: (exEnterprises[0]?.name) || 'Entreprise Démo'
         }];
       }
     } else {
@@ -116,7 +116,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
           email: 'iheb.bf@example.tn',
           phone: '+216123451254',
           role: exampleRole,
-          subsidiary: subsidiaries[0]?.name || 'TechCorp Paris',
+          subsidiary: (subsidiaries ?? []).length > 0 ? (subsidiaries[0] as any).name || 'TechCorp Paris' : 'TechCorp Paris',
           homeAddress: '123 Rue Exemple, 75001 Paris',
           workAddress: exampleWorkAdreese ,
         },
@@ -126,7 +126,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
           email: 'habib@example.tn',
           phone: '+216123456789',
           role: exampleRole,
-          subsidiary: subsidiaries[1]?.name || 'TechCorp Lyon',
+          subsidiary: (subsidiaries ?? []).length > 1 ? (subsidiaries[1] as any).name || 'TechCorp Lyon' : 'TechCorp Lyon',
           homeAddress: '123 Rue Paris, Tunis',
           workAddress:  exampleWorkAdreese
         },
@@ -150,10 +150,10 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(employee.email.toString())) errors.push('Email invalide');
     if (!employee.phone?.toString().trim()) errors.push('Téléphone manquant');
 
-    const role = roles.find((r) => r.name === employee.role?.toString());
-    if (!role) errors.push('Rôle inexistant');
+    const foundRole = (roles ?? []).find((r) => r.name === employee.role?.toString());
+    if (!foundRole) errors.push('Rôle inexistant');
     
-    const subsidiary = subsidiaries.find((s) => s.name === employee.subsidiary?.toString());
+    const subsidiary = (subsidiaries ?? []).find((s) => s.name === employee.subsidiary?.toString());
     if (!subsidiary) errors.push('Filiale inexistante');
 
     if (!employee.homeAddress?.toString().trim()) errors.push('Adresse domicile manquante');
@@ -285,7 +285,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
     const formattedEmployees: CreateEmployee[] = await Promise.all(validEmployees.map(async emp => {
       let enterpriseId: string | undefined = undefined;
       if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
-        const ent = enterprises.find(e => e.name === emp.enterprise);
+        const ent = (enterprises ?? []).find(e => e.name === emp.enterprise);
         enterpriseId = ent?.id;
       } else {
         enterpriseId = user?.enterpriseId;
@@ -296,7 +296,7 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
         const sub = res.data.find((s: any) => s.name === emp.subsidiary);
         subsidiaryId = sub?.id;
       }
-      const role = roles.find(r => r.name === emp.role);
+      const role = (roles ?? []).find(r => r.name === emp.role);
       const addresses: UserAddressDto[] = [];
       if (emp.homeAddress) {
         addresses.push({
@@ -444,8 +444,8 @@ export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, ca
                     </TableHeader>
                   </Table>
                   <div className="mt-3 text-sm text-blue-700 dark:text-blue-300">
-                    <p><strong>Rôles valides :</strong> {roles.map(r => r.name).join(', ') || 'Aucun rôle disponible'}</p>
-                    <p><strong>Sous Organisation valides :</strong> {subsidiaries.map(s => s.name).join(', ') || 'Aucune filiale disponible'}</p>
+                    <p><strong>Rôles valides :</strong> {(roles ?? []).map(r => r.name).join(', ') || 'Aucun rôle disponible'}</p>
+                    <p><strong>Sous Organisation valides :</strong> {(subsidiaries ?? []).map(s => s.name).join(', ') || 'Aucune filiale disponible'}</p>
                   </div>
                 </div>
 
