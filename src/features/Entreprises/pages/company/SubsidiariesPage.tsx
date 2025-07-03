@@ -115,7 +115,6 @@ export function SubsidariesPage() {
       setSubsidiaries(mappedData);
       
       setTotal(total);
-      toast.success('Sous Organisations chargées avec succès!');
     } catch (err: any) {
       toast.error(`Erreur lors du chargement des sous organisations: ${err.message || 'Une erreur est survenue.'}`);
     } finally {

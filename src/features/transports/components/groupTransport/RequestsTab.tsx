@@ -170,6 +170,15 @@ export function RequestsTab({
   };
 
   const requestColumns = [
+   {
+      header: 'Date prévue',
+      accessor: 'scheduledDate' as string,
+      render: (request: TransportRequestResponse) =>
+        request.scheduledDate
+          ? new Date(request.scheduledDate).toLocaleString('fr-FR')
+          : 'Non définie',
+      sortable: true,
+    },
     {
       header: 'Demandeur',
       accessor: 'requestedBy' as string,
@@ -195,15 +204,7 @@ export function RequestsTab({
           : 'Aucun passager',
       sortable: true,
     },
-    {
-      header: 'Date prévue',
-      accessor: 'scheduledDate' as string,
-      render: (request: TransportRequestResponse) =>
-        request.scheduledDate
-          ? new Date(request.scheduledDate).toLocaleString('fr-FR')
-          : 'Non définie',
-      sortable: true,
-    },
+   
     {
       header: 'Statut',
       accessor: 'status' as string,

@@ -17,6 +17,7 @@ import { CreateEmployee } from '@/features/employees/types/employee';
 import { startOfDay } from 'date-fns';
 import { hasPermission } from '@/shareds/lib/utils';
 import { AddressDto } from '@/shareds/types/addresse';
+import { ADMIN_FILIALE_ROLE } from '@/shareds/lib/const';
 
 // Fonction pour générer un UUID
 const generateUUID = () => {
@@ -340,6 +341,7 @@ export function CreateGroupTransportRequest() {
         requestedById: user?.id || 'current-user-id',
         enterpriseId,
         Direction: isHomeToWorkTrip ? TransportDirection.HOMETOOFFICE : TransportDirection.OFFICETOHOME,
+        subsidiaryId: user?.roles?.some((r: any) => r.role?.name === ADMIN_FILIALE_ROLE) ? user?.subsidiaryId : undefined,
         employeeTransports: selectedPassengers.map((passenger) => {
           let departureId: string | undefined = undefined;
           let arrivalId: string | undefined = undefined;
