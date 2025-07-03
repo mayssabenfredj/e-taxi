@@ -10,10 +10,11 @@ import { TaxiJoinRequestsPage } from '../pages/TaxiJoinRequestsPage';
 import { TaxiDetailsPage } from '../pages/TaxiDetailPage';
 
 const navigation = [
-  { name: 'Liste des taxis', href: '/dashboard/taxis', icon: Car },
-  { name: 'Taxis préférés', href: '/dashboard/taxis/preferred', icon: Star },
-  { name: 'Taxis blacklistés', href: '/dashboard/taxis/blacklisted', icon: UserX },
-  { name: 'Demandes d\'adhésion', href: '/dashboard/taxis/join-requests', icon: UserPlus },
+  { name: 'Liste des taxis', href: '/taxis', icon: Car },
+  { name: 'Taxis préférés', href: '/taxis/preferred', icon: Star },
+  { name: 'Taxis blacklistés', href: '/taxis/blacklisted', icon: UserX },
+  { name: 'Demandes d\'adhésion', href: '/taxis/join-requests', icon: UserPlus },
+  
 ];
 
 export function TaxisLayout() {

@@ -263,7 +263,7 @@ export function TaxiListPage() {
       <Button 
         variant="ghost" 
         size="sm"
-        onClick={() => navigate(`/dashboard/taxis/${taxi.id}`)}
+        onClick={() => navigate(`/taxis/${taxi.id}`)}
         title="Voir détails"
       >
         <Eye className="h-4 w-4" />
