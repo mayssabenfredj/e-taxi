@@ -16,6 +16,7 @@ import { AddressType } from '@/shareds/types/addresse';
 import { entrepriseService } from '@/features/Entreprises/services/entreprise.service';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shareds/components/ui/select';
 import SubsidiaryService from '@/features/Entreprises/services/subsidiarie.service';
+import { Enterprise } from '@/features/Entreprises/types/entreprise';
 
 interface ExcelEmployee {
   firstName: string;
@@ -39,30 +40,18 @@ interface AddEmployeeFromCSVProps {
   roles: { id: string; name: string }[];
   subsidiaries: { id: string; name: string; address: any }[];
   loading: boolean;
+  enterprises?: Enterprise[];
 }
 
-export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, canCreate = true, roles, subsidiaries, loading }: AddEmployeeFromCSVProps) {
+export function AddEmployeeFromCSV({ open, onOpenChange, onEmployeesImported, canCreate = true, roles, subsidiaries, loading, enterprises }: AddEmployeeFromCSVProps) {
   const { user } = useAuth();
   const [excelFile, setExcelFile] = useState<File | null>(null);
   const [parsedEmployees, setParsedEmployees] = useState<ExcelEmployee[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [enterprises, setEnterprises] = useState<any[]>([]);
   const [selectedEnterpriseId, setSelectedEnterpriseId] = useState<string>('');
   const [filteredSubsidiaries, setFilteredSubsidiaries] = useState<any[]>(subsidiaries);
-
-  useEffect(() => {
-    const fetchEnterprises = async () => {
-      if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
-                    const params: any = { skip : 0, take : 100 };
-
-        const res = await entrepriseService.findAll(params);
-        setEnterprises(res.data || []);
-      }
-    };
-    fetchEnterprises();
-  }, [user]);
 
   useEffect(() => {
     if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {

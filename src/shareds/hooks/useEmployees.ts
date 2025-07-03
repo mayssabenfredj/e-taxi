@@ -15,6 +15,7 @@ interface UseEmployeesProps {
   statusFilter: string;
   skip: number;
   take: number;
+  searchTerm?: string;
 }
 
 export const useEmployees = ({
@@ -24,6 +25,7 @@ export const useEmployees = ({
   statusFilter,
   skip,
   take,
+  searchTerm,
 }: UseEmployeesProps) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [total, setTotal] = useState(0);
@@ -42,10 +44,14 @@ export const useEmployees = ({
       try {
         setLoading(true);
         const query: GetEmployeesPagination = {
-          ...(enterpriseId ? { enterpriseId } : {}),
-          subsidiaryId:
-            subsidiaryFilter !== "all" ? subsidiaryFilter : undefined,
-          roleName: roleFilter !== "all" ? roleFilter : undefined,
+          ...(enterpriseId && enterpriseId !== "all" ? { enterpriseId } : {}),
+          ...(subsidiaryFilter && subsidiaryFilter !== "all"
+            ? { subsidiaryId: subsidiaryFilter }
+            : {}),
+          ...(roleFilter && roleFilter !== "all"
+            ? { roleName: roleFilter }
+            : {}),
+          ...(searchTerm ? { searchTerm } : {}),
           skip,
           take,
           includeAllData: true,
@@ -64,7 +70,15 @@ export const useEmployees = ({
       }
     };
     fetchEmployees();
-  }, [enterpriseId, skip, take, roleFilter, subsidiaryFilter, refreshTrigger]);
+  }, [
+    enterpriseId,
+    skip,
+    take,
+    roleFilter,
+    subsidiaryFilter,
+    searchTerm,
+    refreshTrigger,
+  ]);
 
   // Create employee
   const createEmployee = async (employeeData: CreateEmployee) => {
@@ -76,7 +90,7 @@ export const useEmployees = ({
       lastName: employeeData.lastName || undefined,
       phone: employeeData.phone,
       alternativePhone: employeeData.alternativePhone || undefined,
-      enterpriseId : employeeData.enterpriseId || enterpriseId,
+      enterpriseId: employeeData.enterpriseId || enterpriseId,
       subsidiaryId: employeeData.subsidiaryId || undefined,
       managerId: employeeData.managerId || undefined,
       roleIds: employeeData.roleIds || [],

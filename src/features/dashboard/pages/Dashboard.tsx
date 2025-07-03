@@ -89,7 +89,7 @@ export function Dashboard() {
         <Route path="/transport/drafts" element={<DraftRequestsPage />} />
         <Route path="/transport/create-transport" element={<CreateGroupTransportRequest />} />
         <Route path="/transport/:id/group-dispatch" element={<GroupTransportDispatchPage />} />
-        <Route path="/taxis" element={<TaxiManagementPage />} />
+        <Route path="/taxis/*" element={<TaxiManagementPage />} />
         <Route path="/subsidiaries" element={<SubsidariesPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />

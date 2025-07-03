@@ -14,6 +14,7 @@ import { CreateEmployee, UserAddressDto } from '@/features/employees/types/emplo
 import { useAuth } from '@/shareds/contexts/AuthContext';
 import { entrepriseService } from '@/features/Entreprises/services/entreprise.service';
 import SubsidiaryService from '@/features/Entreprises/services/subsidiarie.service';
+import { Enterprise } from '@/features/Entreprises/types/entreprise';
 
 interface AddEmployeeFormProps {
   open: boolean;
@@ -23,14 +24,14 @@ interface AddEmployeeFormProps {
   roles: { id: string; name: string }[];
   subsidiaries: { id: string; name: string; address: any }[];
   loading: boolean;
+  enterprises?: Enterprise[];
 }
 
-export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate = true, roles, subsidiaries, loading }: AddEmployeeFormProps) {
+export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate = true, roles, subsidiaries, loading, enterprises }: AddEmployeeFormProps) {
   const [selectedHomeAddress, setSelectedHomeAddress] = useState<Address | null>(null);
   const [selectedWorkAddress, setSelectedWorkAddress] = useState<Address | null>(null);
   const [isManager, setIsManager] = useState(false);
   const { user } = useAuth();
-  const [enterprises, setEnterprises] = useState<any[]>([]);
   const [filteredSubsidiaries, setFilteredSubsidiaries] = useState<any[]>(subsidiaries);
 
   const form = useForm<CreateEmployee>({
@@ -90,20 +91,7 @@ export function AddEmployeeForm({ open, onOpenChange, onEmployeeAdded, canCreate
   }, [selectedSubsidiaryId, subsidiaries]);
 
   useEffect(() => {
-    // Si ADMIN, charger la liste des entreprises
-    const fetchEnterprises = async () => {
-      if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
-            const params: any = { skip : 0, take : 100 };
-        const res = await entrepriseService.findAll(params);
-        console.log("reeeessss ***" , res.data)
-        setEnterprises(res.data || []);
-      }
-    };
-    fetchEnterprises();
-  }, [user]);
-
-  // Filtrage dynamique des filiales si ADMIN
-  useEffect(() => {
+    // Filtrage dynamique des filiales si ADMIN
     if (user?.roles?.some((r: any) => r.role?.name === 'ADMIN')) {
       const entId = form.getValues('enterpriseId');
       if (entId && entId !== 'none') {

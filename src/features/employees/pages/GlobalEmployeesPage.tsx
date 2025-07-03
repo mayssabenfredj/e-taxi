@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shareds/components/ui/card';
 import { Button } from '@/shareds/components/ui/button';
 import { Input } from '@/shareds/components/ui/input';
@@ -26,6 +26,8 @@ import { useEmployees } from '@/shareds/hooks/useEmployees';
 export function GlobalEmployeesPage() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const [enterpriseFilter, setEnterpriseFilter] = useState<string>('all');
   const [subsidiaryFilter, setSubsidiaryFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -71,7 +73,7 @@ export function GlobalEmployeesPage() {
   useEffect(() => {
     const params: any = { skip, take };
     entrepriseService.findAll(params)
-      .then((res) => setEnterprises(res.data || []))
+      .then((res) => setEnterprises(res.data.data || []))
       .catch(() => toast.error('Erreur lors du chargement des entreprises'));
   }, []);
 
@@ -86,6 +88,16 @@ export function GlobalEmployeesPage() {
       .catch(() => toast.error('Erreur lors du chargement des filiales'));
   }, [enterpriseFilter]);
 
+  useEffect(() => {
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 400);
+    return () => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    };
+  }, [searchTerm]);
+
   // Utilisation du hook useEmployees pour la gestion globale
   const {
     employees: globalEmployees,
@@ -95,13 +107,13 @@ export function GlobalEmployeesPage() {
     importEmployees,
     setStatusFilter: setEmployeeStatusFilter,
   } = useEmployees({
-    // Pas d'enterpriseId pour le global
-    enterpriseId: undefined,
+    enterpriseId: enterpriseFilter !== 'all' ? enterpriseFilter : undefined,
     roleFilter,
-    subsidiaryFilter,
+    subsidiaryFilter: subsidiaryFilter !== 'all' ? subsidiaryFilter : undefined,
     statusFilter,
     skip,
     take: itemsPerPage,
+    searchTerm: debouncedSearchTerm,
   });
 
   const getStatusColor = (status: string) => {
@@ -432,6 +444,7 @@ export function GlobalEmployeesPage() {
         canCreate={canCreate}
         roles={roles}
         subsidiaries={subsidiaries}
+        enterprises={enterprises}
         loading={loading}
       />
       <AddEmployeeFromCSV
@@ -441,6 +454,7 @@ export function GlobalEmployeesPage() {
         canCreate={canCreate}
         roles={roles}
         subsidiaries={subsidiaries}
+        enterprises={enterprises}
         loading={loading}
       />
     </div>

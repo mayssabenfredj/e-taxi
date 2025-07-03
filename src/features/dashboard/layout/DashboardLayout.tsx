@@ -87,8 +87,8 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
     { id: 'companys', name: t('companys'), icon: Building2, path: '/companys', permission: 'enterprises:read' },
     { id: 'subsidiaries', name: 'Sous Organisation', icon: Home, path: '/subsidiaries', permission: 'subsidiaries:read' },
     { id: 'employees', name: t('employees'), icon: Users, path: '/employees', permission: 'users:read' },
-    { id: 'taxis', name: 'Gestion des taxis', icon: Car, path: '/taxis', permission: 'taxis:read' },
-    { id: 'assign-taxi', name: 'Assignation taxi', icon: Navigation, path: '/assign-taxi', permission: 'taxis:assign' },
+    { id: 'taxis', name: 'Gestion des taxis', icon: Car, path: '/taxis', permission: 'vehicles:read' },
+    { id: 'assign-taxi', name: 'Assignation taxi', icon: Navigation, path: '/assign-taxi', permission: 'vehicles:assign' },
     { 
       id: 'transport', 
       name: t('transportRequests'), 
