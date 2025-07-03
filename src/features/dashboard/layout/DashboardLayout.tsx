@@ -202,7 +202,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
                     className={cn(
                       "w-full transition-all duration-200 justify-between",
                       isCollapsed && !isMobile ? "justify-center px-2" : "justify-between",
-                      activePage === item.id && "bg-etaxi-yellow/10 text-etaxi-yellow hover:bg-etaxi-yellow/20"
+                      activePage === item.id && "bg-etaxi-yellow/10 text-etaxi-yellow hover:bg-etaxi-yellow/20 font-medium"
                     )}
                     title={isCollapsed && !isMobile ? item.name : undefined}
                     onClick={() => {
@@ -213,7 +213,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
                     }}
                   >
                     <div className="flex items-center space-x-2">
-                      <item.icon className="h-5 w-5" />
+                      <item.icon className={cn("h-5 w-5", activePage === item.id && "text-etaxi-yellow")} />
                       {(!isCollapsed || isMobile) && <span>{item.name}</span>}
                     </div>
                     {(!isCollapsed || isMobile) && (
@@ -234,7 +234,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
                         variant="ghost"
                         className={cn(
                           "w-full justify-start text-sm px-4 py-2 rounded-none",
-                          location.pathname === subItem.path && "bg-etaxi-yellow/10 text-etaxi-yellow"
+                          location.pathname === subItem.path && "bg-etaxi-yellow/10 text-etaxi-yellow font-medium"
                         )}
                         onClick={() => {
                           navigateTo(subItem.path, subItem.id);
@@ -256,7 +256,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
                         variant="ghost"
                         className={cn(
                           "w-full justify-start ml-6 text-sm",
-                          location.pathname === subItem.path && "bg-etaxi-yellow/10 text-etaxi-yellow"
+                          location.pathname === subItem.path && "bg-etaxi-yellow/10 text-etaxi-yellow font-medium"
                         )}
                         onClick={() => {
                           navigateTo(subItem.path, subItem.id);
@@ -275,7 +275,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
                 className={cn(
                   "w-full transition-all duration-200",
                   isCollapsed && !isMobile ? "justify-center px-2" : "justify-start space-x-2",
-                  activePage === item.id && "bg-etaxi-yellow/10 text-etaxi-yellow hover:bg-etaxi-yellow/20"
+                  activePage === item.id && "bg-etaxi-yellow/10 text-etaxi-yellow hover:bg-etaxi-yellow/20 font-medium"
                 )}
                 onClick={() => {
                   navigateTo(item.path, item.id);
@@ -283,7 +283,7 @@ export function DashboardLayout({ children, currentPage, onPageChange }: Dashboa
                 }}
                 title={isCollapsed && !isMobile ? item.name : undefined}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className={cn("h-5 w-5", activePage === item.id && "text-etaxi-yellow")} />
                 {(!isCollapsed || isMobile) && <span>{item.name}</span>}
               </Button>
             )}
