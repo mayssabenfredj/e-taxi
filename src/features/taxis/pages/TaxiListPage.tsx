@@ -394,7 +394,7 @@ export function TaxiListPage() {
         data={paginatedTaxis}
         columns={columns}
         searchPlaceholder="Rechercher des taxis..."
-        onRowClick={(taxi) => navigate(`/dashboard/taxis/${taxi.id}`)}
+        onRowClick={(taxi) => navigate(`/taxis/${taxi.id}`)}
         actions={actions}
         emptyMessage="Aucun taxi trouvé"
         total={total}
